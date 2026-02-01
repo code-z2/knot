@@ -1,0 +1,8 @@
+{
+  "name": "@hack-money/ios",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Build iOS app with Xcode'",
+    "dev": "echo 'Run iOS app with Xcode'"
+  }
+}
