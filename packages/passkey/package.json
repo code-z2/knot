@@ -1,0 +1,8 @@
+{
+  "name": "@hack-money/passkey",
+  "private": true,
+  "scripts": {
+    "build": "swift build",
+    "test": "swift test"
+  }
+}

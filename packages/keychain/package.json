@@ -1,0 +1,8 @@
+{
+  "name": "@hack-money/keychain",
+  "private": true,
+  "scripts": {
+    "build": "swift build",
+    "test": "swift test"
+  }
+}

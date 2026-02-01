@@ -1,0 +1,14 @@
+{
+  "name": "@hack-money/contracts",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "fmt": "forge fmt",
+    "snapshot": "forge snapshot",
+    "coverage": "forge coverage",
+    "clean": "forge clean",
+    "anvil": "anvil",
+    "install:all": "forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts eth-infinitism/account-abstraction Uniswap/v4-core Uniswap/v4-periphery"
+  }
+}

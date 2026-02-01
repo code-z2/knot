@@ -1,0 +1,8 @@
+{
+  "name": "@hack-money/sign-handler",
+  "private": true,
+  "scripts": {
+    "build": "swift build",
+    "test": "swift test"
+  }
+}
