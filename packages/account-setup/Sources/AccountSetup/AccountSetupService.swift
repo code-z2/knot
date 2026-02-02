@@ -35,6 +35,51 @@ public enum AccountSetupError: Error {
   case missingStoredPasskey
   case missingStoredAuthorization
   case inconsistentStoredIdentity
+  case walletGenerationFailed(Error)
+  case passkeyRegistrationFailed(Error)
+  case authorizationSigningFailed(Error)
+  case walletStorageFailed(Error)
+  case passkeyStorageFailed(Error)
+  case authorizationStorageFailed(Error)
+  case passkeyAssertionFailed(Error)
+  case authorizationRecoveryFailed(Error)
+  case passkeyDecodeFailed(Error)
+  case authorizationDecodeFailed(Error)
+}
+
+extension AccountSetupError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .invalidAddress:
+      return "Derived EOA address is invalid."
+    case .missingStoredPasskey:
+      return "No stored passkey public data found."
+    case .missingStoredAuthorization:
+      return "No stored signed authorization found."
+    case .inconsistentStoredIdentity:
+      return "Stored passkey identity does not match recovered authorization signer."
+    case .walletGenerationFailed(let error):
+      return "Failed to generate wallet material: \(error.localizedDescription)"
+    case .passkeyRegistrationFailed(let error):
+      return "Passkey registration failed: \(error.localizedDescription)"
+    case .authorizationSigningFailed(let error):
+      return "Failed to sign EIP-7702 authorization: \(error.localizedDescription)"
+    case .walletStorageFailed(let error):
+      return "Failed to persist wallet material locally: \(error.localizedDescription)"
+    case .passkeyStorageFailed(let error):
+      return "Failed to save passkey public data: \(error.localizedDescription)"
+    case .authorizationStorageFailed(let error):
+      return "Failed to save signed authorization: \(error.localizedDescription)"
+    case .passkeyAssertionFailed(let error):
+      return "Passkey assertion failed during sign-in: \(error.localizedDescription)"
+    case .authorizationRecoveryFailed(let error):
+      return "Failed to recover signer from signed authorization: \(error.localizedDescription)"
+    case .passkeyDecodeFailed(let error):
+      return "Stored passkey data could not be decoded: \(error.localizedDescription)"
+    case .authorizationDecodeFailed(let error):
+      return "Stored authorization data could not be decoded: \(error.localizedDescription)"
+    }
+  }
 }
 
 public protocol WalletMaterialStoring {
@@ -65,7 +110,8 @@ public struct LocalWalletMaterialStore: WalletMaterialStoring {
 #if os(iOS)
     var resourceValues = URLResourceValues()
     resourceValues.isExcludedFromBackup = true
-    try? fileURL.setResourceValues(resourceValues)
+    var writableURL = fileURL
+    try? writableURL.setResourceValues(resourceValues)
     try? FileManager.default.setAttributes(
       [.protectionKey: FileProtectionType.complete],
       ofItemAtPath: fileURL.path
@@ -113,38 +159,68 @@ public actor AccountSetupService {
     chainId: UInt64 = 1,
     nonce: UInt64 = 0
   ) async throws -> CreatedAccount {
-    let wallet = try walletFactory.createNewEOA()
+    let wallet: WalletMaterial
+    do {
+      wallet = try walletFactory.createNewEOA()
+    } catch {
+      throw AccountSetupError.walletGenerationFailed(error)
+    }
+
     let userID = Data(UUID().uuidString.utf8)
 
-    let passkey = try await passkeyService.register(
-      rpId: relyingParty.rpID,
-      rpName: relyingParty.rpName,
-      challenge: randomChallenge(),
-      userName: wallet.eoaAddress,
-      userID: userID
-    )
+    let passkey: PasskeyPublicKey
+    do {
+      passkey = try await passkeyService.register(
+        rpId: relyingParty.rpID,
+        rpName: relyingParty.rpName,
+        challenge: randomChallenge(),
+        userName: wallet.eoaAddress,
+        userID: userID
+      )
+    } catch {
+      throw AccountSetupError.passkeyRegistrationFailed(error)
+    }
 
     let unsigned = EIP7702AuthorizationUnsigned(
       chainId: chainId,
       delegateAddress: delegateAddress,
       nonce: nonce
     )
-    let signedAuthorization = try EIP7702AuthorizationCodec.signAuthorization(
-      unsigned,
-      privateKeyHex: wallet.privateKeyHex
-    )
+    let signedAuthorization: EIP7702AuthorizationSigned
+    do {
+      signedAuthorization = try EIP7702AuthorizationCodec.signAuthorization(
+        unsigned,
+        privateKeyHex: wallet.privateKeyHex
+      )
+    } catch {
+      throw AccountSetupError.authorizationSigningFailed(error)
+    }
 
-    try walletStore.save(wallet)
-    try keychain.save(
-      try JSONEncoder().encode(passkey),
-      account: KeychainAccount.passkeyPublic,
-      service: keychainService
-    )
-    try keychain.save(
-      try JSONEncoder().encode(signedAuthorization),
-      account: KeychainAccount.authorization,
-      service: keychainService
-    )
+    do {
+      try walletStore.save(wallet)
+    } catch {
+      throw AccountSetupError.walletStorageFailed(error)
+    }
+
+    do {
+      try keychain.save(
+        try JSONEncoder().encode(passkey),
+        account: KeychainAccount.passkeyPublic,
+        service: keychainService
+      )
+    } catch {
+      throw AccountSetupError.passkeyStorageFailed(error)
+    }
+
+    do {
+      try keychain.save(
+        try JSONEncoder().encode(signedAuthorization),
+        account: KeychainAccount.authorization,
+        service: keychainService
+      )
+    } catch {
+      throw AccountSetupError.authorizationStorageFailed(error)
+    }
 
     return CreatedAccount(
       eoaAddress: wallet.eoaAddress,
@@ -157,9 +233,18 @@ public actor AccountSetupService {
     let passkeyPublic = try storedPasskeyPublic()
     let signedAuthorization = try storedSignedAuthorization()
 
-    _ = try await passkeyService.sign(rpId: relyingParty.rpID, payload: randomChallenge())
+    do {
+      _ = try await passkeyService.sign(rpId: relyingParty.rpID, payload: randomChallenge())
+    } catch {
+      throw AccountSetupError.passkeyAssertionFailed(error)
+    }
 
-    let recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(signedAuthorization)
+    let recoveredAddress: String
+    do {
+      recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(signedAuthorization)
+    } catch {
+      throw AccountSetupError.authorizationRecoveryFailed(error)
+    }
     guard recoveredAddress.caseInsensitiveCompare(passkeyPublic.userName) == .orderedSame else {
       throw AccountSetupError.inconsistentStoredIdentity
     }
@@ -173,7 +258,11 @@ public actor AccountSetupService {
   public func storedPasskeyPublic() throws -> PasskeyPublicKey {
     do {
       let data = try keychain.read(account: KeychainAccount.passkeyPublic, service: keychainService)
-      return try JSONDecoder().decode(PasskeyPublicKey.self, from: data)
+      do {
+        return try JSONDecoder().decode(PasskeyPublicKey.self, from: data)
+      } catch {
+        throw AccountSetupError.passkeyDecodeFailed(error)
+      }
     } catch KeychainStoreError.dataNotFound {
       throw AccountSetupError.missingStoredPasskey
     }
@@ -182,7 +271,11 @@ public actor AccountSetupService {
   public func storedSignedAuthorization() throws -> EIP7702AuthorizationSigned {
     do {
       let data = try keychain.read(account: KeychainAccount.authorization, service: keychainService)
-      return try JSONDecoder().decode(EIP7702AuthorizationSigned.self, from: data)
+      do {
+        return try JSONDecoder().decode(EIP7702AuthorizationSigned.self, from: data)
+      } catch {
+        throw AccountSetupError.authorizationDecodeFailed(error)
+      }
     } catch KeychainStoreError.dataNotFound {
       throw AccountSetupError.missingStoredAuthorization
     }

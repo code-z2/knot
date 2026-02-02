@@ -45,6 +45,23 @@ public enum EIP7702AuthorizationError: Error {
   case recoveryFailed
 }
 
+extension EIP7702AuthorizationError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .signingUnavailable:
+      return "Authorization signing is unavailable (web3swift/Web3Core missing)."
+    case .invalidPrivateKey:
+      return "Invalid private key format for authorization signing."
+    case .malformedSignature:
+      return "Authorization signature payload is malformed."
+    case .recoveryUnavailable:
+      return "Authorization recovery is unavailable (web3swift/Web3Core missing)."
+    case .recoveryFailed:
+      return "Failed to recover signer address from signed authorization."
+    }
+  }
+}
+
 public enum EIP7702AuthorizationCodec {
   public static let magic: UInt8 = 0x05
 

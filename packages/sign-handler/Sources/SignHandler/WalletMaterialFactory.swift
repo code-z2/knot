@@ -20,6 +20,23 @@ public enum WalletMaterialFactoryError: Error {
   case privateKeyExtractionFailed
 }
 
+extension WalletMaterialFactoryError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .web3swiftUnavailable:
+      return "Wallet generation dependency is unavailable (web3swift/Web3Core)."
+    case .mnemonicGenerationFailed:
+      return "Failed to generate a mnemonic phrase."
+    case .keystoreInitFailed:
+      return "Failed to initialize keystore from mnemonic."
+    case .missingAddress:
+      return "No account address was derived from the keystore."
+    case .privateKeyExtractionFailed:
+      return "Failed to extract private key from derived account."
+    }
+  }
+}
+
 public struct WalletMaterialFactory {
   public init() {}
 
