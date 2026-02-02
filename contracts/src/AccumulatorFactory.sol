@@ -23,7 +23,7 @@ contract AccumulatorFactory {
 
     /// @notice Compute the accumulator address for a user and messenger.
     /// @dev Used off-chain to precompute the destination recipient for bridge fills.
-    function computeAddress(address userAccount, address messenger) public view returns (address) {
+    function computeAddress(address userAccount, address messenger) external view returns (address) {
         bytes32 salt = _hashAddress(userAccount);
         return Create2.computeAddress(salt, keccak256(_getBytecode(userAccount, messenger)), address(this));
     }
