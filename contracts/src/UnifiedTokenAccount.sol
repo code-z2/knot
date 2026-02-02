@@ -45,7 +45,7 @@ contract UnifiedTokenAccount is
 
     /// @notice One-time initializer for upgradeable deployments.
     /// @dev Used only if deployed as a proxy; EIP-7702 uses the constructor path.
-    function initialize(bytes32 qx, bytes32 qy) public initializer {
+    function initialize(bytes32 qx, bytes32 qy) external initializer {
         _checkEntryPointOrSelf();
 
         _setSigner(qx, qy);
@@ -106,6 +106,7 @@ contract UnifiedTokenAccount is
         uint256 nonce = getNonce();
         uint256 salt = (nonce << 60) | block.chainid;
         bytes32 intenthash = _hashSaltJobId(salt, jobId);
+        // aderyn-fp-next-line(unsafe-erc20-operation)
         IAccumulator(accumulator).approve(intenthash);
         emit JobRegistered(intenthash, accumulator);
     }

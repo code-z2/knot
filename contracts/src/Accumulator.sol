@@ -38,6 +38,7 @@ contract Accumulator is Ownable {
 
     mapping(bytes32 => JobState) public jobs;
 
+    event JobApproved(bytes32 indexed intentId);
     event MultiChainIntentExecuted(
         bytes32 indexed intentId,
         address indexed user,
@@ -105,10 +106,10 @@ contract Accumulator is Ownable {
     /// becomes active. The UI can prompt the user to re-run if this happens.
     function approve(bytes32 intentHash) external onlyOwner {
         JobState storage job = jobs[intentHash];
-        if (job.approved) return;
 
         if (job.status == JobStatus.Executed || job.status == JobStatus.Refunded) revert AlreadyExecuted();
 
+        if (job.approved) return;
         job.approved = true;
 
         if (job.status == JobStatus.Accumulated) {
@@ -116,6 +117,8 @@ contract Accumulator is Ownable {
             _refundInput(job.received, job.inputToken);
             return;
         }
+
+        emit JobApproved(intentHash);
     }
 
     /// @dev Executes swaps (if any), then pays recipient; otherwise refunds on failure.
