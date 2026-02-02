@@ -7,4 +7,3 @@ Implementation Checklist
 - Across V3 integration: attach intent+sig as message; recipient is accumulator.
 - Emit MultiChainIntentExecuted with source chains/amounts for UI.
 - Indexer/UI: hide internal transfers; display consolidated event.
-
