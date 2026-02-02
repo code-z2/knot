@@ -2,7 +2,8 @@ import XCTest
 @testable import Passkey
 
 final class PasskeyTests: XCTestCase {
-  func testInit() {
-    _ = Passkey()
+  func testRelyingPartyConfig() {
+    let config = PasskeyRelyingParty(rpID: "peteranyaogu.com", rpName: "peteranyaogu")
+    XCTAssertEqual(config.rpID, "peteranyaogu.com")
   }
 }
