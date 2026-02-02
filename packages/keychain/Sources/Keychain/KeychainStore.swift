@@ -7,6 +7,22 @@ public enum KeychainStoreError: Error {
   case invalidData
 }
 
+extension KeychainStoreError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .unexpectedStatus(let status):
+      if let message = SecCopyErrorMessageString(status, nil) as String? {
+        return "Keychain operation failed (\(status)): \(message)"
+      }
+      return "Keychain operation failed with status \(status)."
+    case .dataNotFound:
+      return "No keychain item was found for the requested account/service."
+    case .invalidData:
+      return "Keychain returned data in an unexpected format."
+    }
+  }
+}
+
 public protocol KeychainStoring {
   func save(_ data: Data, account: String, service: String) throws
   func read(account: String, service: String) throws -> Data

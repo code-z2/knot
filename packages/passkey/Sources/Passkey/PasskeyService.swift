@@ -89,6 +89,31 @@ public enum PasskeyServiceError: Error {
   case malformedAuthenticatorData
   case malformedCoseKey
   case malformedSignature
+  case authorizationFailed(code: Int?, message: String)
+}
+
+extension PasskeyServiceError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .missingWindowAnchor:
+      return "No presentation anchor is available for passkey prompt."
+    case .unsupportedResponse:
+      return "Received unsupported passkey response type."
+    case .malformedAttestationObject:
+      return "Passkey attestation object is malformed."
+    case .malformedAuthenticatorData:
+      return "Passkey authenticator data is malformed."
+    case .malformedCoseKey:
+      return "Passkey COSE public key is malformed."
+    case .malformedSignature:
+      return "Passkey signature payload is malformed."
+    case .authorizationFailed(let code, let message):
+      if let code {
+        return "Passkey authorization failed (\(code)): \(message)"
+      }
+      return "Passkey authorization failed: \(message)"
+    }
+  }
 }
 
 public protocol PasskeyServicing {
@@ -206,7 +231,13 @@ extension PasskeyService: ASAuthorizationControllerDelegate {
     controller _: ASAuthorizationController,
     didCompleteWithError error: Error
   ) {
-    continuation?.resume(throwing: error)
+    let nsError = error as NSError
+    continuation?.resume(
+      throwing: PasskeyServiceError.authorizationFailed(
+        code: nsError.code,
+        message: nsError.localizedDescription
+      )
+    )
     continuation = nil
   }
 }
