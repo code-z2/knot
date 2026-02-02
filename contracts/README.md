@@ -1,66 +1,32 @@
-## Foundry
+Hack Money Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Sequence Diagram (Scatter → Gather → Execute)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant App as iOS App
+    participant UA as UnifiedTokenAccount
+    participant AF as AccumulatorFactory
+    participant M as Across Messenger
+    participant ACC as Accumulator (Destination)
+    participant DEX as Swap Router
+    participant TRE as Treasury
+    actor Receiver
 
-Foundry consists of:
+    User->>App: Approve intent (passkey)
+    App->>UA: executeChainCalls(bundle)
+    UA->>AF: deploy(messenger)  (dest chain)
+    UA->>ACC: approve(intentHash)  (registerJob)
+    UA->>M: bridge inputToken (from each source)
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+    M->>ACC: handleMessage(fromChain, amount, payload)
+    ACC->>ACC: accumulate amount until minInput
+    ACC->>UA: wait for approval (if not yet approved)
 
-## Documentation
+    ACC->>DEX: swapCalls (optional)
+    ACC->>Receiver: transfer outputToken (<= minOutput)
+    ACC->>TRE: sweep (manual, optional)
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+    Note over ACC,UA: If approval arrives late (after accumulation), ACC refunds to UA.
 ```
