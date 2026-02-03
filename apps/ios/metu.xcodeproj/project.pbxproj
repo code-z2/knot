@@ -415,43 +415,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Metu;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_UIAppFonts = (
-					"src/Fonts/Roboto/Roboto-Black.ttf",
-					"src/Fonts/Roboto/Roboto-Bold.ttf",
-					"src/Fonts/Roboto/Roboto-ExtraBold.ttf",
-					"src/Fonts/Roboto/Roboto-ExtraLight.ttf",
-					"src/Fonts/Roboto/Roboto-Light.ttf",
-					"src/Fonts/Roboto/Roboto-Medium.ttf",
-					"src/Fonts/Roboto/Roboto-Regular.ttf",
-					"src/Fonts/Roboto/Roboto-SemiBold.ttf",
-					"src/Fonts/Roboto/Roboto-Thin.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Black.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Bold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Light.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Medium.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Regular.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Thin.ttf",
-					"src/Fonts/Roboto/RobotoFlex-VariableFont.ttf",
-					"src/Fonts/Roboto/RobotoMono-Bold.ttf",
-					"src/Fonts/Roboto/RobotoMono-ExtraLight.ttf",
-					"src/Fonts/Roboto/RobotoMono-Light.ttf",
-					"src/Fonts/Roboto/RobotoMono-Medium.ttf",
-					"src/Fonts/Roboto/RobotoMono-Regular.ttf",
-					"src/Fonts/Roboto/RobotoMono-SemiBold.ttf",
-					"src/Fonts/Roboto/RobotoMono-Thin.ttf",
-					"Fonts/Roboto/Roboto-Black.ttf",
-					"Fonts/Roboto/Roboto-Bold.ttf",
-					"Fonts/Roboto/Roboto-ExtraBold.ttf",
-					"Fonts/Roboto/Roboto-ExtraLight.ttf",
-					"Fonts/Roboto/Roboto-Light.ttf",
-					"Fonts/Roboto/Roboto-Medium.ttf",
-					"Fonts/Roboto/Roboto-Regular.ttf",
-					"Fonts/Roboto/Roboto-SemiBold.ttf",
-					"Fonts/Roboto/Roboto-Thin.ttf",
-				);
+				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
@@ -490,43 +454,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Metu;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_UIAppFonts = (
-					"src/Fonts/Roboto/Roboto-Black.ttf",
-					"src/Fonts/Roboto/Roboto-Bold.ttf",
-					"src/Fonts/Roboto/Roboto-ExtraBold.ttf",
-					"src/Fonts/Roboto/Roboto-ExtraLight.ttf",
-					"src/Fonts/Roboto/Roboto-Light.ttf",
-					"src/Fonts/Roboto/Roboto-Medium.ttf",
-					"src/Fonts/Roboto/Roboto-Regular.ttf",
-					"src/Fonts/Roboto/Roboto-SemiBold.ttf",
-					"src/Fonts/Roboto/Roboto-Thin.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Black.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Bold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Light.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Medium.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Regular.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf",
-					"src/Fonts/Roboto/RobotoCondensed-Thin.ttf",
-					"src/Fonts/Roboto/RobotoFlex-VariableFont.ttf",
-					"src/Fonts/Roboto/RobotoMono-Bold.ttf",
-					"src/Fonts/Roboto/RobotoMono-ExtraLight.ttf",
-					"src/Fonts/Roboto/RobotoMono-Light.ttf",
-					"src/Fonts/Roboto/RobotoMono-Medium.ttf",
-					"src/Fonts/Roboto/RobotoMono-Regular.ttf",
-					"src/Fonts/Roboto/RobotoMono-SemiBold.ttf",
-					"src/Fonts/Roboto/RobotoMono-Thin.ttf",
-					"Fonts/Roboto/Roboto-Black.ttf",
-					"Fonts/Roboto/Roboto-Bold.ttf",
-					"Fonts/Roboto/Roboto-ExtraBold.ttf",
-					"Fonts/Roboto/Roboto-ExtraLight.ttf",
-					"Fonts/Roboto/Roboto-Light.ttf",
-					"Fonts/Roboto/Roboto-Medium.ttf",
-					"Fonts/Roboto/Roboto-Regular.ttf",
-					"Fonts/Roboto/Roboto-SemiBold.ttf",
-					"Fonts/Roboto/Roboto-Thin.ttf",
-				);
+				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;

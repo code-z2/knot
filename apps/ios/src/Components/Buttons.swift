@@ -1,134 +1,126 @@
 import SwiftUI
 
 public enum AppButtonVariant {
-    case `default`
-    case outline
-    case destructive
-    case neutral
+  case `default`
+  case outline
+  case destructive
+  case neutral
 }
 
 public struct AppButton: View {
-    let label: String
-    let variant: AppButtonVariant
-    let showLabel: Bool
-    let showIcon: Bool
-    let iconName: String?
-    let foregroundColorOverride: Color?
-    let backgroundColorOverride: Color?
-    let action: () -> Void
+  let label: String
+  let variant: AppButtonVariant
+  let showLabel: Bool
+  let showIcon: Bool
+  let iconName: String?
+  let foregroundColorOverride: Color?
+  let backgroundColorOverride: Color?
+  let action: () -> Void
 
-    public init(
-        label: String = "String value",
-        variant: AppButtonVariant = .default,
-        showLabel: Bool = true,
-        showIcon: Bool = false,
-        iconName: String? = nil,
-        foregroundColorOverride: Color? = nil,
-        backgroundColorOverride: Color? = nil,
-        action: @escaping () -> Void
-    ) {
-        self.label = label
-        self.variant = variant
-        self.showLabel = showLabel
-        self.showIcon = showIcon
-        self.iconName = iconName
-        self.foregroundColorOverride = foregroundColorOverride
-        self.backgroundColorOverride = backgroundColorOverride
-        self.action = action
-    }
+  public init(
+    label: String = "String value",
+    variant: AppButtonVariant = .default,
+    showLabel: Bool = true,
+    showIcon: Bool = false,
+    iconName: String? = nil,
+    foregroundColorOverride: Color? = nil,
+    backgroundColorOverride: Color? = nil,
+    action: @escaping () -> Void
+  ) {
+    self.label = label
+    self.variant = variant
+    self.showLabel = showLabel
+    self.showIcon = showIcon
+    self.iconName = iconName
+    self.foregroundColorOverride = foregroundColorOverride
+    self.backgroundColorOverride = backgroundColorOverride
+    self.action = action
+  }
 
-    public var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                if showLabel {
-                    Text(label)
-                        .font(.custom("Roboto-Bold", size: 15))
-                        .foregroundStyle(foregroundColor)
-                        .lineLimit(1)
-                }
-
-                if showIcon {
-                    icon
-                }
-            }
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .frame(minHeight: 48.667)
-            .background(background)
-            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+  public var body: some View {
+    Button(action: action) {
+      HStack(spacing: 10) {
+        if showLabel {
+          Text(label)
+            .font(.custom("Roboto-Bold", size: 15))
+            .foregroundStyle(foregroundColor)
+            .lineLimit(1)
         }
-        .buttonStyle(.plain)
-    }
 
-    @ViewBuilder
-    private var icon: some View {
-        if let iconName {
-            Image(iconName)
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundStyle(foregroundColor)
-        } else {
-            Image("Icons/home_02")
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundStyle(foregroundColor)
+        if showIcon {
+          icon
         }
+      }
+      .padding(.horizontal, 18)
+      .padding(.vertical, 14)
+      .frame(minHeight: 48.667)
+      .background(background)
+      .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
+    .buttonStyle(.plain)
+  }
 
-    private var foregroundColor: Color {
-        if let foregroundColorOverride {
-            return foregroundColorOverride
-        }
-        switch variant {
-        case .default:
-            return AppThemeColor.backgroundPrimary
-        case .outline:
-            return AppThemeColor.accentBrown
-        case .destructive:
-            return AppThemeColor.accentRed
-        case .neutral:
-            return AppThemeColor.labelSecondary
-        }
+  @ViewBuilder
+  private var icon: some View {
+    if let iconName {
+      Image(iconName)
+        .renderingMode(.template)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 24, height: 24)
+        .foregroundStyle(foregroundColor)
+    } else {
+      Image("Icons/home_02")
+        .renderingMode(.template)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 24, height: 24)
+        .foregroundStyle(foregroundColor)
     }
+  }
 
-    @ViewBuilder
-    private var background: some View {
-        if let backgroundColorOverride {
-            backgroundColorOverride
-        } else {
-            switch variant {
-            case .default:
-                AppThemeColor.accentBrown
-            case .outline:
-                Color.clear
-            case .destructive:
-                AppThemeColor.destructiveBackground
-            case .neutral:
-                AppThemeColor.fillPrimary
-            }
-        }
+  private var foregroundColor: Color {
+    if let foregroundColorOverride {
+      return foregroundColorOverride
     }
+    switch variant {
+    case .default:
+      return AppThemeColor.backgroundPrimary
+    case .outline:
+      return AppThemeColor.accentBrown
+    case .destructive:
+      return AppThemeColor.accentRed
+    case .neutral:
+      return AppThemeColor.labelSecondary
+    }
+  }
 
-    private var horizontalPadding: CGFloat {
-        variant == .outline ? 21 : 18
+  @ViewBuilder
+  private var background: some View {
+    if let backgroundColorOverride {
+      backgroundColorOverride
+    } else {
+      switch variant {
+      case .default:
+        AppThemeColor.accentBrown
+      case .outline:
+        Color.clear
+      case .destructive:
+        AppThemeColor.destructiveBackground
+      case .neutral:
+        AppThemeColor.fillPrimary
+      }
     }
-
-    private var verticalPadding: CGFloat {
-        variant == .outline ? 13 : 14
-    }
+  }
 }
 
 #Preview {
-    VStack(spacing: 20) {
-        AppButton(label: "String value", variant: .default, showIcon: true) {}
-        AppButton(label: "String value", variant: .outline, showIcon: true) {}
-        AppButton(label: "String value", variant: .destructive, showIcon: true) {}
-        AppButton(label: "String value", variant: .neutral, showIcon: true) {}
-    }
-    .padding(20)
-    .background(AppThemeColor.fixedDarkSurface)
+  VStack(spacing: 20) {
+    AppButton(label: "String value", variant: .default, showIcon: true) {}
+    AppButton(label: "String value", variant: .outline, showIcon: true) {}
+    AppButton(label: "String value", variant: .destructive, showIcon: true) {}
+    AppButton(label: "String value", variant: .neutral, showIcon: true) {}
+  }
+  .padding(20)
+  .background(AppThemeColor.fixedDarkSurface)
 }

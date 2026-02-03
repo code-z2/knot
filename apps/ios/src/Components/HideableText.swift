@@ -1,0 +1,47 @@
+import SwiftUI
+
+struct HideableText: View {
+  let text: String
+  @Binding var isHidden: Bool
+  var font: Font = .custom("RobotoMono-Medium", size: 24)
+  var onToggle: (() -> Void)? = nil
+
+  var body: some View {
+    HStack(spacing: 8) {
+      if isHidden {
+        Text("••••")
+          .font(font)
+          .tracking(-0.48)
+          .foregroundStyle(AppThemeColor.labelPrimary)
+          .frame(alignment: .leading)
+      } else {
+        Text(text)
+          .font(font)
+          .foregroundStyle(AppThemeColor.labelPrimary)
+      }
+
+      Button {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+          isHidden.toggle()
+        }
+        onToggle?()
+      } label: {
+        Image(isHidden ? "Icons/eye_off" : "Icons/eye")
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .frame(width: 20, height: 20)
+          .foregroundStyle(AppThemeColor.labelPrimary)
+      }
+      .buttonStyle(.plain)
+    }
+  }
+}
+
+#Preview {
+  VStack(spacing: 18) {
+    HideableText(text: "Abcytg", isHidden: .constant(false))
+    HideableText(text: "Abcytg", isHidden: .constant(true))
+  }
+  .padding()
+  .background(AppThemeColor.fixedDarkSurface)
+}
