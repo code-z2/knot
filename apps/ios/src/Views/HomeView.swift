@@ -1,341 +1,284 @@
 import SwiftUI
 
 struct HomeView: View {
-    let onSignOut: () -> Void
-    let onAddMoney: () -> Void
-    let onSendMoney: () -> Void
+  let onSignOut: () -> Void
+  let onAddMoney: () -> Void
+  let onSendMoney: () -> Void
 
-    init(
-        onSignOut: @escaping () -> Void,
-        onAddMoney: @escaping () -> Void = {},
-        onSendMoney: @escaping () -> Void = {}
-    ) {
-        self.onSignOut = onSignOut
-        self.onAddMoney = onAddMoney
-        self.onSendMoney = onSendMoney
-    }
+  init(
+    onSignOut: @escaping () -> Void,
+    onAddMoney: @escaping () -> Void = {},
+    onSendMoney: @escaping () -> Void = {}
+  ) {
+    self.onSignOut = onSignOut
+    self.onAddMoney = onAddMoney
+    self.onSendMoney = onSendMoney
+  }
 
-    var body: some View {
-        GeometryReader { proxy in
-            let topInset = proxy.safeAreaInsets.top
+  var body: some View {
+    GeometryReader { proxy in
+      ZStack {
+        AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
-            ZStack {
-                AppThemeColor.fixedDarkSurface.ignoresSafeArea()
-
-                VStack(spacing: 0) {
-                    topHeader(topInset: topInset)
-                    contentSection
-                }
-            }
+        VStack(spacing: 0) {
+          topHeader()
+          ScrollView(showsIndicators: false) {
+            contentSection
+          }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomNav
-        }
+      }
     }
-
-    private func topHeader(topInset: CGFloat) -> some View {
-        Text("Home")
-            .font(.custom("Roboto-Medium", size: 24))
-            .foregroundStyle(AppThemeColor.labelPrimary)
-            .padding(.top, topInset + 12)
-            .padding(.bottom, 45)
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      BottomNavigation(activeTab: .home)
     }
+  }
 
-    private var balanceSection: some View {
-        VStack(spacing: 44) {
-            VStack(spacing: 16) {
-                Text("Balance")
-                    .font(.custom("Roboto-Bold", size: 16))
-                    .foregroundStyle(AppThemeColor.labelSecondary)
+  private func topHeader() -> some View {
+    Text("Home")
+      .font(.custom("Roboto-Medium", size: 24))
+      .foregroundStyle(AppThemeColor.labelPrimary)
+      .padding(.top, 8)
+      .padding(.bottom, 12)
+  }
 
-                HStack(spacing: 8) {
-                    Text("$305,234.66")
-                        .font(.custom("RobotoMono-Bold", size: 40))
-                        .foregroundStyle(AppThemeColor.labelPrimary)
+  @State private var isBalanceHidden: Bool = false
+  let accountBalance = "$12,450.88"
 
-                    Image("Icons/eye")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
-                }
-            }
-            .padding(.horizontal, 18)
+  private var balanceSection: some View {
+    VStack(spacing: 44) {
+      VStack(spacing: 16) {
+        Text("Balance")
+          .font(.custom("Roboto-Bold", size: 16))
+          .foregroundStyle(AppThemeColor.labelSecondary)
 
-            HStack(spacing: 0) {
-                Button(action: onAddMoney) {
-                    Text("Add money")
-                        .font(.custom("Roboto-Bold", size: 15))
-                        .foregroundStyle(AppThemeColor.backgroundPrimary)
-                        .frame(width: 113, height: 52)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(AppThemeColor.accentBrown)
-                        )
-                }
-                .buttonStyle(.plain)
+        HideableText(
+          text: accountBalance,
+          isHidden: $isBalanceHidden,
+          font: .custom("RobotoMono-Bold", size: 40)
+        )
+      }
+      .padding(.horizontal, 18)
 
-                Spacer(minLength: 0)
-
-                Button(action: onSendMoney) {
-                    Text("Send money")
-                        .font(.custom("Roboto-Bold", size: 15))
-                        .foregroundStyle(AppThemeColor.backgroundPrimary)
-                        .frame(width: 120, height: 52)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(AppThemeColor.accentBrown)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 36)
-        }
-        .frame(height: 163)
-    }
-
-    private var contentSection: some View {
-        VStack(alignment: .leading, spacing: 32) {
-            balanceSection
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 22)
-
-            Rectangle()
-                .fill(AppThemeColor.separatorOpaque)
-                .frame(height: 1)
-
-            assetsSection
-            spaceSection
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 0)
-        .padding(.horizontal, 20)
-    }
-
-    private var assetsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("YOUR ASSETS")
-                .font(.custom("RobotoMono-Medium", size: 12))
-                .foregroundStyle(AppThemeColor.labelSecondary)
-                .frame(width: 362, alignment: .leading)
-
-            HStack(spacing: 16) {
-                ZStack(alignment: .topLeading) {
-                    IconBadge(style: .neutral) {
-                        Image("Icons/coins_03")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 21, height: 17)
-                    }
-                    .frame(width: 37, height: 37)
-
-                    Image("Icons/currency_ethereum")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 10, height: 10)
-                        .offset(x: 11, y: 16)
-                }
-
-                Text("7 Assets across 5 chains")
-                    .font(.custom("Roboto-Medium", size: 15))
-                    .foregroundStyle(AppThemeColor.labelSecondary)
-            }
-        }
-        .frame(width: 362, height: 69, alignment: .topLeading)
-    }
-
-    private var spaceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("YOUR SPACE")
-                .font(.custom("RobotoMono-Medium", size: 12))
-                .foregroundStyle(AppThemeColor.labelSecondary)
-                .frame(width: 362, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 36) {
-                VStack(spacing: 12) {
-                    MenuRow(
-                        title: "Preferences",
-                        leading: {
-                            IconBadge(style: .defaultStyle) {
-                                Image("Icons/hexagon_01")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 21, height: 17)
-                            }
-                        }
-                    )
-                    MenuRow(
-                        title: "Wallet Backup",
-                        leading: {
-                            IconBadge(style: .defaultStyle) {
-                                Image("Icons/wallet_04")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 21, height: 21)
-                            }
-                        }
-                    )
-                    MenuRow(
-                        title: "Address Book",
-                        leading: {
-                            IconBadge(style: .defaultStyle) {
-                                Image("Icons/users_01")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 21, height: 17)
-                            }
-                        }
-                    )
-                    MenuRow(
-                        title: "AI Agent",
-                        leading: {
-                            IconBadge(style: .defaultStyle) {
-                                Image("Icons/cpu_chip_02")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 21, height: 17)
-                            }
-                        }
-                    )
-                }
-
-                Button(action: onSignOut) {
-                    HStack(spacing: 16) {
-                        IconBadge(style: .destructive) {
-                            Image("Icons/log_out_02")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 21, height: 17)
-                        }
-
-                        Text("Logout")
-                            .font(.custom("Roboto-Medium", size: 15))
-                            .foregroundStyle(Color(hex: "#FF383C"))
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .frame(width: 362, alignment: .leading)
-        }
-        .frame(width: 362, height: 333, alignment: .topLeading)
-    }
-
-    private var bottomNav: some View {
-        HStack {
-            BottomNavItem(
-                iconName: "Icons/home_02",
-                title: "Home",
-                textColor: AppThemeColor.accentBrown
-            )
-            Spacer(minLength: 0)
-            BottomNavItem(
-                iconName: "Icons/receipt",
-                title: "Transactions",
-                textColor: AppThemeColor.labelSecondary
-            )
-            Spacer(minLength: 0)
-            BottomNavItem(
-                iconName: "Icons/key_01",
-                title: "Session Key",
-                textColor: AppThemeColor.labelSecondary
+      HStack(spacing: 0) {
+        Button(action: onAddMoney) {
+          Text("Add money")
+            .font(.custom("Roboto-Bold", size: 15))
+            .foregroundStyle(AppThemeColor.backgroundPrimary)
+            .frame(width: 113, height: 52)
+            .background(
+              RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(AppThemeColor.accentBrown)
             )
         }
-        .padding(.top, 12)
-        .padding(.horizontal, 40)
-        .padding(.bottom, 24)
+        .buttonStyle(.plain)
+
+        Spacer(minLength: 0)
+
+        Button(action: onSendMoney) {
+          Text("Send money")
+            .font(.custom("Roboto-Bold", size: 15))
+            .foregroundStyle(AppThemeColor.backgroundPrimary)
+            .frame(width: 120, height: 52)
+            .background(
+              RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(AppThemeColor.accentBrown)
+            )
+        }
+        .buttonStyle(.plain)
+      }
+      .padding(.horizontal, 36)
+    }
+    .frame(height: 163)
+    .padding(.top, 36)
+  }
+
+  private var contentSection: some View {
+    VStack(alignment: .leading, spacing: 32) {
+      balanceSection
         .frame(maxWidth: .infinity)
-        .frame(height: 84, alignment: .top)
-        .background(AppThemeColor.backgroundPrimary)
+        .padding(.bottom, 22)
+        .padding(.horizontal, 20)
+
+      Rectangle()
+        .foregroundColor(.clear)
+        .frame(width: .infinity, height: 4)
+        .background(AppThemeColor.separatorOpaque)
+
+      assetsSection
+        .padding(.horizontal, 20)
+
+      spaceSection
+        .padding(.horizontal, 20)
+
+      Spacer(minLength: 0)
     }
-}
+    .padding(.top, 0)
+    .padding(.bottom, 50)
+  }
 
-private struct BottomNavItem: View {
-    let iconName: String
-    let title: String
-    let textColor: Color
+  private var assetsSection: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      Text("YOUR ASSETS")
+        .font(.custom("RobotoMono-Medium", size: 12))
+        .foregroundStyle(AppThemeColor.labelSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(iconName)
+      HStack(spacing: 16) {
+        ZStack(alignment: .topLeading) {
+          IconBadge(style: .neutral) {
+            Image("Icons/coins_03")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 21, height: 21)
+              .foregroundColor(AppThemeColor.labelSecondary)
+          }
+          .frame(width: 37, height: 37)
+
+          Image("Icons/currency_ethereum")
+            .renderingMode(.template)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 10, height: 10)
+            .offset(x: 11, y: 16)
+            .foregroundColor(AppThemeColor.labelSecondary)
+        }
+
+        Text("7 Assets across 5 chains")
+          .font(.custom("Roboto-Medium", size: 15))
+          .foregroundStyle(AppThemeColor.labelSecondary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
+  }
+
+  private var spaceSection: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      Text("YOUR SPACE")
+        .font(.custom("RobotoMono-Medium", size: 12))
+        .foregroundStyle(AppThemeColor.labelSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      VStack(alignment: .leading, spacing: 36) {
+        VStack(spacing: 12) {
+          MenuRow(
+            title: "Preferences",
+            leading: {
+              IconBadge(style: .defaultStyle) {
+                Image("Icons/hexagon_01")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 21, height: 21)
+                  .foregroundColor(AppThemeColor.glyphPrimary)
+              }
+            }
+          )
+          MenuRow(
+            title: "Wallet Backup",
+            leading: {
+              IconBadge(style: .defaultStyle) {
+                Image("Icons/wallet_04")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 21, height: 21)
+                  .foregroundColor(AppThemeColor.glyphPrimary)
+              }
+            }
+          )
+          MenuRow(
+            title: "Address Book",
+            leading: {
+              IconBadge(style: .defaultStyle) {
+                Image("Icons/users_01")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 21, height: 21)
+                  .foregroundColor(AppThemeColor.glyphPrimary)
+              }
+            }
+          )
+          MenuRow(
+            title: "AI Agent",
+            leading: {
+              IconBadge(style: .defaultStyle) {
+                Image("Icons/cpu_chip_02")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 21, height: 21)
+                  .foregroundColor(AppThemeColor.glyphPrimary)
+              }
+            }
+          )
+        }
+
+        Button(action: onSignOut) {
+          HStack(spacing: 16) {
+            IconBadge(style: .destructive) {
+              Image("Icons/log_out_02")
+                .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 22, height: 22)
-                .padding(.top, 2)
+                .frame(width: 21, height: 21)
+                .foregroundColor(AppThemeColor.accentRed)
+            }
 
-            Text(title)
-                .font(.custom("Roboto-Medium", size: 11))
-                .foregroundStyle(textColor)
-                .tracking(0.5)
+            Text("Logout")
+              .font(.custom("Roboto-Medium", size: 15))
+              .foregroundStyle(AppThemeColor.accentRed)
+          }
         }
+        .buttonStyle(.plain)
+        .padding(.top, 28)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
+  }
+
 }
 
 private struct MenuRow<Leading: View>: View {
-    let title: String
-    let leading: () -> Leading
+  let title: String
+  let leading: () -> Leading
 
-    init(title: String, @ViewBuilder leading: @escaping () -> Leading) {
-        self.title = title
-        self.leading = leading
+  init(title: String, @ViewBuilder leading: @escaping () -> Leading) {
+    self.title = title
+    self.leading = leading
+  }
+
+  var body: some View {
+    HStack {
+      HStack(spacing: 16) {
+        leading()
+        Text(title)
+          .font(.custom("Roboto-Medium", size: 15))
+          .foregroundStyle(AppThemeColor.labelPrimary)
+      }
+
+      Spacer(minLength: 0)
+
+      HStack(alignment: .center, spacing: 10) {
+        Image("Icons/chevron_right")
+          .renderingMode(.template)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .frame(width: 12, height: 12)
+          .foregroundColor(AppThemeColor.glyphSecondary)
+      }
+      .padding(.horizontal, 6)
+      .padding(.vertical, 12)
+      .cornerRadius(15)
+
     }
-
-    var body: some View {
-        HStack {
-            HStack(spacing: 16) {
-                leading()
-                Text(title)
-                    .font(.custom("Roboto-Medium", size: 15))
-                    .foregroundStyle(Color(hex: "#FFFFFF"))
-            }
-
-            Spacer(minLength: 0)
-
-            Image("Icons/chevron_right")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 12)
-        }
-        .frame(width: 362, height: 48)
-    }
-}
-
-private struct IconBadge<Content: View>: View {
-    enum Style {
-        case defaultStyle
-        case neutral
-        case destructive
-    }
-
-    let style: Style
-    let content: () -> Content
-
-    init(style: Style, @ViewBuilder content: @escaping () -> Content) {
-        self.style = style
-        self.content = content
-    }
-
-    var body: some View {
-        content()
-            .frame(width: 21, height: 17)
-            .padding(8)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var backgroundColor: Color {
-        switch style {
-        case .defaultStyle:
-            return Color(hex: "#AC7F5E66")
-        case .neutral:
-            return AppThemeColor.fillPrimary
-        case .destructive:
-            return Color(hex: "#FF383C24")
-        }
-    }
+    .frame(maxWidth: .infinity, minHeight: 48)
+  }
 }
 
 #Preview {
-    HomeView(onSignOut: {})
-        .preferredColorScheme(.dark)
+  HomeView(onSignOut: {})
+    .preferredColorScheme(.dark)
 }
