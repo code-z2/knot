@@ -53,7 +53,6 @@ public struct AppButton: View {
       }
       .padding(.horizontal, 18)
       .padding(.vertical, 14)
-      .frame(minHeight: 48.667)
       .background(background)
       .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }

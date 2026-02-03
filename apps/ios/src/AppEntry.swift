@@ -8,4 +8,8 @@ struct AppEntry: App {
         .preferredColorScheme(.dark)
     }
   }
+
+  init() {
+    FontRegistry.registerBundledFonts()
+  }
 }

@@ -29,6 +29,7 @@ enum AccountSetupServiceError: Error {
   case signInFailed(Error)
   case restoreSessionFailed(Error)
   case knownAccountsFailed(Error)
+  case walletMaterialLookupFailed(Error)
 }
 
 extension AccountSetupServiceError: LocalizedError {
@@ -46,6 +47,8 @@ extension AccountSetupServiceError: LocalizedError {
       return "Session restore failed: \(error.localizedDescription)"
     case .knownAccountsFailed(let error):
       return "Loading known accounts failed: \(error.localizedDescription)"
+    case .walletMaterialLookupFailed(let error):
+      return "Wallet material lookup failed: \(error.localizedDescription)"
     }
   }
 }
@@ -163,5 +166,25 @@ final class AccountSetupService {
     #else
       throw AccountSetupServiceError.packageNotIntegrated
     #endif
+  }
+
+  func localMnemonic(for eoaAddress: String) async throws -> String {
+    #if canImport(AccountSetup)
+      guard let service else {
+        throw AccountSetupServiceError.notConfigured
+      }
+
+      do {
+        return try await service.storedWalletMaterial(eoaAddress: eoaAddress).mnemonic
+      } catch {
+        throw AccountSetupServiceError.walletMaterialLookupFailed(error)
+      }
+    #else
+      throw AccountSetupServiceError.packageNotIntegrated
+    #endif
+  }
+
+  func hasLocalWalletMaterial(for eoaAddress: String) async -> Bool {
+    (try? await localMnemonic(for: eoaAddress)) != nil
   }
 }

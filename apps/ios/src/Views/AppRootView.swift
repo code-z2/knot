@@ -4,6 +4,8 @@ struct AppRootView: View {
   @State private var route: Route = .splash
   @State private var currentEOA: String?
   @State private var isWorking = false
+  @State private var hasLocalWalletMaterial = false
+  @State private var walletBackupMnemonic = ""
   private let accountService = AccountSetupService()
   private let sessionStore = SessionStore()
 
@@ -11,6 +13,9 @@ struct AppRootView: View {
     case splash
     case onboarding
     case home
+    case receive
+    case sessionKey
+    case walletBackup
   }
 
   var body: some View {
@@ -28,12 +33,14 @@ struct AppRootView: View {
             }
 
             if let restored = try? await accountService.restoreSession(eoaAddress: activeEOA) {
+              hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
               withAnimation(.easeInOut(duration: 0.25)) {
                 currentEOA = restored.eoaAddress
                 route = .home
               }
             } else {
               sessionStore.clearActiveSession()
+              hasLocalWalletMaterial = false
               withAnimation(.easeInOut(duration: 0.25)) {
                 route = .onboarding
               }
@@ -50,8 +57,29 @@ struct AppRootView: View {
           onSignOut: {
             sessionStore.clearActiveSession()
             currentEOA = nil
+            hasLocalWalletMaterial = false
             route = .onboarding
-          }
+          },
+          onAddMoney: { route = .receive },
+          onHomeTap: { route = .home },
+          onSessionKeyTap: { route = .sessionKey },
+          onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
+          showWalletBackup: hasLocalWalletMaterial
+        )
+      case .receive:
+        ReceiveView(
+          address: currentEOA ?? "0x0000000000000000000000000000000000000000",
+          onBack: { route = .home }
+        )
+      case .sessionKey:
+        SessionKeyView(
+          onHomeTap: { route = .home },
+          onSessionKeyTap: { route = .sessionKey }
+        )
+      case .walletBackup:
+        WalletBackupView(
+          mnemonic: walletBackupMnemonic,
+          onBack: { route = .home }
         )
       }
     }
@@ -66,6 +94,7 @@ struct AppRootView: View {
     if let restored = try? await accountService.createWallet() {
       currentEOA = restored.eoaAddress
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
+      hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
       route = .home
     }
   }
@@ -79,8 +108,18 @@ struct AppRootView: View {
     if let restored = try? await accountService.signIn() {
       currentEOA = restored.eoaAddress
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
+      hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
       route = .home
     }
+  }
+
+  @MainActor
+  private func openWalletBackupIfAvailable() async {
+    guard let eoa = currentEOA else { return }
+    guard hasLocalWalletMaterial else { return }
+    guard let mnemonic = try? await accountService.localMnemonic(for: eoa) else { return }
+    walletBackupMnemonic = mnemonic
+    route = .walletBackup
   }
 }
 
