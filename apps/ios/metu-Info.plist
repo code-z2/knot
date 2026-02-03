@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Roboto-Black</string>
+		<string>Roboto-Bold</string>
+		<string>Roboto-ExtraBold</string>
+		<string>Roboto-ExtraLight</string>
+		<string>Roboto-Light</string>
+		<string>Roboto-Medium</string>
+		<string>Roboto-Regular</string>
+		<string>Roboto-SemiBold</string>
+		<string>Roboto-Thin</string>
+		<string>RobotoCondensed-Black</string>
+		<string>RobotoCondensed-Bold</string>
+		<string>RobotoCondensed-ExtraBold</string>
+		<string>RobotoCondensed-ExtraLight</string>
+		<string>RobotoCondensed-Light</string>
+		<string>RobotoCondensed-Medium</string>
+		<string>RobotoCondensed-Regular</string>
+		<string>RobotoCondensed-Semibold</string>
+		<string>RobotoCondensed-Thin</string>
+		<string>RobotoFlex-VariableFont</string>
+		<string>RobotoMono-Bold</string>
+		<string>RobotoMono-ExtraLight</string>
+		<string>RobotoMono-Light</string>
+		<string>RobotoMono-Medium</string>
+		<string>RobotoMono-Regular</string>
+		<string>RobotoMono-SemiBold</string>
+		<string>RobotoMono-Thin</string>
+	</array>
+</dict>
+</plist>

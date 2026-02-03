@@ -7,7 +7,7 @@ struct OnboardingView: View {
   var body: some View {
     GeometryReader { geo in
       let contentX: CGFloat = 54
-      let contentTop: CGFloat = (geo.size.height * 0.5833) + 14
+      let contentTop: CGFloat = (geo.size.height * 0.5833)
       let artWidth: CGFloat = 402
       let artHeight: CGFloat = 486
       let artX: CGFloat = (geo.size.width - artWidth) / 2
