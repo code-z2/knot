@@ -17,7 +17,7 @@ struct BottomNavigation: View {
       tabItem(
         iconName: "Icons/home_02",
         title: "Home",
-        titleWidth: 32,
+        titleWidth: 70,
         isActive: activeTab == .home,
         action: onHomeTap
       )
@@ -31,7 +31,6 @@ struct BottomNavigation: View {
         isActive: activeTab == .transactions,
         action: onTransactionsTap
       )
-      .padding(.leading, 15)
 
       Spacer(minLength: 0)
 

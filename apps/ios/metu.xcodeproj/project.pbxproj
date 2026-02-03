@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D03AA2D82F32698C00122EF8 /* metu-Info.plist */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 /* End PBXBuildFile section */
 
@@ -28,15 +29,29 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		D03AA2D82F32698C00122EF8 /* metu-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "metu-Info.plist"; sourceTree = "<group>"; };
 		D0EEE96A2F312A96001771BB /* metu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = metu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9792F312A97001771BB /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9832F312A97001771BB /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9C02F3130AE001771BB /* metu.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = metu.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D0EEEFC92F32636B001771BB /* Exceptions for "src" folder in "metu" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Theme/README.md,
+			);
+			target = D0EEE9692F312A96001771BB /* metu */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D0EEE96C2F312A96001771BB /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D0EEEFC92F32636B001771BB /* Exceptions for "src" folder in "metu" target */,
+			);
 			path = src;
 			sourceTree = "<group>";
 		};
@@ -81,6 +96,7 @@
 		D0EEE9612F312A96001771BB = {
 			isa = PBXGroup;
 			children = (
+				D03AA2D82F32698C00122EF8 /* metu-Info.plist */,
 				D0EEE9C02F3130AE001771BB /* metu.entitlements */,
 				D0EEE96C2F312A96001771BB /* src */,
 				D0EEE97C2F312A97001771BB /* Tests */,
@@ -223,6 +239,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,7 +435,6 @@
 				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -457,7 +473,6 @@
 				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
