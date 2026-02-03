@@ -16,17 +16,17 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="L0g-0M-4rk">
-                                <rect key="frame" x="136.5" y="366" width="120" height="120"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LogoMark" translatesAutoresizingMaskIntoConstraints="NO" id="L0g-0M-4rk">
+                                <rect key="frame" x="133" y="364.5" width="127" height="123"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.070588235294117646" green="0.078431372549019607" blue="0.10980392156862745" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="L0g-0M-4rk" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="5yz-Cm-p5M"/>
                             <constraint firstItem="L0g-0M-4rk" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="80A-Rf-rHI"/>
-                            <constraint firstItem="L0g-0M-4rk" firstAttribute="width" secondItem="nil" secondAttribute="notAnAttribute" constant="120" id="dlS-rP-RdE"/>
-                            <constraint firstItem="L0g-0M-4rk" firstAttribute="height" secondItem="L0g-0M-4rk" secondAttribute="width" multiplier="1:1" id="r4e-sM-v0e"/>
+                            <constraint firstItem="L0g-0M-4rk" firstAttribute="width" secondItem="nil" secondAttribute="notAnAttribute" constant="127" id="dlS-rP-RdE"/>
+                            <constraint firstItem="L0g-0M-4rk" firstAttribute="height" secondItem="nil" secondAttribute="notAnAttribute" constant="123" id="r4e-sM-v0e"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -36,6 +36,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchLogo" width="120" height="120"/>
+        <image name="LogoMark" width="127" height="123"/>
     </resources>
 </document>

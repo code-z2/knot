@@ -5,6 +5,7 @@ struct AppRootView: View {
     @State private var currentEOA: String?
     @State private var isWorking = false
     private let accountService = AccountSetupService()
+    private let sessionStore = SessionStore()
 
     enum Route {
         case splash
@@ -19,12 +20,20 @@ struct AppRootView: View {
                 SplashView()
                     .task {
                         try? await Task.sleep(for: .seconds(1.2))
-                        if let restored = try? await accountService.restoreSession() {
+                        guard let activeEOA = sessionStore.activeEOAAddress else {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                route = .onboarding
+                            }
+                            return
+                        }
+
+                        if let restored = try? await accountService.restoreSession(eoaAddress: activeEOA) {
                             withAnimation(.easeInOut(duration: 0.25)) {
                                 currentEOA = restored.eoaAddress
                                 route = .home
                             }
                         } else {
+                            sessionStore.clearActiveSession()
                             withAnimation(.easeInOut(duration: 0.25)) {
                                 route = .onboarding
                             }
@@ -37,41 +46,14 @@ struct AppRootView: View {
                 )
                 .disabled(isWorking)
             case .home:
-                homeView
-            }
-        }
-    }
-
-    private var homeView: some View {
-        ZStack {
-            AppThemeColor.fixedDarkSurface.ignoresSafeArea()
-            VStack(spacing: 16) {
-                Text("Signed In")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(AppThemeColor.labelPrimary)
-
-                if let currentEOA {
-                    Text(currentEOA)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(AppThemeColor.labelSecondary)
-                        .textSelection(.enabled)
-                }
-
-                Button("Sign Out") {
-                    currentEOA = nil
-                    route = .onboarding
-                }
-                .font(.custom("Roboto", size: 12).weight(.bold))
-                .foregroundStyle(AppThemeColor.fixedDarkText)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(AppThemeColor.fillSecondary)
+                HomeView(
+                    onSignOut: {
+                        sessionStore.clearActiveSession()
+                        currentEOA = nil
+                        route = .onboarding
+                    }
                 )
-                .buttonStyle(.plain)
             }
-            .padding(24)
         }
     }
 
@@ -83,6 +65,7 @@ struct AppRootView: View {
 
         if let restored = try? await accountService.createWallet() {
             currentEOA = restored.eoaAddress
+            sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
             route = .home
         }
     }
@@ -95,6 +78,7 @@ struct AppRootView: View {
 
         if let restored = try? await accountService.signIn() {
             currentEOA = restored.eoaAddress
+            sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
             route = .home
         }
     }
