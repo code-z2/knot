@@ -20,27 +20,15 @@ public struct PasskeyPublicKey: Sendable, Equatable, Codable {
   public let x: Data
   public let y: Data
   public let credentialID: Data
-  public let userName: String
-  public let aaGuid: Data
-  public let rawAttestationObject: Data
-  public let rawClientDataJSON: Data
 
   public init(
     x: Data,
     y: Data,
-    credentialID: Data,
-    userName: String,
-    aaGuid: Data,
-    rawAttestationObject: Data,
-    rawClientDataJSON: Data
+    credentialID: Data
   ) {
     self.x = x
     self.y = y
     self.credentialID = credentialID
-    self.userName = userName
-    self.aaGuid = aaGuid
-    self.rawAttestationObject = rawAttestationObject
-    self.rawClientDataJSON = rawClientDataJSON
   }
 }
 
@@ -125,7 +113,11 @@ public protocol PasskeyServicing {
     userID: Data
   ) async throws -> PasskeyPublicKey
 
-  func sign(rpId: String, payload: Data) async throws -> PasskeySignature
+  func sign(
+    rpId: String,
+    payload: Data,
+    allowedCredentialIDs: [Data]?
+  ) async throws -> PasskeySignature
 }
 
 @MainActor
@@ -161,18 +153,23 @@ public final class PasskeyService: NSObject, PasskeyServicing {
     return PasskeyPublicKey(
       x: parsed.x,
       y: parsed.y,
-      credentialID: registration.credentialID,
-      userName: userName,
-      aaGuid: parsed.aaguid,
-      rawAttestationObject: registration.rawAttestationObject ?? Data(),
-      rawClientDataJSON: registration.rawClientDataJSON
+      credentialID: registration.credentialID
     )
   }
 
-  public func sign(rpId: String, payload: Data) async throws -> PasskeySignature {
+  public func sign(
+    rpId: String,
+    payload: Data,
+    allowedCredentialIDs: [Data]? = nil
+  ) async throws -> PasskeySignature {
     let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: rpId)
     let challenge = Data(SHA256.hash(data: payload))
     let request = provider.createCredentialAssertionRequest(challenge: challenge)
+    if let allowedCredentialIDs, !allowedCredentialIDs.isEmpty {
+      request.allowedCredentials = allowedCredentialIDs.map {
+        ASAuthorizationPlatformPublicKeyCredentialDescriptor(credentialID: $0)
+      }
+    }
 
     let result = try await performRequest(request)
     guard case .assertion(let assertion) = result else {
