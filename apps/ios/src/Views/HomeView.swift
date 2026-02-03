@@ -35,7 +35,7 @@ struct HomeView: View {
 
     private func topHeader(topInset: CGFloat) -> some View {
         Text("Home")
-            .font(.custom("Roboto-Medium", size: 24).weight(.medium))
+            .font(.custom("Roboto-Medium", size: 24))
             .foregroundStyle(AppThemeColor.labelPrimary)
             .padding(.top, topInset + 12)
             .padding(.bottom, 45)
@@ -45,12 +45,12 @@ struct HomeView: View {
         VStack(spacing: 44) {
             VStack(spacing: 16) {
                 Text("Balance")
-                    .font(.custom("Roboto-Bold", size: 16).weight(.bold))
+                    .font(.custom("Roboto-Bold", size: 16))
                     .foregroundStyle(AppThemeColor.labelSecondary)
 
                 HStack(spacing: 8) {
                     Text("$305,234.66")
-                        .font(.custom("RobotoMono-Bold", size: 40).weight(.bold))
+                        .font(.custom("RobotoMono-Bold", size: 40))
                         .foregroundStyle(AppThemeColor.labelPrimary)
 
                     Image("Icons/eye")
@@ -64,7 +64,7 @@ struct HomeView: View {
             HStack(spacing: 0) {
                 Button(action: onAddMoney) {
                     Text("Add money")
-                        .font(.custom("Roboto-Bold", size: 15).weight(.bold))
+                        .font(.custom("Roboto-Bold", size: 15))
                         .foregroundStyle(AppThemeColor.backgroundPrimary)
                         .frame(width: 113, height: 52)
                         .background(
@@ -78,7 +78,7 @@ struct HomeView: View {
 
                 Button(action: onSendMoney) {
                     Text("Send money")
-                        .font(.custom("Roboto-Bold", size: 15).weight(.bold))
+                        .font(.custom("Roboto-Bold", size: 15))
                         .foregroundStyle(AppThemeColor.backgroundPrimary)
                         .frame(width: 120, height: 52)
                         .background(
@@ -114,7 +114,7 @@ struct HomeView: View {
     private var assetsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("YOUR ASSETS")
-                .font(.custom("RobotoMono-Medium", size: 12).weight(.medium))
+                .font(.custom("RobotoMono-Medium", size: 12))
                 .foregroundStyle(AppThemeColor.labelSecondary)
                 .frame(width: 362, alignment: .leading)
 
@@ -136,7 +136,7 @@ struct HomeView: View {
                 }
 
                 Text("7 Assets across 5 chains")
-                    .font(.custom("Roboto-Medium", size: 15).weight(.medium))
+                    .font(.custom("Roboto-Medium", size: 15))
                     .foregroundStyle(AppThemeColor.labelSecondary)
             }
         }
@@ -146,7 +146,7 @@ struct HomeView: View {
     private var spaceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("YOUR SPACE")
-                .font(.custom("RobotoMono-Medium", size: 12).weight(.medium))
+                .font(.custom("RobotoMono-Medium", size: 12))
                 .foregroundStyle(AppThemeColor.labelSecondary)
                 .frame(width: 362, alignment: .leading)
 
@@ -208,7 +208,7 @@ struct HomeView: View {
                         }
 
                         Text("Logout")
-                            .font(.custom("Roboto-Medium", size: 15).weight(.medium))
+                            .font(.custom("Roboto-Medium", size: 15))
                             .foregroundStyle(Color(hex: "#FF383C"))
                     }
                 }
@@ -262,7 +262,7 @@ private struct BottomNavItem: View {
                 .padding(.top, 2)
 
             Text(title)
-                .font(.custom("Roboto-Medium", size: 11).weight(.medium))
+                .font(.custom("Roboto-Medium", size: 11))
                 .foregroundStyle(textColor)
                 .tracking(0.5)
         }
@@ -283,7 +283,7 @@ private struct MenuRow<Leading: View>: View {
             HStack(spacing: 16) {
                 leading()
                 Text(title)
-                    .font(.custom("Roboto-Medium", size: 15).weight(.medium))
+                    .font(.custom("Roboto-Medium", size: 15))
                     .foregroundStyle(Color(hex: "#FFFFFF"))
             }
 

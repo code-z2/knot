@@ -45,32 +45,23 @@ struct OnboardingView: View {
                         .frame(width: 35, height: 7)
 
                     HStack(spacing: 0) {
-                        Button(action: onCreateWallet) {
-                            Text("Create Wallet")
-                                .font(AppTypography.button)
-                                .fontWeight(.bold)
-                                .foregroundStyle(AppThemeColor.backgroundPrimary)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 14)
-                                .frame(height: 49)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                        .fill(AppThemeColor.accentBrownLight)
-                                )
-                        }
-                        .buttonStyle(.plain)
+                        AppButton(
+                            label: "Create Wallet",
+                            variant: .default,
+                            showIcon: false,
+                            backgroundColorOverride: AppThemeColor.accentBrownLight,
+                            action: onCreateWallet
+                        )
 
                         Spacer()
 
-                        Button(action: onLogin) {
-                            Text("Log In")
-                                .font(AppTypography.button)
-                                .fontWeight(.bold)
-                                .foregroundStyle(AppThemeColor.grayWhite)
-                                .padding(.horizontal, 21)
-                                .padding(.vertical, 13)
-                        }
-                        .buttonStyle(.plain)
+                        AppButton(
+                            label: "Log In",
+                            variant: .outline,
+                            showIcon: false,
+                            foregroundColorOverride: AppThemeColor.grayWhite,
+                            action: onLogin
+                        )
                     }
                     .frame(width: 294)
                 }
