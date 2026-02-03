@@ -16,36 +16,32 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+        GeometryReader { proxy in
+            let topInset = proxy.safeAreaInsets.top
 
-            Text("Home")
-                .font(.custom("Roboto-Medium", size: 24).weight(.medium))
-                .foregroundStyle(AppThemeColor.labelPrimary)
-                .frame(width: 402, alignment: .center)
-                .offset(x: 0, y: 47)
+            ZStack {
+                AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
-            topBalance
-                .offset(x: 20, y: 120)
-
-            Rectangle()
-                .fill(AppThemeColor.separatorOpaque)
-                .frame(width: 402, height: 1)
-                .offset(x: 0, y: 329)
-
-            assetsSection
-                .offset(x: 20, y: 353)
-
-            spaceSection
-                .offset(x: 20, y: 454)
-
-            bottomNav
-                .offset(x: 0, y: 790)
+                VStack(spacing: 0) {
+                    topHeader(topInset: topInset)
+                    contentSection
+                }
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomNav
+        }
     }
 
-    private var topBalance: some View {
+    private func topHeader(topInset: CGFloat) -> some View {
+        Text("Home")
+            .font(.custom("Roboto-Medium", size: 24).weight(.medium))
+            .foregroundStyle(AppThemeColor.labelPrimary)
+            .padding(.top, topInset + 12)
+            .padding(.bottom, 45)
+    }
+
+    private var balanceSection: some View {
         VStack(spacing: 44) {
             VStack(spacing: 16) {
                 Text("Balance")
@@ -54,7 +50,7 @@ struct HomeView: View {
 
                 HStack(spacing: 8) {
                     Text("$305,234.66")
-                        .font(.custom("RobotoMono-Bold", size: 24).weight(.bold))
+                        .font(.custom("RobotoMono-Bold", size: 40).weight(.bold))
                         .foregroundStyle(AppThemeColor.labelPrimary)
 
                     Image("Icons/eye")
@@ -94,7 +90,25 @@ struct HomeView: View {
             }
             .padding(.horizontal, 36)
         }
-        .frame(width: 362, height: 163)
+        .frame(height: 163)
+    }
+
+    private var contentSection: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            balanceSection
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 22)
+
+            Rectangle()
+                .fill(AppThemeColor.separatorOpaque)
+                .frame(height: 1)
+
+            assetsSection
+            spaceSection
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 0)
+        .padding(.horizontal, 20)
     }
 
     private var assetsSection: some View {
@@ -228,7 +242,8 @@ struct HomeView: View {
         .padding(.top, 12)
         .padding(.horizontal, 40)
         .padding(.bottom, 24)
-        .frame(width: 402, height: 84, alignment: .top)
+        .frame(maxWidth: .infinity)
+        .frame(height: 84, alignment: .top)
         .background(AppThemeColor.backgroundPrimary)
     }
 }
@@ -244,6 +259,7 @@ private struct BottomNavItem: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 22, height: 22)
+                .padding(.top, 2)
 
             Text(title)
                 .font(.custom("Roboto-Medium", size: 11).weight(.medium))
