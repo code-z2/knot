@@ -2,16 +2,14 @@ import SwiftUI
 
 struct SplashView: View {
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+        ZStack {
+            AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+            VStack {
                 LogoMark()
-                    .frame(width: 127, height: 123)
-                    .position(
-                        x: (geo.size.width * 0.3333) + 4 + (127 / 2),
-                        y: (geo.size.height * 0.4167) + 10.83 + (123 / 2)
-                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(width: 199, height: 195)
+            .padding(36)
         }
     }
 }

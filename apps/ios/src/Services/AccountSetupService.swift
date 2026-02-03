@@ -5,9 +5,6 @@ import AccountSetup
 #if canImport(Passkey)
 import Passkey
 #endif
-#if canImport(SignHandler)
-import SignHandler
-#endif
 #endif
 
 struct CreatedWallet {
@@ -20,12 +17,18 @@ struct SignedInWallet {
     let passkeyCredentialID: String
 }
 
+struct KnownAccount {
+    let eoaAddress: String
+    let passkeyCredentialID: String
+}
+
 enum AccountSetupServiceError: Error {
     case packageNotIntegrated
     case notConfigured
     case createWalletFailed(Error)
     case signInFailed(Error)
     case restoreSessionFailed(Error)
+    case knownAccountsFailed(Error)
 }
 
 extension AccountSetupServiceError: LocalizedError {
@@ -41,6 +44,8 @@ extension AccountSetupServiceError: LocalizedError {
             return "Sign-in failed: \(error.localizedDescription)"
         case .restoreSessionFailed(let error):
             return "Session restore failed: \(error.localizedDescription)"
+        case .knownAccountsFailed(let error):
+            return "Loading known accounts failed: \(error.localizedDescription)"
         }
     }
 }
@@ -117,28 +122,41 @@ final class AccountSetupService {
 #endif
     }
 
-    func restoreSession() async throws -> SignedInWallet {
-#if canImport(AccountSetup) && canImport(SignHandler)
+    func restoreSession(eoaAddress: String) async throws -> SignedInWallet {
+#if canImport(AccountSetup)
         guard let service else {
             throw AccountSetupServiceError.notConfigured
         }
 
         do {
-            let passkey = try await service.storedPasskeyPublic()
-            let signedAuthorization = try await service.storedSignedAuthorization()
-            let recoveredAddress = try SignHandler.EIP7702AuthorizationCodec
-                .recoverAuthorityAddress(signedAuthorization)
-
-            guard recoveredAddress.caseInsensitiveCompare(passkey.userName) == .orderedSame else {
-                throw AccountSetup.AccountSetupError.inconsistentStoredIdentity
-            }
-
+            let restored = try await service.restoreStoredSession(eoaAddress: eoaAddress)
             return SignedInWallet(
-                eoaAddress: recoveredAddress,
-                passkeyCredentialID: passkey.credentialID.base64EncodedString()
+                eoaAddress: restored.eoaAddress,
+                passkeyCredentialID: restored.passkeyCredentialID.base64EncodedString()
             )
         } catch {
             throw AccountSetupServiceError.restoreSessionFailed(error)
+        }
+#else
+        throw AccountSetupServiceError.packageNotIntegrated
+#endif
+    }
+
+    func knownAccounts() async throws -> [KnownAccount] {
+#if canImport(AccountSetup)
+        guard let service else {
+            throw AccountSetupServiceError.notConfigured
+        }
+
+        do {
+            return try await service.storedAccounts().map {
+                KnownAccount(
+                    eoaAddress: $0.eoaAddress,
+                    passkeyCredentialID: $0.passkeyCredentialID.base64EncodedString()
+                )
+            }
+        } catch {
+            throw AccountSetupServiceError.knownAccountsFailed(error)
         }
 #else
         throw AccountSetupServiceError.packageNotIntegrated

@@ -4,7 +4,8 @@ struct LogoMark: View {
     var body: some View {
         Image("LogoMark")
             .renderingMode(.original)
-            .frame(width: 127, height: 123)
+            .resizable()
+            .aspectRatio(127.0 / 123.0, contentMode: .fit)
     }
 }
 
@@ -12,5 +13,6 @@ struct LogoMark: View {
     ZStack {
         Color.black.ignoresSafeArea()
         LogoMark()
+            .frame(width: 127, height: 123)
     }
 }
