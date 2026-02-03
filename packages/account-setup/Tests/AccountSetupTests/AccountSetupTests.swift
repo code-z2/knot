@@ -9,11 +9,7 @@ final class AccountSetupTests: XCTestCase {
     let passkey = PasskeyPublicKey(
       x: Data(repeating: 1, count: 32),
       y: Data(repeating: 2, count: 32),
-      credentialID: Data([1, 2, 3]),
-      userName: "0x1",
-      aaGuid: Data(repeating: 0, count: 16),
-      rawAttestationObject: Data(),
-      rawClientDataJSON: Data()
+      credentialID: Data([1, 2, 3])
     )
     let authorization = EIP7702AuthorizationSigned(
       chainId: 1,
