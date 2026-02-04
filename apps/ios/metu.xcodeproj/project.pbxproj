@@ -195,7 +195,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					D0EEE9692F312A96001771BB = {
 						CreatedOnToolsVersion = 26.0.1;
@@ -221,6 +221,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D0EEE9C12F3145FD001771BB /* XCLocalSwiftPackageReference "../../packages/account-setup" */,
+				D0EAD1412F338079003B1EE1 /* XCLocalSwiftPackageReference "../../packages/transactions" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -356,6 +357,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -413,6 +415,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -620,6 +623,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		D0EAD1412F338079003B1EE1 /* XCLocalSwiftPackageReference "../../packages/transactions" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/transactions;
+		};
 		D0EEE9C12F3145FD001771BB /* XCLocalSwiftPackageReference "../../packages/account-setup" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../packages/account-setup";

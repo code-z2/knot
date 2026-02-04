@@ -66,7 +66,27 @@ public struct PasskeySignature: Sendable, Equatable, Codable {
   public func getChallengePosition(payload: Data) -> Int? {
     guard let json = String(data: clientDataJSON, encoding: .utf8) else { return nil }
     let challenge = Data(SHA256.hash(data: payload)).base64URLEncodedStringNoPadding()
-    return json.range(of: challenge)?.lowerBound.utf16Offset(in: json)
+    let challengeFragment = "\"challenge\":\"\(challenge)\""
+    return json.range(of: challengeFragment)?.lowerBound.utf16Offset(in: json)
+  }
+
+  public func webAuthnAuthBytes(payload: Data) throws -> Data {
+    let normalized = normalized()
+    guard let typeIndex = normalized.getTypePosition() else {
+      throw PasskeyServiceError.malformedSignature
+    }
+    guard let challengeIndex = normalized.getChallengePosition(payload: payload) else {
+      throw PasskeyServiceError.malformedSignature
+    }
+
+    return ABIWebAuthnEncoder.encodeAuthStruct(
+      r: normalized.r,
+      s: normalized.s,
+      challengeIndex: UInt64(challengeIndex),
+      typeIndex: UInt64(typeIndex),
+      authenticatorData: normalized.authData,
+      clientDataJSON: normalized.clientDataJSON
+    )
   }
 }
 
@@ -387,6 +407,58 @@ private enum SignatureNormalizer {
     }
 
     return Data(a)
+  }
+}
+
+private enum ABIWebAuthnEncoder {
+  static func encodeAuthStruct(
+    r: Data,
+    s: Data,
+    challengeIndex: UInt64,
+    typeIndex: UInt64,
+    authenticatorData: Data,
+    clientDataJSON: Data
+  ) -> Data {
+    let rWord = leftPadTo32(r)
+    let sWord = leftPadTo32(s)
+    let challengeWord = uintWord(challengeIndex)
+    let typeWord = uintWord(typeIndex)
+
+    let headLength = 32 * 6
+    let authOffsetWord = uintWord(UInt64(headLength))
+    let encodedAuthData = encodeDynamicBytes(authenticatorData)
+    let clientOffsetWord = uintWord(UInt64(headLength + encodedAuthData.count))
+    let encodedClientJSON = encodeDynamicBytes(clientDataJSON)
+
+    return rWord
+      + sWord
+      + challengeWord
+      + typeWord
+      + authOffsetWord
+      + clientOffsetWord
+      + encodedAuthData
+      + encodedClientJSON
+  }
+
+  private static func encodeDynamicBytes(_ value: Data) -> Data {
+    var encoded = uintWord(UInt64(value.count))
+    encoded.append(value)
+    let remainder = value.count % 32
+    if remainder != 0 {
+      encoded.append(Data(repeating: 0, count: 32 - remainder))
+    }
+    return encoded
+  }
+
+  private static func uintWord(_ value: UInt64) -> Data {
+    var bigEndian = value.bigEndian
+    let bytes = withUnsafeBytes(of: &bigEndian) { Data($0) }
+    return Data(repeating: 0, count: 24) + bytes
+  }
+
+  private static func leftPadTo32(_ value: Data) -> Data {
+    if value.count >= 32 { return Data(value.suffix(32)) }
+    return Data(repeating: 0, count: 32 - value.count) + value
   }
 }
 
