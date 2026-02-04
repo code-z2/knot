@@ -138,4 +138,12 @@ final class AccountSetupService {
       throw AccountSetupServiceError.passkeySignFailed(error)
     }
   }
+
+  func storedSignedAuthorization(account: AccountIdentity) async throws -> EIP7702AuthorizationSigned {
+    do {
+      return try await service.signedAuthorization(account: account)
+    } catch {
+      throw AccountSetupServiceError.restoreSessionFailed(error)
+    }
+  }
 }
