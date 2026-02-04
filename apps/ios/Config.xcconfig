@@ -1,0 +1,10 @@
+//
+//  Config.xcconfig
+//  metu
+//
+//  Created by Peter Anyaogu on 2/4/26.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+#include "Secrets.xcconfig"

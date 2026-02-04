@@ -12,9 +12,11 @@ final class RPCTests: XCTestCase {
     let rpc = try await client.getRpcUrl(chainId: 1)
     let bundler = try await client.getBundlerUrl(chainId: 1)
     let paymaster = try await client.getPaymasterUrl(chainId: 1)
+    let chains = await client.getSupportedChains()
 
     XCTAssertEqual(rpc, "https://rpc.example")
     XCTAssertEqual(bundler, "https://bundler.example")
     XCTAssertEqual(paymaster, "https://paymaster.example")
+    XCTAssertEqual(chains, [1])
   }
 }

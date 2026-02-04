@@ -34,3 +34,4 @@ contracts/broadcast/*/31337/
 # Env
 .env
 .env.*
+Secrets.xcconfig
