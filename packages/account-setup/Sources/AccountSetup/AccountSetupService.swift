@@ -20,17 +20,7 @@ public struct CreatedAccount: Equatable, Sendable {
   }
 }
 
-public struct SignedInAccount: Equatable, Sendable {
-  public let eoaAddress: String
-  public let passkeyCredentialID: Data
-
-  public init(eoaAddress: String, passkeyCredentialID: Data) {
-    self.eoaAddress = eoaAddress
-    self.passkeyCredentialID = passkeyCredentialID
-  }
-}
-
-public struct StoredAccountSummary: Equatable, Sendable {
+public struct AccountIdentity: Equatable, Sendable {
   public let eoaAddress: String
   public let passkeyCredentialID: Data
 
@@ -242,7 +232,7 @@ public actor AccountSetupService {
     )
   }
 
-  public func signInWithPasskey() async throws -> SignedInAccount {
+  public func signInWithPasskey() async throws -> AccountIdentity {
     let storedAccounts = try loadStoredAccountRecords()
     guard !storedAccounts.isEmpty else {
       throw AccountSetupError.missingStoredPasskey
@@ -273,7 +263,7 @@ public actor AccountSetupService {
     } catch {
       throw AccountSetupError.authorizationRecoveryFailed(error)
     }
-    return SignedInAccount(
+    return AccountIdentity(
       eoaAddress: recoveredAddress,
       passkeyCredentialID: matched.passkey.credentialID
     )
@@ -287,7 +277,7 @@ public actor AccountSetupService {
     (try? walletStore.readAll()) ?? [:]
   }
 
-  public func storedAccounts() throws -> [StoredAccountSummary] {
+  public func storedAccounts() throws -> [AccountIdentity] {
     try loadStoredAccountRecords().map { record in
       let recoveredAddress: String
       do {
@@ -297,14 +287,14 @@ public actor AccountSetupService {
       } catch {
         throw AccountSetupError.authorizationRecoveryFailed(error)
       }
-      return StoredAccountSummary(
+      return AccountIdentity(
         eoaAddress: recoveredAddress,
         passkeyCredentialID: record.passkey.credentialID
       )
     }
   }
 
-  public func restoreStoredSession(eoaAddress: String) throws -> SignedInAccount {
+  public func restoreStoredSession(eoaAddress: String) throws -> AccountIdentity {
     let normalized = normalizedAddressKey(eoaAddress)
     let records = try loadStoredAccountRecords()
 
@@ -319,7 +309,7 @@ public actor AccountSetupService {
       }
 
       if normalizedAddressKey(recoveredAddress) == normalized {
-        return SignedInAccount(
+        return AccountIdentity(
           eoaAddress: recoveredAddress,
           passkeyCredentialID: record.passkey.credentialID
         )
@@ -327,6 +317,37 @@ public actor AccountSetupService {
     }
 
     throw AccountSetupError.missingStoredAccount(eoaAddress)
+  }
+
+  public func signPayloadWithStoredPasskey(
+    account: AccountIdentity,
+    payload: Data
+  ) async throws -> Data {
+    let passkey = try passkeyPublicKey(account: account)
+    let signature: PasskeySignature
+    do {
+      signature = try await passkeyService.sign(
+        rpId: relyingParty.rpID,
+        payload: payload,
+        allowedCredentialIDs: [passkey.credentialID]
+      )
+    } catch {
+      throw AccountSetupError.passkeyAssertionFailed(error)
+    }
+
+    do {
+      return try signature.webAuthnAuthBytes(payload: payload)
+    } catch {
+      throw AccountSetupError.passkeyAssertionFailed(error)
+    }
+  }
+
+  public func passkeyPublicKey(account: AccountIdentity) throws -> PasskeyPublicKey {
+    let records = try loadStoredAccountRecords()
+    if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }) {
+      return matched.passkey
+    }
+    throw AccountSetupError.missingStoredAccount(account.eoaAddress)
   }
 
   private func randomChallenge(length: Int = 32) -> Data {
