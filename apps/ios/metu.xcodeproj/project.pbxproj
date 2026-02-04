@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D03AA2D82F32698C00122EF8 /* metu-Info.plist */; };
+		D0EAD1462F338A17003B1EE1 /* AA in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1452F338A17003B1EE1 /* AA */; };
+		D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1482F338A51003B1EE1 /* ENS */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 /* End PBXBuildFile section */
 
@@ -72,6 +74,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */,
+				D0EAD1462F338A17003B1EE1 /* AA in Frameworks */,
 				D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -136,6 +140,8 @@
 			name = metu;
 			packageProductDependencies = (
 				D0EEE9C22F3145FD001771BB /* AccountSetup */,
+				D0EAD1452F338A17003B1EE1 /* AA */,
+				D0EAD1482F338A51003B1EE1 /* ENS */,
 			);
 			productName = metu;
 			productReference = D0EEE96A2F312A96001771BB /* metu.app */;
@@ -222,6 +228,8 @@
 			packageReferences = (
 				D0EEE9C12F3145FD001771BB /* XCLocalSwiftPackageReference "../../packages/account-setup" */,
 				D0EAD1412F338079003B1EE1 /* XCLocalSwiftPackageReference "../../packages/transactions" */,
+				D0EAD1442F338A17003B1EE1 /* XCLocalSwiftPackageReference "../../packages/aa" */,
+				D0EAD1472F338A51003B1EE1 /* XCLocalSwiftPackageReference "../../packages/ens" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -627,6 +635,14 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../packages/transactions;
 		};
+		D0EAD1442F338A17003B1EE1 /* XCLocalSwiftPackageReference "../../packages/aa" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/aa;
+		};
+		D0EAD1472F338A51003B1EE1 /* XCLocalSwiftPackageReference "../../packages/ens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/ens;
+		};
 		D0EEE9C12F3145FD001771BB /* XCLocalSwiftPackageReference "../../packages/account-setup" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../packages/account-setup";
@@ -634,6 +650,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		D0EAD1452F338A17003B1EE1 /* AA */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AA;
+		};
+		D0EAD1482F338A51003B1EE1 /* ENS */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ENS;
+		};
 		D0EEE9C22F3145FD001771BB /* AccountSetup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AccountSetup;
