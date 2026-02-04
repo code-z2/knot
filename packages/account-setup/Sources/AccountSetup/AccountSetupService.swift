@@ -350,6 +350,14 @@ public actor AccountSetupService {
     throw AccountSetupError.missingStoredAccount(account.eoaAddress)
   }
 
+  public func signedAuthorization(account: AccountIdentity) throws -> EIP7702AuthorizationSigned {
+    let records = try loadStoredAccountRecords()
+    if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }) {
+      return matched.signedAuthorization
+    }
+    throw AccountSetupError.missingStoredAccount(account.eoaAddress)
+  }
+
   private func randomChallenge(length: Int = 32) -> Data {
     var bytes = [UInt8](repeating: 0, count: length)
     _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
