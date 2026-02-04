@@ -1,5 +1,5 @@
 {
-  "name": "@hack-money/sign-handler",
+  "name": "sign-handler",
   "private": true,
   "scripts": {
     "build": "swift build",

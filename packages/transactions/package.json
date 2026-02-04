@@ -1,5 +1,5 @@
 {
-  "name": "@hack-money/transactions",
+  "name": "transactions",
   "private": true,
   "scripts": {
     "build": "swift build",
