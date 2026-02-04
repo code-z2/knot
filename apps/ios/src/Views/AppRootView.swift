@@ -6,6 +6,8 @@ struct AppRootView: View {
   @State private var isWorking = false
   @State private var hasLocalWalletMaterial = false
   @State private var walletBackupMnemonic = ""
+  @State private var preferencesStore = PreferencesStore()
+  private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
   private let sessionStore = SessionStore()
 
@@ -13,6 +15,8 @@ struct AppRootView: View {
     case splash
     case onboarding
     case home
+    case preferences
+    case addressBook
     case receive
     case sessionKey
     case walletBackup
@@ -63,8 +67,21 @@ struct AppRootView: View {
           onAddMoney: { route = .receive },
           onHomeTap: { route = .home },
           onSessionKeyTap: { route = .sessionKey },
+          onPreferencesTap: { route = .preferences },
           onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
+          onAddressBookTap: { route = .addressBook },
           showWalletBackup: hasLocalWalletMaterial
+        )
+      case .preferences:
+        PreferencesView(
+          preferencesStore: preferencesStore,
+          onBack: { route = .home }
+        )
+      case .addressBook:
+        AddressBookView(
+          eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+          store: beneficiaryStore,
+          onBack: { route = .home }
         )
       case .receive:
         ReceiveView(

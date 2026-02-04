@@ -4,15 +4,36 @@ struct HomeView: View {
   let onSignOut: () -> Void
   let onAddMoney: () -> Void
   let onSendMoney: () -> Void
+  let onHomeTap: () -> Void
+  let onTransactionsTap: () -> Void
+  let onSessionKeyTap: () -> Void
+  let onPreferencesTap: () -> Void
+  let onWalletBackupTap: () -> Void
+  let onAddressBookTap: () -> Void
+  let showWalletBackup: Bool
 
   init(
     onSignOut: @escaping () -> Void,
     onAddMoney: @escaping () -> Void = {},
-    onSendMoney: @escaping () -> Void = {}
+    onSendMoney: @escaping () -> Void = {},
+    onHomeTap: @escaping () -> Void = {},
+    onTransactionsTap: @escaping () -> Void = {},
+    onSessionKeyTap: @escaping () -> Void = {},
+    onPreferencesTap: @escaping () -> Void = {},
+    onWalletBackupTap: @escaping () -> Void = {},
+    onAddressBookTap: @escaping () -> Void = {},
+    showWalletBackup: Bool = true
   ) {
     self.onSignOut = onSignOut
     self.onAddMoney = onAddMoney
     self.onSendMoney = onSendMoney
+    self.onHomeTap = onHomeTap
+    self.onTransactionsTap = onTransactionsTap
+    self.onSessionKeyTap = onSessionKeyTap
+    self.onPreferencesTap = onPreferencesTap
+    self.onWalletBackupTap = onWalletBackupTap
+    self.onAddressBookTap = onAddressBookTap
+    self.showWalletBackup = showWalletBackup
   }
 
   var body: some View {
@@ -29,7 +50,12 @@ struct HomeView: View {
       }
     }
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      BottomNavigation(activeTab: .home)
+      BottomNavigation(
+        activeTab: .home,
+        onHomeTap: onHomeTap,
+        onTransactionsTap: onTransactionsTap,
+        onSessionKeyTap: onSessionKeyTap
+      )
     }
   }
 
@@ -54,7 +80,7 @@ struct HomeView: View {
         HideableText(
           text: accountBalance,
           isHidden: $isBalanceHidden,
-          font: .custom("RobotoMono-Bold", size: 40)
+          font: .custom("RobotoMono-Bold", size: 24)
         )
       }
       .padding(.horizontal, 18)
@@ -64,7 +90,7 @@ struct HomeView: View {
           Text("Add money")
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.backgroundPrimary)
-            .frame(width: 113, height: 52)
+            .frame(width: 120, height: 52)
             .background(
               RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(AppThemeColor.accentBrown)
@@ -101,7 +127,7 @@ struct HomeView: View {
 
       Rectangle()
         .foregroundColor(.clear)
-        .frame(width: .infinity, height: 4)
+        .frame(height: 4)
         .background(AppThemeColor.separatorOpaque)
 
       assetsSection
@@ -163,6 +189,7 @@ struct HomeView: View {
         VStack(spacing: 12) {
           MenuRow(
             title: "Preferences",
+            action: onPreferencesTap,
             leading: {
               IconBadge(style: .defaultStyle) {
                 Image("Icons/hexagon_01")
@@ -174,21 +201,25 @@ struct HomeView: View {
               }
             }
           )
-          MenuRow(
-            title: "Wallet Backup",
-            leading: {
-              IconBadge(style: .defaultStyle) {
-                Image("Icons/wallet_04")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 21, height: 21)
-                  .foregroundColor(AppThemeColor.glyphPrimary)
+          if showWalletBackup {
+            MenuRow(
+              title: "Wallet Backup",
+              action: onWalletBackupTap,
+              leading: {
+                IconBadge(style: .defaultStyle) {
+                  Image("Icons/wallet_04")
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 21, height: 21)
+                    .foregroundColor(AppThemeColor.glyphPrimary)
+                }
               }
-            }
-          )
+            )
+          }
           MenuRow(
             title: "Address Book",
+            action: onAddressBookTap,
             leading: {
               IconBadge(style: .defaultStyle) {
                 Image("Icons/users_01")
@@ -243,14 +274,27 @@ struct HomeView: View {
 
 private struct MenuRow<Leading: View>: View {
   let title: String
+  let action: (() -> Void)?
   let leading: () -> Leading
 
-  init(title: String, @ViewBuilder leading: @escaping () -> Leading) {
+  init(title: String, action: (() -> Void)? = nil, @ViewBuilder leading: @escaping () -> Leading) {
     self.title = title
+    self.action = action
     self.leading = leading
   }
 
   var body: some View {
+    Group {
+      if let action {
+        Button(action: action) { rowContent }
+          .buttonStyle(.plain)
+      } else {
+        rowContent
+      }
+    }
+  }
+
+  private var rowContent: some View {
     HStack {
       HStack(spacing: 16) {
         leading()
@@ -272,7 +316,6 @@ private struct MenuRow<Leading: View>: View {
       .padding(.horizontal, 6)
       .padding(.vertical, 12)
       .cornerRadius(15)
-
     }
     .frame(maxWidth: .infinity, minHeight: 48)
   }
