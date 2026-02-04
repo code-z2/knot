@@ -10,6 +10,8 @@
 		D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D03AA2D82F32698C00122EF8 /* metu-Info.plist */; };
 		D0EAD1462F338A17003B1EE1 /* AA in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1452F338A17003B1EE1 /* AA */; };
 		D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1482F338A51003B1EE1 /* ENS */; };
+		D0EAD14B2F33D734003B1EE1 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */; };
+		D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +34,8 @@
 
 /* Begin PBXFileReference section */
 		D03AA2D82F32698C00122EF8 /* metu-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "metu-Info.plist"; sourceTree = "<group>"; };
+		D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D0EEE96A2F312A96001771BB /* metu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = metu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9792F312A97001771BB /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9832F312A97001771BB /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -100,6 +104,8 @@
 		D0EEE9612F312A96001771BB = {
 			isa = PBXGroup;
 			children = (
+				D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */,
+				D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */,
 				D03AA2D82F32698C00122EF8 /* metu-Info.plist */,
 				D0EEE9C02F3130AE001771BB /* metu.entitlements */,
 				D0EEE96C2F312A96001771BB /* src */,
@@ -248,6 +254,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */,
+				D0EAD14B2F33D734003B1EE1 /* Config.xcconfig in Resources */,
 				D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

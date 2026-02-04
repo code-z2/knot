@@ -6,8 +6,28 @@ public actor RPCClient {
   private let endpointsByChain: [UInt64: ChainEndpoints]
   private var requestID: Int = 1
 
-  public init(endpointsByChain: [UInt64: ChainEndpoints]? = nil) {
-    self.endpointsByChain = endpointsByChain ?? rpcDefaultEndpoints
+  public init(
+    endpointsByChain: [UInt64: ChainEndpoints]? = nil,
+    gelatoAPIKey: String? = nil,
+    pimlicoAPIKey: String? = nil
+  ) {
+    if let endpointsByChain {
+      self.endpointsByChain = endpointsByChain
+      return
+    }
+
+    let resolvedGelato = gelatoAPIKey ?? Self.resolveSecret(
+      envKey: RPCSecrets.gelatoKeyEnv,
+      infoPlistKey: RPCSecrets.gelatoKeyInfoPlistKey
+    )
+    let resolvedPimlico = pimlicoAPIKey ?? Self.resolveSecret(
+      envKey: RPCSecrets.pimlicoKeyEnv,
+      infoPlistKey: RPCSecrets.pimlicoKeyInfoPlistKey
+    )
+    self.endpointsByChain = makeRPCDefaultEndpoints(
+      gelatoAPIKey: resolvedGelato,
+      pimlicoAPIKey: resolvedPimlico
+    )
   }
 
   public func getRpcUrl(chainId: UInt64) throws -> String {
@@ -50,8 +70,61 @@ public actor RPCClient {
     responseType: Response.Type = Response.self
   ) async throws -> Response {
     let rpc = try getRpcUrl(chainId: chainId)
-    guard let url = URL(string: rpc) else {
-      throw RPCError.invalidURL(rpc)
+    return try await makeJSONRPCCall(
+      urlString: rpc,
+      method: method,
+      params: params,
+      responseType: responseType
+    )
+  }
+
+  public func makeBundlerRpcCall<Response: Decodable>(
+    chainId: UInt64,
+    method: String,
+    params: [AnyCodable] = [],
+    responseType: Response.Type = Response.self
+  ) async throws -> Response {
+    let bundler = try getBundlerUrl(chainId: chainId)
+    return try await makeJSONRPCCall(
+      urlString: bundler,
+      method: method,
+      params: params,
+      responseType: responseType
+    )
+  }
+
+  public func makePaymasterRpcCall<Response: Decodable>(
+    chainId: UInt64,
+    method: String,
+    params: [AnyCodable] = [],
+    responseType: Response.Type = Response.self
+  ) async throws -> Response {
+    let paymaster = try getPaymasterUrl(chainId: chainId)
+    return try await makeJSONRPCCall(
+      urlString: paymaster,
+      method: method,
+      params: params,
+      responseType: responseType
+    )
+  }
+
+  public func getCode(chainId: UInt64, address: String, block: String = "latest") async throws -> String {
+    try await makeRpcCall(
+      chainId: chainId,
+      method: "eth_getCode",
+      params: [AnyCodable(address), AnyCodable(block)],
+      responseType: String.self
+    )
+  }
+
+  private func makeJSONRPCCall<Response: Decodable>(
+    urlString: String,
+    method: String,
+    params: [AnyCodable] = [],
+    responseType: Response.Type = Response.self
+  ) async throws -> Response {
+    guard let url = URL(string: urlString), !urlString.isEmpty else {
+      throw RPCError.invalidURL(urlString)
     }
 
     let id = requestID
@@ -74,5 +147,18 @@ public actor RPCClient {
       throw RPCError.missingResult
     }
     return result
+  }
+
+  private static func resolveSecret(envKey: String, infoPlistKey: String) -> String {
+    let env = ProcessInfo.processInfo.environment[envKey]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if !env.isEmpty { return env }
+
+    if let plist = Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String {
+      let trimmed = plist.trimmingCharacters(in: .whitespacesAndNewlines)
+      if !trimmed.isEmpty {
+        return trimmed
+      }
+    }
+    return ""
   }
 }
