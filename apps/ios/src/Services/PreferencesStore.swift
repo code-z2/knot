@@ -94,35 +94,35 @@ final class PreferencesStore {
     supportedLanguages.first(where: { $0.code == languageCode })
   }
 
-  static let defaultCurrencies: [CurrencyOption] = [
-    .init(code: "ETH", name: "ethereum", iconAssetName: "Icons/currency_ethereum_circle"),
-    .init(code: "EUR", name: "european euro", iconAssetName: "Icons/currency_euro_circle"),
-    .init(code: "GBP", name: "british pounds", iconAssetName: "Icons/currency_pound_circle"),
-    .init(code: "USD", name: "united states dollar", iconAssetName: "Icons/currency_dollar_circle"),
-    .init(code: "YEN", name: "chinese yen", iconAssetName: "Icons/currency_yen_circle"),
-    .init(code: "INR", name: "indian rupee", iconAssetName: "Icons/currency_rupee_circle"),
-    .init(code: "SUR", name: "soviet rubble", iconAssetName: "Icons/currency_ruble_circle"),
-  ]
+    nonisolated static let defaultCurrencies: [CurrencyOption] = [
+     .init(code: "ETH", name: "ethereum", iconAssetName: "Icons/currency_ethereum_circle"),
+     .init(code: "EUR", name: "european euro", iconAssetName: "Icons/currency_euro_circle"),
+     .init(code: "GBP", name: "british pounds", iconAssetName: "Icons/currency_pound_circle"),
+     .init(code: "USD", name: "united states dollar", iconAssetName: "Icons/currency_dollar_circle"),
+     .init(code: "YEN", name: "chinese yen", iconAssetName: "Icons/currency_yen_circle"),
+     .init(code: "INR", name: "indian rupee", iconAssetName: "Icons/currency_rupee_circle"),
+     .init(code: "SUR", name: "soviet rubble", iconAssetName: "Icons/currency_ruble_circle"),
+   ]
 
-  static let defaultLanguages: [LanguageOption] = [
-    .init(code: "arabic", displayName: "Arabic", flag: "🇸🇦"),
-    .init(code: "bengali", displayName: "Bengali", flag: "🇧🇩"),
-    .init(code: "english", displayName: "English", flag: "🇬🇧"),
-    .init(code: "french", displayName: "French", flag: "🇫🇷"),
-    .init(code: "german", displayName: "German", flag: "🇩🇪"),
-    .init(code: "hindi", displayName: "Hindi", flag: "🇮🇳"),
-    .init(code: "italian", displayName: "Italian", flag: "🇮🇹"),
-    .init(code: "japanese", displayName: "Japanese", flag: "🇯🇵"),
-    .init(code: "javanese", displayName: "Javanese", flag: "🇮🇩"),
-    .init(code: "korean", displayName: "Korean", flag: "🇰🇷"),
-    .init(code: "marathi", displayName: "Marathi", flag: "🇮🇳"),
-    .init(code: "portuguese", displayName: "Portuguese", flag: "🇵🇹"),
-    .init(code: "russian", displayName: "Russian", flag: "🇷🇺"),
-    .init(code: "spanish", displayName: "Spanish", flag: "🇪🇸"),
-    .init(code: "swahili", displayName: "Swahili", flag: "🇰🇪"),
-    .init(code: "tamil", displayName: "Tamil", flag: "🇱🇰"),
-    .init(code: "telugu", displayName: "Telugu", flag: "🇮🇳"),
-    .init(code: "turkish", displayName: "Turkish", flag: "🇹🇷"),
-    .init(code: "urdu", displayName: "Urdu", flag: "🇵🇰"),
-  ]
+    nonisolated static let defaultLanguages: [LanguageOption] = [
+     .init(code: "arabic", displayName: "Arabic", flag: "🇸🇦"),
+     .init(code: "bengali", displayName: "Bengali", flag: "🇧🇩"),
+     .init(code: "english", displayName: "English", flag: "🇬🇧"),
+     .init(code: "french", displayName: "French", flag: "🇫🇷"),
+     .init(code: "german", displayName: "German", flag: "🇩🇪"),
+     .init(code: "hindi", displayName: "Hindi", flag: "🇮🇳"),
+     .init(code: "italian", displayName: "Italian", flag: "🇮🇹"),
+     .init(code: "japanese", displayName: "Japanese", flag: "🇯🇵"),
+     .init(code: "javanese", displayName: "Javanese", flag: "🇮🇩"),
+     .init(code: "korean", displayName: "Korean", flag: "🇰🇷"),
+     .init(code: "marathi", displayName: "Marathi", flag: "🇮🇳"),
+     .init(code: "portuguese", displayName: "Portuguese", flag: "🇵🇹"),
+     .init(code: "russian", displayName: "Russian", flag: "🇷🇺"),
+     .init(code: "spanish", displayName: "Spanish", flag: "🇪🇸"),
+     .init(code: "swahili", displayName: "Swahili", flag: "🇰🇪"),
+     .init(code: "tamil", displayName: "Tamil", flag: "🇱🇰"),
+     .init(code: "telugu", displayName: "Telugu", flag: "🇮🇳"),
+     .init(code: "turkish", displayName: "Turkish", flag: "🇹🇷"),
+     .init(code: "urdu", displayName: "Urdu", flag: "🇵🇰"),
+   ]
 }
