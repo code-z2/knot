@@ -1,5 +1,5 @@
 {
-  "name": "@hack-money/ens",
+  "name": "ens",
   "private": true,
   "scripts": {
     "build": "swift build",
