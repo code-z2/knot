@@ -1,3 +1,3 @@
-module github.com/hack-money/cloudflare-image-upload-worker
+module github.com/hack-money/cf-image-uploader
 
 go 1.22

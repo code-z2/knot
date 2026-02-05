@@ -1,34 +1,42 @@
 package main
 
 import (
-	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type config struct {
-	port                 string
-	allowedOrigin        string
-	uploadClientToken    string
-	cloudflareAccountID  string
-	cloudflareAPIToken   string
-	cloudflareDeliveryID string
-	directUploadExpiry   time.Duration
+	port               string
+	allowedOrigin      string
+	uploadClientToken  string
+	r2AccountID        string
+	r2BucketName       string
+	r2AccessKeyID      string
+	r2SecretAccessKey  string
+	r2PublicBaseURL    string
+	r2Endpoint         string
+	r2SigningRegion    string
+	directUploadExpiry time.Duration
 }
 
 type server struct {
-	cfg    config
-	client *http.Client
+	cfg config
 }
 
 type directUploadRequest struct {
@@ -43,31 +51,9 @@ type directUploadResponse struct {
 	DeliveryURL string `json:"deliveryURL"`
 }
 
-type cloudflareDirectUploadRequest struct {
-	RequireSignedURLs bool              `json:"requireSignedURLs"`
-	Expiry            string            `json:"expiry"`
-	Metadata          map[string]string `json:"metadata"`
-}
-
-type cloudflareDirectUploadResult struct {
-	ID        string `json:"id"`
-	UploadURL string `json:"uploadURL"`
-}
-
-type cloudflareError struct {
-	Message string `json:"message"`
-}
-
-type cloudflareDirectUploadEnvelope struct {
-	Success bool                         `json:"success"`
-	Errors  []cloudflareError            `json:"errors"`
-	Result  cloudflareDirectUploadResult `json:"result"`
-}
-
 var (
 	errUnauthorized = errors.New("unauthorized")
 	errBadRequest   = errors.New("bad request")
-	errUpstream     = errors.New("upstream error")
 	eoaPattern      = regexp.MustCompile(`^0x[a-fA-F0-9]{40}$`)
 )
 
@@ -77,12 +63,7 @@ func main() {
 		log.Fatalf("invalid config: %v", err)
 	}
 
-	s := &server{
-		cfg: cfg,
-		client: &http.Client{
-			Timeout: 15 * time.Second,
-		},
-	}
+	s := &server{cfg: cfg}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
@@ -99,7 +80,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("cloudflare image upload worker listening on :%s", cfg.port)
+	log.Printf("r2 image upload service listening on :%s", cfg.port)
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server error: %v", err)
 	}
@@ -109,24 +90,47 @@ func loadConfig() (config, error) {
 	port := envOrDefault("PORT", "8080")
 	allowedOrigin := envOrDefault("ALLOWED_ORIGIN", "*")
 	uploadClientToken := strings.TrimSpace(os.Getenv("UPLOAD_CLIENT_TOKEN"))
-	cloudflareAccountID := strings.TrimSpace(os.Getenv("CLOUDFLARE_ACCOUNT_ID"))
-	cloudflareAPIToken := strings.TrimSpace(os.Getenv("CLOUDFLARE_IMAGES_API_TOKEN"))
-	cloudflareDeliveryID := strings.TrimSpace(os.Getenv("CLOUDFLARE_IMAGES_DELIVERY_HASH"))
+	r2AccountID := strings.TrimSpace(os.Getenv("R2_ACCOUNT_ID"))
+	r2BucketName := strings.TrimSpace(os.Getenv("R2_BUCKET_NAME"))
+	r2AccessKeyID := strings.TrimSpace(os.Getenv("R2_ACCESS_KEY_ID"))
+	r2SecretAccessKey := strings.TrimSpace(os.Getenv("R2_SECRET_ACCESS_KEY"))
+	r2PublicBaseURL := strings.TrimSpace(os.Getenv("R2_PUBLIC_BASE_URL"))
 
-	if uploadClientToken == "" || cloudflareAccountID == "" || cloudflareAPIToken == "" || cloudflareDeliveryID == "" {
-		return config{}, fmt.Errorf("UPLOAD_CLIENT_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_IMAGES_API_TOKEN, and CLOUDFLARE_IMAGES_DELIVERY_HASH are required")
+	if r2AccountID == "" {
+		// Backward-compatible fallback.
+		r2AccountID = strings.TrimSpace(os.Getenv("CLOUDFLARE_ACCOUNT_ID"))
+	}
+
+	if uploadClientToken == "" || r2AccountID == "" || r2BucketName == "" || r2AccessKeyID == "" || r2SecretAccessKey == "" || r2PublicBaseURL == "" {
+		return config{}, fmt.Errorf("UPLOAD_CLIENT_TOKEN, R2_ACCOUNT_ID, R2_BUCKET_NAME, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_PUBLIC_BASE_URL are required")
 	}
 
 	expirySeconds := parseBoundedInt(envOrDefault("DIRECT_UPLOAD_EXPIRY_SECONDS", "600"), 60, 3600, 600)
+	r2Endpoint := envOrDefault("R2_S3_ENDPOINT", fmt.Sprintf("https://%s.r2.cloudflarestorage.com", r2AccountID))
+	r2SigningRegion := envOrDefault("R2_SIGNING_REGION", "auto")
+
+	parsedEndpoint, err := url.Parse(r2Endpoint)
+	if err != nil || parsedEndpoint.Scheme == "" || parsedEndpoint.Host == "" {
+		return config{}, fmt.Errorf("invalid R2_S3_ENDPOINT: %q", r2Endpoint)
+	}
+
+	parsedPublicBase, err := url.Parse(r2PublicBaseURL)
+	if err != nil || parsedPublicBase.Scheme == "" || parsedPublicBase.Host == "" {
+		return config{}, fmt.Errorf("invalid R2_PUBLIC_BASE_URL: %q", r2PublicBaseURL)
+	}
 
 	return config{
-		port:                 port,
-		allowedOrigin:        allowedOrigin,
-		uploadClientToken:    uploadClientToken,
-		cloudflareAccountID:  cloudflareAccountID,
-		cloudflareAPIToken:   cloudflareAPIToken,
-		cloudflareDeliveryID: cloudflareDeliveryID,
-		directUploadExpiry:   time.Duration(expirySeconds) * time.Second,
+		port:               port,
+		allowedOrigin:      allowedOrigin,
+		uploadClientToken:  uploadClientToken,
+		r2AccountID:        r2AccountID,
+		r2BucketName:       r2BucketName,
+		r2AccessKeyID:      r2AccessKeyID,
+		r2SecretAccessKey:  r2SecretAccessKey,
+		r2PublicBaseURL:    strings.TrimRight(r2PublicBaseURL, "/"),
+		r2Endpoint:         r2Endpoint,
+		r2SigningRegion:    r2SigningRegion,
+		directUploadExpiry: time.Duration(expirySeconds) * time.Second,
 	}, nil
 }
 
@@ -208,60 +212,33 @@ func (s *server) authorize(r *http.Request) error {
 	return nil
 }
 
-func (s *server) createDirectUpload(ctx context.Context, req directUploadRequest) (directUploadResponse, error) {
+func (s *server) createDirectUpload(_ context.Context, req directUploadRequest) (directUploadResponse, error) {
 	safeFileName := sanitizeFileName(req.FileName)
 	if safeFileName == "" {
 		return directUploadResponse{}, errBadRequest
 	}
 
-	expiresAt := time.Now().UTC().Add(s.cfg.directUploadExpiry).Format(time.RFC3339)
-	cfPayload := cloudflareDirectUploadRequest{
-		RequireSignedURLs: false,
-		Expiry:            expiresAt,
-		Metadata: map[string]string{
-			"eoaAddress": strings.ToLower(req.EOAAddress),
-			"fileName":   safeFileName,
-			"source":     "metu-ios",
-			"uploadedAt": time.Now().UTC().Format(time.RFC3339),
-		},
-	}
+	contentType := strings.ToLower(strings.TrimSpace(req.ContentType))
+	objectKey := buildObjectKey(strings.ToLower(req.EOAAddress), safeFileName)
 
-	body, err := json.Marshal(cfPayload)
+	presignedURL, err := presignR2PutURL(
+		s.cfg,
+		objectKey,
+		contentType,
+		s.cfg.directUploadExpiry,
+	)
 	if err != nil {
-		return directUploadResponse{}, err
+		return directUploadResponse{}, fmt.Errorf("failed to create presigned upload URL: %w", err)
 	}
 
-	url := fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/images/v2/direct_upload", s.cfg.cloudflareAccountID)
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	deliveryURL, err := buildPublicObjectURL(s.cfg.r2PublicBaseURL, objectKey)
 	if err != nil {
-		return directUploadResponse{}, err
-	}
-	httpReq.Header.Set("Authorization", "Bearer "+s.cfg.cloudflareAPIToken)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	httpResp, err := s.client.Do(httpReq)
-	if err != nil {
-		return directUploadResponse{}, err
-	}
-	defer httpResp.Body.Close()
-
-	var envelope cloudflareDirectUploadEnvelope
-	if err := json.NewDecoder(httpResp.Body).Decode(&envelope); err != nil {
-		return directUploadResponse{}, fmt.Errorf("cloudflare returned malformed JSON: %w", err)
+		return directUploadResponse{}, fmt.Errorf("failed to build delivery URL: %w", err)
 	}
 
-	if httpResp.StatusCode < 200 || httpResp.StatusCode > 299 || !envelope.Success || envelope.Result.UploadURL == "" || envelope.Result.ID == "" {
-		reason := "Failed to create direct upload URL."
-		if len(envelope.Errors) > 0 && strings.TrimSpace(envelope.Errors[0].Message) != "" {
-			reason = envelope.Errors[0].Message
-		}
-		return directUploadResponse{}, fmt.Errorf("%w: %s", errUpstream, reason)
-	}
-
-	deliveryURL := fmt.Sprintf("https://imagedelivery.net/%s/%s/public", s.cfg.cloudflareDeliveryID, envelope.Result.ID)
 	return directUploadResponse{
-		UploadURL:   envelope.Result.UploadURL,
-		ImageID:     envelope.Result.ID,
+		UploadURL:   presignedURL,
+		ImageID:     objectKey,
 		DeliveryURL: deliveryURL,
 	}, nil
 }
@@ -287,6 +264,171 @@ func validateDirectUploadRequest(req directUploadRequest) error {
 	default:
 		return errors.New("Unsupported image content type.")
 	}
+}
+
+func buildObjectKey(eoaAddress, safeFileName string) string {
+	timestamp := time.Now().UTC().Format("20060102-150405")
+	randomSuffix := randomHex(6)
+	return fmt.Sprintf("avatars/%s/%s-%s-%s", strings.TrimSpace(strings.ToLower(eoaAddress)), timestamp, randomSuffix, safeFileName)
+}
+
+func presignR2PutURL(cfg config, objectKey, contentType string, expires time.Duration) (string, error) {
+	endpoint, err := url.Parse(cfg.r2Endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	if endpoint.Scheme == "" || endpoint.Host == "" {
+		return "", fmt.Errorf("invalid R2 endpoint")
+	}
+
+	now := time.Now().UTC()
+	amzDate := now.Format("20060102T150405Z")
+	shortDate := now.Format("20060102")
+	expiresSeconds := int(expires.Seconds())
+	if expiresSeconds < 1 {
+		expiresSeconds = 600
+	}
+
+	credentialScope := fmt.Sprintf("%s/%s/s3/aws4_request", shortDate, cfg.r2SigningRegion)
+	credentialValue := fmt.Sprintf("%s/%s", cfg.r2AccessKeyID, credentialScope)
+
+	canonicalURI := "/" + encodePathSegment(cfg.r2BucketName) + "/" + encodeObjectKey(objectKey)
+	hostHeader := endpoint.Host
+
+	signedHeaders := "content-type;host"
+	queryParams := map[string]string{
+		"X-Amz-Algorithm":     "AWS4-HMAC-SHA256",
+		"X-Amz-Credential":    credentialValue,
+		"X-Amz-Date":          amzDate,
+		"X-Amz-Expires":       strconv.Itoa(expiresSeconds),
+		"X-Amz-SignedHeaders": signedHeaders,
+	}
+	canonicalQuery := canonicalQueryString(queryParams)
+
+	canonicalHeaders := "content-type:" + contentType + "\n" +
+		"host:" + strings.ToLower(hostHeader) + "\n"
+
+	canonicalRequest := strings.Join([]string{
+		"PUT",
+		canonicalURI,
+		canonicalQuery,
+		canonicalHeaders,
+		signedHeaders,
+		"UNSIGNED-PAYLOAD",
+	}, "\n")
+
+	stringToSign := strings.Join([]string{
+		"AWS4-HMAC-SHA256",
+		amzDate,
+		credentialScope,
+		hexSHA256(canonicalRequest),
+	}, "\n")
+
+	signingKey := buildSigningKey(cfg.r2SecretAccessKey, shortDate, cfg.r2SigningRegion, "s3")
+	signature := hex.EncodeToString(hmacSHA256(signingKey, stringToSign))
+
+	presignedURL := endpoint.Scheme + "://" + endpoint.Host + canonicalURI + "?" + canonicalQuery + "&X-Amz-Signature=" + percentEncode(signature)
+	return presignedURL, nil
+}
+
+func canonicalQueryString(values map[string]string) string {
+	keys := make([]string, 0, len(values))
+	for k := range values {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts = append(parts, percentEncode(key)+"="+percentEncode(values[key]))
+	}
+	return strings.Join(parts, "&")
+}
+
+func buildSigningKey(secret, shortDate, region, service string) []byte {
+	kDate := hmacSHA256([]byte("AWS4"+secret), shortDate)
+	kRegion := hmacSHA256(kDate, region)
+	kService := hmacSHA256(kRegion, service)
+	return hmacSHA256(kService, "aws4_request")
+}
+
+func hmacSHA256(key []byte, data string) []byte {
+	h := hmac.New(sha256.New, key)
+	_, _ = h.Write([]byte(data))
+	return h.Sum(nil)
+}
+
+func hexSHA256(value string) string {
+	h := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(h[:])
+}
+
+func buildPublicObjectURL(baseURL, objectKey string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil {
+		return "", err
+	}
+
+	segments := strings.Split(strings.TrimPrefix(objectKey, "/"), "/")
+	for i, seg := range segments {
+		segments[i] = percentEncode(seg)
+	}
+	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/" + strings.Join(segments, "/")
+	return parsed.String(), nil
+}
+
+func encodeObjectKey(key string) string {
+	parts := strings.Split(strings.TrimPrefix(key, "/"), "/")
+	for i, part := range parts {
+		parts[i] = percentEncode(part)
+	}
+	return strings.Join(parts, "/")
+}
+
+func encodePathSegment(segment string) string {
+	return percentEncode(strings.Trim(segment, "/"))
+}
+
+func percentEncode(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if isUnreserved(ch) {
+			b.WriteByte(ch)
+		} else {
+			b.WriteString("%")
+			b.WriteString(strings.ToUpper(hex.EncodeToString([]byte{ch})))
+		}
+	}
+	return b.String()
+}
+
+func isUnreserved(ch byte) bool {
+	if ch >= 'A' && ch <= 'Z' {
+		return true
+	}
+	if ch >= 'a' && ch <= 'z' {
+		return true
+	}
+	if ch >= '0' && ch <= '9' {
+		return true
+	}
+	switch ch {
+	case '-', '_', '.', '~':
+		return true
+	default:
+		return false
+	}
+}
+
+func randomHex(bytesLen int) string {
+	buf := make([]byte, bytesLen)
+	if _, err := rand.Read(buf); err != nil {
+		// Fallback to timestamp-derived value if crypto random fails.
+		return strconv.FormatInt(time.Now().UnixNano(), 16)
+	}
+	return hex.EncodeToString(buf)
 }
 
 func sanitizeFileName(name string) string {
