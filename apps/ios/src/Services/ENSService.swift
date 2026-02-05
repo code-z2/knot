@@ -130,4 +130,17 @@ final class ENSService {
       throw ENSServiceError.actionFailed(error)
     }
   }
+
+  func textRecord(
+    name: String,
+    key: String
+  ) async throws -> String {
+    do {
+      return try await client.textRecord(
+        TextRecordRequest(name: name, recordKey: key)
+      )
+    } catch {
+      throw ENSServiceError.actionFailed(error)
+    }
+  }
 }

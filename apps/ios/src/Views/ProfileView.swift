@@ -1,11 +1,16 @@
+import ENS
+import PhotosUI
 import SwiftUI
 import Transactions
+import UniformTypeIdentifiers
+import UIKit
 
 struct ProfileView: View {
   let eoaAddress: String
   let accountService: AccountSetupService
   let ensService: ENSService
   let aaExecutionService: AAExecutionService
+  let imageStorageService: ProfileImageStorageService
   let registrarControllerAddress: String
   var onBack: () -> Void = {}
 
@@ -18,17 +23,28 @@ struct ProfileView: View {
   @State private var nameInfoText: String?
   @State private var nameInfoTone: NameInfoTone = .info
   @State private var isSaving = false
+  @State private var isUploadingAvatar = false
   @State private var errorMessage: String?
   @State private var successMessage: String?
-  @State private var preparedPayloads: Int = 0
+  @State private var preparedPayloads = 0
   @State private var initialAvatarURL = ""
   @State private var initialBio = ""
+  @State private var localAvatarImage: UIImage?
+  @State private var pendingAvatarUpload: PendingAvatarUpload?
+  @State private var showPhotoSourceDialog = false
+  @State private var showPhotoPicker = false
+  @State private var showFileImporter = false
+  @State private var selectedPhotoItem: PhotosPickerItem?
+  @State private var quoteTask: Task<Void, Never>?
+  @State private var avatarUploadTask: Task<Void, Never>?
+  private let quoteWorker = ENSQuoteWorker()
 
   init(
     eoaAddress: String,
     accountService: AccountSetupService,
     ensService: ENSService,
     aaExecutionService: AAExecutionService,
+    imageStorageService: ProfileImageStorageService = ProfileImageStorageService(),
     registrarControllerAddress: String = "0x253553366Da8546fC250F225fe3d25d0C782303b",
     onBack: @escaping () -> Void = {}
   ) {
@@ -36,6 +52,7 @@ struct ProfileView: View {
     self.accountService = accountService
     self.ensService = ensService
     self.aaExecutionService = aaExecutionService
+    self.imageStorageService = imageStorageService
     self.registrarControllerAddress = registrarControllerAddress
     self.onBack = onBack
   }
@@ -44,34 +61,23 @@ struct ProfileView: View {
     ZStack {
       AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
-      VStack(spacing: 0) {
-        ScrollView(showsIndicators: false) {
-          VStack(spacing: 20) {
-            field(
-              title: "profile_ens_name",
-              text: $ensName,
-              placeholder: "profile_ens_placeholder",
-              isDisabled: isNameLocked
-            )
+      ScrollView {
+        VStack(spacing: 0) {
+          avatarSection
+            .padding(.top, 46)
+            .padding(.bottom, 44)
 
-            if let nameInfoText, !isNameLocked {
-              infoText(nameInfoText, tone: nameInfoTone)
-            }
-
-            field(
-              title: "profile_avatar_optional",
-              text: $avatarURL,
-              placeholder: "profile_avatar_placeholder"
-            )
-
-            bioField
+          if let nameInfoText, !isNameLocked {
+            infoText(nameInfoText, tone: nameInfoTone)
+              .padding(.horizontal, 20)
+              .padding(.bottom, 12)
           }
-          .padding(.horizontal, 20)
-          .padding(.top, 36)
-          .padding(.bottom, 60)
+
+          formSection
         }
-        .padding(.top, AppHeaderMetrics.contentTopPadding)
       }
+      .scrollIndicators(.hidden)
+      .padding(.top, AppHeaderMetrics.contentTopPadding)
 
       if let errorMessage {
         toast(message: errorMessage, isError: true)
@@ -102,147 +108,338 @@ struct ProfileView: View {
     }
     .onChange(of: ensName) { _, newValue in
       guard !isNameLocked else { return }
-      Task { await quoteENSNameIfNeeded(input: newValue) }
+      scheduleQuoteLookup(for: newValue)
     }
+    .onChange(of: selectedPhotoItem) { _, newItem in
+      guard let newItem else { return }
+      Task { await importPhotoItem(newItem) }
+    }
+    .confirmationDialog(
+      "Change Profile Photo",
+      isPresented: $showPhotoSourceDialog,
+      titleVisibility: .visible
+    ) {
+      Button("Photo Library") { showPhotoPicker = true }
+      Button("Files") { showFileImporter = true }
+      if localAvatarImage != nil || !avatarURL.isEmpty {
+        Button("Remove Photo", role: .destructive) { clearAvatarSelection() }
+      }
+      Button("Cancel", role: .cancel) {}
+    }
+    .photosPicker(
+      isPresented: $showPhotoPicker,
+      selection: $selectedPhotoItem,
+      matching: .images,
+      preferredItemEncoding: .automatic
+    )
+    .fileImporter(
+      isPresented: $showFileImporter,
+      allowedContentTypes: [.image],
+      allowsMultipleSelection: false
+    ) { result in
+      Task { await importFile(result) }
+    }
+    .onDisappear {
+      quoteTask?.cancel()
+      quoteTask = nil
+      avatarUploadTask?.cancel()
+      avatarUploadTask = nil
+    }
+  }
+
+  private var avatarSection: some View {
+    VStack(spacing: 0) {
+      ZStack(alignment: .bottomTrailing) {
+        avatarPreview
+          .frame(width: 104, height: 104)
+          .clipShape(Circle())
+          .overlay(
+            Circle().stroke(AppThemeColor.separatorOpaque, lineWidth: 1.5)
+          )
+
+        Button {
+          showPhotoSourceDialog = true
+        } label: {
+          Circle()
+            .fill(AppThemeColor.backgroundSecondary)
+            .frame(width: 24, height: 24)
+            .overlay(
+              Circle().stroke(AppThemeColor.separatorOpaque, lineWidth: 1)
+            )
+            .overlay {
+              Image("Icons/gallery_01")
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 12, height: 12)
+                .foregroundStyle(AppThemeColor.glyphPrimary)
+            }
+        }
+        .buttonStyle(.plain)
+        .offset(x: -4, y: -2)
+      }
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  @ViewBuilder
+  private var avatarPreview: some View {
+    if let localAvatarImage {
+      Image(uiImage: localAvatarImage)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+    } else if let remoteAvatarURL, !avatarURL.isEmpty {
+      AsyncImage(url: remoteAvatarURL) { phase in
+        switch phase {
+        case .success(let image):
+          image
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+        case .empty, .failure:
+          avatarPlaceholder
+        @unknown default:
+          avatarPlaceholder
+        }
+      }
+    } else {
+      avatarPlaceholder
+    }
+  }
+
+  private var avatarPlaceholder: some View {
+    Circle()
+      .fill(AppThemeColor.backgroundPrimary)
+      .overlay {
+        Image("Icons/user_01")
+          .renderingMode(.template)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .frame(width: 24, height: 24)
+          .foregroundStyle(AppThemeColor.separatorOpaque)
+      }
+  }
+
+  private var formSection: some View {
+    VStack(spacing: 0) {
+      separator
+
+      HStack(spacing: 10) {
+        TextField(
+          "",
+          text: $ensName,
+          prompt: Text("Enter a name")
+            .font(.custom("Roboto-Medium", size: 14))
+            .foregroundStyle(AppThemeColor.labelSecondary)
+        )
+          .font(.custom("Roboto-Medium", size: 14))
+          .foregroundStyle(AppThemeColor.labelPrimary)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled(true)
+          .disabled(isNameLocked)
+          .opacity(isNameLocked ? 0.9 : 1)
+
+        Spacer(minLength: 8)
+
+        HStack(spacing: 6) {
+          Text(".eth")
+            .font(.custom("Roboto-Medium", size: 14))
+            .foregroundStyle(AppThemeColor.labelPrimary)
+
+          if isNameLocked {
+            Image("Icons/lock_01")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 14, height: 14)
+              .foregroundStyle(AppThemeColor.accentBrown)
+          }
+        }
+      }
+      .padding(.horizontal, 24)
+      .frame(height: 48)
+
+      separator
+
+      ZStack(alignment: .topLeading) {
+        TextEditor(text: $bio)
+          .font(.custom("Roboto-Medium", size: 14))
+          .foregroundStyle(AppThemeColor.labelPrimary)
+          .scrollContentBackground(.hidden)
+          .padding(.horizontal, 20)
+          .padding(.vertical, 12)
+          .frame(minHeight: 164)
+
+        if bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+          Text("profile_bio_optional")
+            .font(.custom("Roboto-Medium", size: 14))
+            .foregroundStyle(AppThemeColor.labelSecondary)
+            .padding(.top, 18)
+            .padding(.leading, 24)
+            .allowsHitTesting(false)
+        }
+      }
+      .frame(maxWidth: .infinity, minHeight: 164, alignment: .topLeading)
+    }
+  }
+
+  private var separator: some View {
+    Rectangle()
+      .fill(AppThemeColor.separatorOpaque)
+      .frame(height: 1)
+      .frame(maxWidth: .infinity)
   }
 
   private var saveButton: some View {
-    Button(action: { Task { await saveProfile() } }) {
-      Text(isSaving ? "profile_saving" : "profile_save")
-        .font(.custom("Roboto-Bold", size: 14))
-        .foregroundStyle(AppThemeColor.accentBrown)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(AppThemeColor.accentBrown, lineWidth: 1.5)
-        )
+    AppButton(
+      label: isSaving ? "profile_saving" : "profile_save",
+      variant: .outline,
+      size: .compact,
+      showIcon: false,
+      underlinedLabel: true,
+      foregroundColorOverride: AppThemeColor.accentBrown,
+      backgroundColorOverride: .clear
+    ) {
+      Task { await saveProfile() }
     }
-    .buttonStyle(.plain)
-    .disabled(isSaving || isCheckingName)
-    .opacity(isSaving ? 0.6 : 1)
+    .disabled(!canSave)
+    .opacity(canSave ? 1 : 0.45)
   }
 
-  private func field(
-    title: LocalizedStringKey,
-    text: Binding<String>,
-    placeholder: LocalizedStringKey,
-    isDisabled: Bool = false
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(title)
-        .font(.custom("RobotoMono-Medium", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
+  private var canSave: Bool {
+    guard !isSaving, !isCheckingName else { return false }
+    return hasSavableChanges
+  }
 
-      TextField(placeholder, text: text)
-        .font(.custom("Roboto-Regular", size: 15))
-        .foregroundStyle(AppThemeColor.labelPrimary)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled(true)
-        .disabled(isDisabled)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppThemeColor.fillPrimary)
-        )
-        .overlay(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(AppThemeColor.fillSecondary, lineWidth: 1)
-        )
-        .opacity(isDisabled ? 0.65 : 1)
+  private var hasSavableChanges: Bool {
+    if isNameLocked {
+      return hasProfileRecordChanges
     }
+
+    // While name is unlocked, we only allow save once the current name quote
+    // is validated as available and matches the latest normalized input.
+    return hasReadyNameRegistration
+  }
+
+  private var hasReadyNameRegistration: Bool {
+    let normalizedName = normalizeENSLabel(ensName)
+    return !normalizedName.isEmpty
+      && normalizedName == lastQuotedName
+      && nameInfoTone == .success
+  }
+
+  private var hasProfileRecordChanges: Bool {
+    let avatar = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let description = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+    return pendingAvatarUpload != nil || avatar != initialAvatarURL || description != initialBio
+  }
+
+  private var remoteAvatarURL: URL? {
+    URL(string: avatarURL.trimmingCharacters(in: .whitespacesAndNewlines))
   }
 
   private func infoText(_ value: String, tone: NameInfoTone) -> some View {
     Text(value)
       .font(.custom("Roboto-Regular", size: 12))
       .foregroundStyle(color(for: tone))
-      .frame(maxWidth: .infinity, alignment: .leading)
-  }
-
-  private var bioField: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text("profile_bio_optional")
-        .font(.custom("RobotoMono-Medium", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
-
-      TextEditor(text: $bio)
-        .font(.custom("Roboto-Regular", size: 15))
-        .foregroundStyle(AppThemeColor.labelPrimary)
-        .padding(8)
-        .frame(minHeight: 132)
-        .scrollContentBackground(.hidden)
-        .background(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppThemeColor.fillPrimary)
-        )
-        .overlay(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(AppThemeColor.fillSecondary, lineWidth: 1)
-        )
-    }
+      .multilineTextAlignment(.center)
+      .frame(maxWidth: .infinity)
   }
 
   @MainActor
   private func loadProfile() async {
     do {
       let resolvedName = try await ensService.reverseAddress(address: eoaAddress)
-      if !resolvedName.isEmpty {
-        ensName = resolvedName
+      let normalizedName = normalizeENSLabel(resolvedName)
+      if !normalizedName.isEmpty {
+        ensName = normalizedName
         isNameLocked = true
         nameInfoText = nil
-        lastQuotedName = resolvedName
+        lastQuotedName = normalizedName
+
+        let fullName = "\(normalizedName).eth"
+
+        if let avatarRecord = try? await ensService.textRecord(
+          name: fullName,
+          key: "avatar"
+        ) {
+          avatarURL = avatarRecord.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if let descriptionRecord = try? await ensService.textRecord(
+          name: fullName,
+          key: "description"
+        ) {
+          bio = descriptionRecord
+        }
       }
     } catch {
-      // No reverse name yet is a normal state.
-      nameInfoText = String(localized: "profile_info_prompt")
-      nameInfoTone = .info
       isNameLocked = false
+      nameInfoText = nil
     }
+
     initialAvatarURL = avatarURL
     initialBio = bio
   }
 
   @MainActor
-  private func quoteENSNameIfNeeded(input: String) async {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+  private func scheduleQuoteLookup(for input: String) {
+    quoteTask?.cancel()
+
+    let normalized = normalizeENSLabel(input)
     guard !normalized.isEmpty else {
-      nameInfoText = String(localized: "profile_info_prompt")
+      isCheckingName = false
+      nameInfoText = nil
       nameInfoTone = .info
       lastQuotedName = ""
       return
     }
     guard normalized != lastQuotedName else { return }
-    try? await Task.sleep(for: .milliseconds(320))
-    let latest = ensName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    guard latest == normalized else { return }
 
-    isCheckingName = true
-    defer { isCheckingName = false }
+    let registrarControllerAddress = registrarControllerAddress
+    let quoteWorker = quoteWorker
+    quoteTask = Task(priority: .utility) { [normalized] in
+      do {
+        try await Task.sleep(for: .milliseconds(420))
+        try Task.checkCancellation()
 
-    do {
-      let quote = try await ensService.quoteName(
-        registrarControllerAddress: registrarControllerAddress,
-        name: normalized
-      )
-      lastQuotedName = quote.normalizedName
-      ensName = quote.normalizedName
+        let shouldContinue = !self.isNameLocked && self.normalizeENSLabel(self.ensName) == normalized
+        guard shouldContinue else { return }
 
-      if quote.available {
-        let eth = TokenFormatters.weiToEthString(quote.rentPriceWei)
-        nameInfoText = String.localizedStringWithFormat(
-          NSLocalizedString("profile_name_available", comment: ""),
-          eth
+        self.isCheckingName = true
+        defer {
+          if self.normalizeENSLabel(self.ensName) == normalized {
+            self.isCheckingName = false
+          }
+        }
+
+        let quote = try await quoteWorker.quote(
+          registrarControllerAddress: registrarControllerAddress,
+          name: normalized
         )
-        nameInfoTone = .success
-      } else {
-        nameInfoText = String(localized: "profile_name_unavailable")
-        nameInfoTone = .error
+        try Task.checkCancellation()
+
+        guard !self.isNameLocked else { return }
+        guard self.normalizeENSLabel(self.ensName) == normalized else { return }
+
+        self.lastQuotedName = quote.normalizedName
+        self.ensName = quote.normalizedName
+
+        if quote.available {
+          let eth = TokenFormatters.weiToEthString(quote.rentPriceWei)
+          self.nameInfoText = "\(quote.normalizedName) is available for \(eth) ETH"
+          self.nameInfoTone = .success
+        } else {
+          self.nameInfoText = String(localized: "profile_name_unavailable")
+          self.nameInfoTone = .error
+        }
+      } catch is CancellationError {
+        return
+      } catch {
+        guard self.normalizeENSLabel(self.ensName) == normalized else { return }
+        self.nameInfoText = error.localizedDescription
+        self.nameInfoTone = .error
+        self.isCheckingName = false
       }
-    } catch {
-      nameInfoText = error.localizedDescription
-      nameInfoTone = .error
     }
   }
 
@@ -254,12 +451,14 @@ struct ProfileView: View {
     defer { isSaving = false }
 
     do {
-      let normalizedName = ensName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-      if normalizedName.isEmpty && !isNameLocked {
+      try await ensureAvatarUploadCompletedIfNeeded()
+
+      let normalizedName = normalizeENSLabel(ensName)
+      if normalizedName.isEmpty {
         throw ENSServiceError.actionFailed(
           NSError(
             domain: "ENS",
-            code: 1,
+            code: 3,
             userInfo: [
               NSLocalizedDescriptionKey: NSLocalizedString(
                 "profile_error_name_required", comment: "")
@@ -267,7 +466,6 @@ struct ProfileView: View {
           )
         )
       }
-
       var allCalls: [Call] = []
 
       if !isNameLocked {
@@ -294,7 +492,7 @@ struct ProfileView: View {
       }
 
       let avatar = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !avatar.isEmpty, avatar != initialAvatarURL {
+      if avatar != initialAvatarURL {
         let avatarPayload = try await ensService.updateRecordPayload(
           name: normalizedName,
           key: "avatar",
@@ -305,7 +503,7 @@ struct ProfileView: View {
       }
 
       let description = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !description.isEmpty, description != initialBio {
+      if description != initialBio {
         let bioPayload = try await ensService.updateRecordPayload(
           name: normalizedName,
           key: "description",
@@ -340,14 +538,134 @@ struct ProfileView: View {
     }
   }
 
+  @MainActor
+  private func importPhotoItem(_ item: PhotosPickerItem) async {
+    do {
+      guard let data = try await item.loadTransferable(type: Data.self) else {
+        throw URLError(.cannotDecodeRawData)
+      }
+      try preparePendingAvatarUpload(from: data)
+    } catch {
+      showError(error)
+    }
+  }
+
+  @MainActor
+  private func importFile(_ result: Result<[URL], any Error>) async {
+    do {
+      guard let fileURL = try result.get().first else { return }
+      let didStart = fileURL.startAccessingSecurityScopedResource()
+      defer {
+        if didStart { fileURL.stopAccessingSecurityScopedResource() }
+      }
+
+      let data = try Data(contentsOf: fileURL)
+      try preparePendingAvatarUpload(from: data)
+    } catch {
+      showError(error)
+    }
+  }
+
+  @MainActor
+  private func preparePendingAvatarUpload(from imageData: Data) throws {
+    guard let image = UIImage(data: imageData),
+      let jpegData = image.jpegData(compressionQuality: 0.86) else {
+      throw URLError(.cannotDecodeRawData)
+    }
+
+    let fileName = "avatar-\(UUID().uuidString.lowercased()).jpg"
+    _ = try imageStorageService.persistLocally(
+      data: jpegData,
+      eoaAddress: eoaAddress,
+      fileName: fileName
+    )
+
+    localAvatarImage = image
+    pendingAvatarUpload = PendingAvatarUpload(
+      id: UUID(),
+      data: jpegData,
+      mimeType: "image/jpeg",
+      fileName: fileName
+    )
+    startAvatarUploadIfNeeded()
+  }
+
+  @MainActor
+  private func ensureAvatarUploadCompletedIfNeeded() async throws {
+    guard pendingAvatarUpload != nil else { return }
+
+    if !isUploadingAvatar {
+      startAvatarUploadIfNeeded()
+    }
+    await avatarUploadTask?.value
+
+    if pendingAvatarUpload != nil {
+      throw ProfileImageStorageError.pendingUpload
+    }
+  }
+
+  @MainActor
+  private func startAvatarUploadIfNeeded() {
+    guard let pendingAvatarUpload else { return }
+
+    avatarUploadTask?.cancel()
+    avatarUploadTask = Task {
+      await runAvatarUpload(for: pendingAvatarUpload)
+    }
+  }
+
+  @MainActor
+  private func runAvatarUpload(for pending: PendingAvatarUpload) async {
+    isUploadingAvatar = true
+    defer {
+      if pendingAvatarUpload?.id == pending.id || pendingAvatarUpload == nil {
+        isUploadingAvatar = false
+      }
+    }
+
+    do {
+      let uploadedURL = try await imageStorageService.uploadAvatar(
+        data: pending.data,
+        eoaAddress: eoaAddress,
+        fileName: pending.fileName,
+        mimeType: pending.mimeType
+      )
+
+      guard pendingAvatarUpload?.id == pending.id else { return }
+      avatarURL = uploadedURL.absoluteString
+      self.pendingAvatarUpload = nil
+    } catch is CancellationError {
+      return
+    } catch {
+      guard pendingAvatarUpload?.id == pending.id else { return }
+      showError(error)
+    }
+  }
+
+  @MainActor
+  private func clearAvatarSelection() {
+    avatarUploadTask?.cancel()
+    avatarUploadTask = nil
+    isUploadingAvatar = false
+    avatarURL = ""
+    localAvatarImage = nil
+    pendingAvatarUpload = nil
+  }
+
+  private func normalizeENSLabel(_ rawValue: String) -> String {
+    let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if trimmed.hasSuffix(".eth") {
+      return String(trimmed.dropLast(4))
+    }
+    return trimmed
+  }
+
   private func color(for tone: NameInfoTone) -> Color {
     switch tone {
     case .info:
       return AppThemeColor.labelSecondary
     case .success:
       return AppThemeColor.accentGreen
-    case .warning:
-      return AppThemeColor.accentBrown
     case .error:
       return AppThemeColor.accentRed
     }
@@ -386,10 +704,39 @@ struct ProfileView: View {
   }
 }
 
+private actor ENSQuoteWorker {
+  private let client = ENSClient()
+
+  func quote(
+    registrarControllerAddress: String,
+    name: String
+  ) async throws -> ENSNameQuote {
+    let quote = try await client.quoteRegistration(
+      RegisterNameRequest(
+        registrarControllerAddress: registrarControllerAddress,
+        name: name,
+        ownerAddress: "0x0000000000000000000000000000000000000000",
+        duration: 31_536_000
+      )
+    )
+    return ENSNameQuote(
+      normalizedName: quote.normalizedName,
+      available: quote.available,
+      rentPriceWei: quote.rentPriceWei
+    )
+  }
+}
+
+private struct PendingAvatarUpload {
+  let id: UUID
+  let data: Data
+  let mimeType: String
+  let fileName: String
+}
+
 private enum NameInfoTone {
   case info
   case success
-  case warning
   case error
 }
 
@@ -397,6 +744,7 @@ private enum NameInfoTone {
   ProfileView(
     eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
     accountService: AccountSetupService(),
-    ensService: ENSService(), aaExecutionService: AAExecutionService()
+    ensService: ENSService(),
+    aaExecutionService: AAExecutionService()
   )
 }

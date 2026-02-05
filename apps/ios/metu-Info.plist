@@ -18,6 +18,10 @@
 	<string>$(GELATO_API_KEY)</string>
 	<key>PIMLICO_API_KEY</key>
 	<string>$(PIMLICO_API_KEY)</string>
+	<key>PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL</key>
+	<string>$(PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL)</string>
+	<key>PROFILE_IMAGE_UPLOAD_CLIENT_TOKEN</key>
+	<string>$(PROFILE_IMAGE_UPLOAD_CLIENT_TOKEN)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Roboto-Black.ttf</string>
