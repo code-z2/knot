@@ -20,6 +20,7 @@ struct ReceiveView: View {
             .frame(maxWidth: .infinity)
 
           AppButton(
+            fullWidth: true,
             label: "receive_share",
             variant: .default,
             showIcon: true,
@@ -28,11 +29,10 @@ struct ReceiveView: View {
           ) {
             showShareSheet = true
           }
-          .frame(maxWidth: .infinity)
           .frame(height: 52)
         }
-        .frame(width: 314)
-        .padding(.top, 48)
+        .padding(.top, 56)
+        .frame(maxWidth: 314)
 
         Spacer()
       }
@@ -58,7 +58,7 @@ struct ReceiveView: View {
         .font(.custom("RobotoFlex-Light", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .lineLimit(1)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .kerning(0.12)
 
       Button {
         UIPasteboard.general.string = address
