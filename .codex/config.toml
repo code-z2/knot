@@ -1,0 +1,26 @@
+[projects."/Users/peter/Developer/hack-money"]
+trust_level = "trusted"
+
+[mcp_servers.firecrawl]
+command = "bunx"
+args = ["-y", "firecrawl-mcp"]
+
+[mcp_servers.firecrawl.env]
+FIRECRAWL_API_KEY = "fc-e9faa33768c244d8b93e2c31666a1ee5"
+
+[mcp_servers.figma]
+url = "http://127.0.0.1:3845/mcp"
+
+[mcp_servers.context7]
+command = "bunx"
+args = [
+    "-y",
+    "@upstash/context7-mcp",
+    "--api-key",
+    "ctx7sk-e381cc07-e118-4f88-9c09-2414610a4b4a",
+]
+startup_timeout_sec = 5.0
+
+[mcp_servers.xcode]
+command = "xcrun"
+args = ["mcpbridge"]

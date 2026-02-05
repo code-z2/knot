@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity 0.8.33;
 
 library Exec {
     function call(address to, uint256 value, bytes memory data, uint256 txGas) internal returns (bool success) {
