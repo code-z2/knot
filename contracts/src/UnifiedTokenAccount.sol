@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity 0.8.33;
 
 import {Account, PackedUserOperation} from "openzeppelin-contracts/account/Account.sol";
 import {IERC1271} from "openzeppelin-contracts/interfaces/IERC1271.sol";
