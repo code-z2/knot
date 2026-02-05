@@ -70,4 +70,53 @@ final class AATests: XCTestCase {
     let updated = userOperation.update(signature: Data([0xaa, 0xbb]))
     XCTAssertEqual(updated.signature, "0xaabb")
   }
+
+  func testCompactOperationsUsesHighestSelectedFields() throws {
+    let auth = EIP7702Auth(
+      address: "0x1111111111111111111111111111111111111111",
+      chainId: "0x2105",
+      nonce: "0x0",
+      r: "0x1",
+      s: "0x2",
+      yParity: "0x1"
+    )
+    let opA = UserOperation(
+      chainId: 8453,
+      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
+      nonce: "0x1",
+      callData: "0xabcd",
+      maxPriorityFeePerGas: "0x10",
+      maxFeePerGas: "0x50",
+      callGasLimit: "0x1000",
+      verificationGasLimit: "0x2000",
+      preVerificationGas: "0x3000",
+      paymaster: "0x2222222222222222222222222222222222222222",
+      paymasterData: "0xaaaa",
+      eip7702Auth: auth
+    )
+    let opB = UserOperation(
+      chainId: 84532,
+      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
+      nonce: "0x2",
+      callData: "0xef",
+      maxPriorityFeePerGas: "0x20",
+      maxFeePerGas: "0x40",
+      callGasLimit: "0x4000",
+      verificationGasLimit: "0x1000",
+      preVerificationGas: "0x1234",
+      paymaster: "0x3333333333333333333333333333333333333333",
+      paymasterData: "0xbbbb",
+      eip7702Auth: auth
+    )
+
+    let compacted = try AACompactionTemp.compactOperations([opA, opB])
+    XCTAssertEqual(compacted.count, 2)
+    XCTAssertEqual(compacted[0].maxFeePerGas, "0x50")
+    XCTAssertEqual(compacted[0].maxPriorityFeePerGas, "0x20")
+    XCTAssertEqual(compacted[0].verificationGasLimit, "0x2000")
+    XCTAssertEqual(compacted[0].callGasLimit, "0x4000")
+    XCTAssertEqual(compacted[0].preVerificationGas, "0x3000")
+    XCTAssertEqual(compacted[0].paymaster, "0x2222222222222222222222222222222222222222")
+    XCTAssertEqual(compacted[0].paymasterData, "0xaaaa")
+  }
 }
