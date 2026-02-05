@@ -87,7 +87,6 @@ final class ProfileImageStorageService {
     )
     try await uploadBinary(
       data: data,
-      fileName: fileName,
       mimeType: mimeType,
       uploadURL: uploadSession.uploadURL
     )
@@ -145,26 +144,14 @@ final class ProfileImageStorageService {
 
   private func uploadBinary(
     data: Data,
-    fileName: String,
     mimeType: String,
     uploadURL: URL
   ) async throws {
-    let boundary = "Boundary-\(UUID().uuidString)"
     var request = URLRequest(url: uploadURL)
-    request.httpMethod = "POST"
-    request.setValue(
-      "multipart/form-data; boundary=\(boundary)",
-      forHTTPHeaderField: "Content-Type"
-    )
+    request.httpMethod = "PUT"
+    request.setValue(mimeType, forHTTPHeaderField: "Content-Type")
 
-    let body = makeMultipartBody(
-      data: data,
-      fileName: fileName,
-      mimeType: mimeType,
-      boundary: boundary
-    )
-
-    let (_, response) = try await session.upload(for: request, from: body)
+    let (_, response) = try await session.upload(for: request, from: data)
     guard let httpResponse = response as? HTTPURLResponse else {
       throw ProfileImageStorageError.invalidResponse
     }
@@ -174,25 +161,6 @@ final class ProfileImageStorageService {
         reason: nil
       )
     }
-  }
-
-  private func makeMultipartBody(
-    data: Data,
-    fileName: String,
-    mimeType: String,
-    boundary: String
-  ) -> Data {
-    var body = Data()
-    let header = """
-      --\(boundary)\r
-      Content-Disposition: form-data; name="file"; filename="\(fileName)"\r
-      Content-Type: \(mimeType)\r
-      \r
-      """
-    body.append(Data(header.utf8))
-    body.append(data)
-    body.append(Data("\r\n--\(boundary)--\r\n".utf8))
-    return body
   }
 
   private func sanitizedPathComponent(_ value: String) -> String {
