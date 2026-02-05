@@ -1,0 +1,73 @@
+"preferences_title" = "পছন্দসমূহ";
+"preferences_appearance" = "চেহারা";
+"preferences_haptics" = "হ্যাপটিক প্রতিক্রিয়া";
+"preferences_currency" = "মুদ্রা";
+"preferences_language" = "ভাষা";
+"preferences_business" = "ব্যাবসার জন্য Metu";
+"sheet_currency_title" = "মুদ্রা";
+"sheet_language_title" = "ভাষা";
+
+"home_title" = "হোম";
+"home_balance_title" = "ব্যালেন্স";
+"home_add_money" = "টাকা যোগ করুন";
+"home_send_money" = "টাকা পাঠান";
+"home_assets_title" = "আপনার সম্পদ";
+"home_assets_summary" = "৫টি চেইনে ৭টি সম্পদ";
+"home_space_title" = "আপনার স্পেস";
+"home_profile" = "প্রোফাইল";
+"home_preferences" = "পছন্দসমূহ";
+"home_wallet_backup" = "ওয়ালেট ব্যাকআপ";
+"home_address_book" = "ঠিকানা বই";
+"home_ai_agent" = "AI এজেন্ট";
+"home_logout" = "লগআউট";
+
+"address_book_title" = "ঠিকানা বই";
+"search_placeholder" = "অনুসন্ধান";
+"empty_beneficiary" = "আপনি কোনো সুবিধাভোগী যোগ করেননি";
+"add_beneficiary_title" = "সুবিধাভোগী যোগ করুন";
+"add_beneficiary_cancel" = "বাতিল";
+"add_beneficiary_name" = "নাম";
+"add_beneficiary_wallet_address" = "ওয়ালেট ঠিকানা";
+"add_beneficiary_chain_optional" = "চেইন (ঐচ্ছিক)";
+"add_beneficiary_save" = "সংরক্ষণ";
+"add_beneficiary_placeholder_name" = "এলিস";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "গ্রহণ করুন";
+"receive_share" = "শেয়ার করুন";
+"receive_copied" = "কপি করা হয়েছে";
+"receive_tap_to_copy" = "কপি করতে ট্যাপ করুন";
+
+"wallet_backup_title" = "ওয়ালেট ব্যাকআপ";
+"wallet_backup_instructions" = "নিচের ক্রমে শব্দগুলি লিখুন এবং নিরাপদ স্থানে রাখুন। শেয়ার করবেন না!";
+"wallet_backup_secret_phrase" = "গোপন বাক্য";
+"wallet_backup_copy" = "ক্লিপবোর্ডে কপি করুন";
+
+"onboarding_title" = "চেইন এড়িয়ে যান\nশুধু পেমেন্ট করুন।";
+"onboarding_subtitle" = "এজেন্টিক পেমেন্ট ওয়ালেট। একটি পরিমাণ লিখুন এবং ওয়ালেটকে আপনার জন্য চেইনগুলি পরিচালনা করতে দিন";
+"onboarding_create_wallet" = "ওয়ালেট তৈরি করুন";
+"onboarding_log_in" = "লগ ইন";
+
+"session_key_title" = "সেশন কি";
+"session_key_coming_soon" = "শীঘ্রই আসছে";
+"session_key_description" = "প্রতিটি কন্টাক্টলেস সেশন কি কার্ড\nএকটি অস্থায়ী ওয়ালেট যার\nআপনার ওয়ালেট থেকে খরচ করার অনুমতি রয়েছে।\nসেটআপের পরে আপনি এই অনুমতিগুলি\nকাস্টমাইজ করতে পারেন।";
+
+"profile_title" = "প্রোফাইল";
+"profile_save" = "সংরক্ষণ";
+"profile_saving" = "সংরক্ষণ করা হচ্ছে";
+"profile_ens_name" = "ENS নাম";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "অবতার URL (ঐচ্ছিক)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "বায়ো (ঐচ্ছিক)";
+"profile_info_prompt" = "প্রাপ্যতা এবং নিবন্ধনের খরচ পরীক্ষা করতে একটি নাম লিখুন।";
+"profile_name_available" = "এই নামটি %@ ETH এর জন্য উপলব্ধ।";
+"profile_name_unavailable" = "এই নামটি উপলব্ধ নয়।";
+"profile_error_name_required" = "ENS নাম প্রয়োজন।";
+"profile_error_use_available_name" = "সংরক্ষণ করার আগে দয়া করে একটি উপলব্ধ ENS নাম ব্যবহার করুন।";
+"profile_no_changes_to_save" = "সংরক্ষণ করার মতো কোনো ENS পরিবর্তন নেই";
+"profile_saved_changes" = "%d ENS পরিবর্তন সংরক্ষণ করা হয়েছে";
+
+"toggle_accessibility" = "টগল";
+"button_label_default" = "স্ট্রিং মান";

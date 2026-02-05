@@ -1,0 +1,73 @@
+"preferences_title" = "التفضيلات";
+"preferences_appearance" = "المظهر";
+"preferences_haptics" = "ردود الفعل اللمسية";
+"preferences_currency" = "العملة";
+"preferences_language" = "اللغة";
+"preferences_business" = "Metu للأعمال";
+"sheet_currency_title" = "العملة";
+"sheet_language_title" = "اللغة";
+
+"home_title" = "الرئيسية";
+"home_balance_title" = "الرصيد";
+"home_add_money" = "إضافة أموال";
+"home_send_money" = "إرسال أموال";
+"home_assets_title" = "أصولك";
+"home_assets_summary" = "7 أصول عبر 5 شبكات";
+"home_space_title" = "مساحتك";
+"home_profile" = "الملف الشخصي";
+"home_preferences" = "التفضيلات";
+"home_wallet_backup" = "نسخ احتياطي للمحفظة";
+"home_address_book" = "دفتر العناوين";
+"home_ai_agent" = "وكيل الذكاء الاصطناعي";
+"home_logout" = "تسجيل الخروج";
+
+"address_book_title" = "دفتر العناوين";
+"search_placeholder" = "بحث";
+"empty_beneficiary" = "لم تقم بإضافة أي مستفيد";
+"add_beneficiary_title" = "إضافة مستفيد";
+"add_beneficiary_cancel" = "إلغاء";
+"add_beneficiary_name" = "الاسم";
+"add_beneficiary_wallet_address" = "عنوان المحفظة";
+"add_beneficiary_chain_optional" = "الشبكة (اختياري)";
+"add_beneficiary_save" = "حفظ";
+"add_beneficiary_placeholder_name" = "أليس";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "استلام";
+"receive_share" = "مشاركة";
+"receive_copied" = "تم النسخ";
+"receive_tap_to_copy" = "انقر للنسخ";
+
+"wallet_backup_title" = "نسخ احتياطي للمحفظة";
+"wallet_backup_instructions" = "اكتب الكلمات بالترتيب أدناه واحتفظ بها في مكان آمن. لا تشاركها!";
+"wallet_backup_secret_phrase" = "العبارة السرية";
+"wallet_backup_copy" = "نسخ إلى الحافظة";
+
+"onboarding_title" = "تخطى الشبكات\nادفع ببساطة.";
+"onboarding_subtitle" = "محفظة دفع وكيلة. أدخل مبلغًا ودع المحفظة تتعامل مع الشبكات نيابة عنك";
+"onboarding_create_wallet" = "إنشاء محفظة";
+"onboarding_log_in" = "تسجيل الدخول";
+
+"session_key_title" = "مفتاح الجلسة";
+"session_key_coming_soon" = "قريباً";
+"session_key_description" = "كل بطاقة مفتاح جلسة غير تلامسية\nهي محفظة مؤقتة مع\nأذونات للإنفاق من محفظتك.\nيمكنك تخصيص هذه الأذونات\nبعد الإعداد.";
+
+"profile_title" = "الملف الشخصي";
+"profile_save" = "حفظ";
+"profile_saving" = "جاري الحفظ";
+"profile_ens_name" = "اسم ENS";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "رابط الصورة الرمزية (اختياري)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "نبذة (اختياري)";
+"profile_info_prompt" = "أدخل اسمًا للتحقق من التوفر وتكلفة التسجيل.";
+"profile_name_available" = "هذا الاسم متاح مقابل %@ ETH.";
+"profile_name_unavailable" = "هذا الاسم غير متاح.";
+"profile_error_name_required" = "اسم ENS مطلوب.";
+"profile_error_use_available_name" = "يرجى استخدام اسم ENS متاح قبل الحفظ.";
+"profile_no_changes_to_save" = "لا توجد تغييرات ENS للحفظ";
+"profile_saved_changes" = "تم حفظ %d تغيير(ات) ENS";
+
+"toggle_accessibility" = "تبديل";
+"button_label_default" = "قيمة نصية";

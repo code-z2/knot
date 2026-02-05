@@ -1,0 +1,73 @@
+"preferences_title" = "ترجیحات";
+"preferences_appearance" = "ظاہری شکل";
+"preferences_haptics" = "لمسی تاثر";
+"preferences_currency" = "کرنسی";
+"preferences_language" = "زبان";
+"preferences_business" = "کاروبار کے لیے Metu";
+"sheet_currency_title" = "کرنسی";
+"sheet_language_title" = "زبان";
+
+"home_title" = "ہوم";
+"home_balance_title" = "بیلنس";
+"home_add_money" = "رقم شامل کریں";
+"home_send_money" = "رقم بھیجیں";
+"home_assets_title" = "آپ کے اثاثے";
+"home_assets_summary" = "5 چینز پر 7 اثاثے";
+"home_space_title" = "آپ کی جگہ";
+"home_profile" = "پروفائل";
+"home_preferences" = "ترجیحات";
+"home_wallet_backup" = "والیٹ بیک اپ";
+"home_address_book" = "ایڈریس بک";
+"home_ai_agent" = "AI ایجنٹ";
+"home_logout" = "لاگ آؤٹ";
+
+"address_book_title" = "ایڈریس بک";
+"search_placeholder" = "تلاش";
+"empty_beneficiary" = "آپ نے کوئی فائدہ اٹھانے والا شامل نہیں کیا";
+"add_beneficiary_title" = "فائدہ اٹھانے والا شامل کریں";
+"add_beneficiary_cancel" = "منسوخ کریں";
+"add_beneficiary_name" = "نام";
+"add_beneficiary_wallet_address" = "والیٹ کا پتہ";
+"add_beneficiary_chain_optional" = "چین (اختیاری)";
+"add_beneficiary_save" = "محفوظ کریں";
+"add_beneficiary_placeholder_name" = "ایلس";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "وصول کریں";
+"receive_share" = "شیئر کریں";
+"receive_copied" = "کاپی ہو گیا";
+"receive_tap_to_copy" = "کاپی کرنے کے لیے ٹیپ کریں";
+
+"wallet_backup_title" = "والیٹ بیک اپ";
+"wallet_backup_instructions" = "الفاظ کو نیچے دی گئی ترتیب میں لکھیں اور محفوظ جگہ پر رکھیں۔ شیئر نہ کریں!";
+"wallet_backup_secret_phrase" = "خفیہ جملہ";
+"wallet_backup_copy" = "کلپ بورڈ پر کاپی کریں";
+
+"onboarding_title" = "چینز چھوڑیں\nبس ادائیگی کریں۔";
+"onboarding_subtitle" = "ایجنٹک پیمنٹ والیٹ۔ رقم درج کریں اور والیٹ کو آپ کے لیے چینز سنبھالنے دیں";
+"onboarding_create_wallet" = "والیٹ بنائیں";
+"onboarding_log_in" = "لاگ ان";
+
+"session_key_title" = "سیشن کی";
+"session_key_coming_soon" = "جلد آ رہا ہے";
+"session_key_description" = "ہر کانٹیکٹ لیس سیشن کی کارڈ\nایک عارضی والیٹ ہے جس میں\nآپ کے والیٹ سے خرچ کرنے کی اجازت ہے۔\nآپ سیٹ اپ کے بعد ان اجازتوں کو\nحسب ضرورت بنا سکتے ہیں۔";
+
+"profile_title" = "پروفائل";
+"profile_save" = "محفوظ کریں";
+"profile_saving" = "محفوظ ہو رہا ہے";
+"profile_ens_name" = "ENS نام";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "اوتار URL (اختیاری)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "بائیو (اختیاری)";
+"profile_info_prompt" = "دستیابی اور رجسٹریشن کی لاگت چیک کرنے کے لیے نام درج کریں۔";
+"profile_name_available" = "یہ نام %@ ETH کے لیے دستیاب ہے۔";
+"profile_name_unavailable" = "یہ نام دستیاب نہیں ہے۔";
+"profile_error_name_required" = "ENS نام درکار ہے۔";
+"profile_error_use_available_name" = "براہ کرم محفوظ کرنے سے پہلے دستیاب ENS نام استعمال کریں۔";
+"profile_no_changes_to_save" = "محفوظ کرنے کے لیے کوئی ENS تبدیلیاں نہیں";
+"profile_saved_changes" = "%d ENS تبدیلی(یاں) محفوظ ہو گئیں";
+
+"toggle_accessibility" = "ٹوگل";
+"button_label_default" = "اسٹرنگ ویلیو";

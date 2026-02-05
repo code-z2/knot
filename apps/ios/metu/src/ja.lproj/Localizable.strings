@@ -1,0 +1,73 @@
+"preferences_title" = "設定";
+"preferences_appearance" = "外観";
+"preferences_haptics" = "触覚フィードバック";
+"preferences_currency" = "通貨";
+"preferences_language" = "言語";
+"preferences_business" = "Metu for Business";
+"sheet_currency_title" = "通貨";
+"sheet_language_title" = "言語";
+
+"home_title" = "ホーム";
+"home_balance_title" = "残高";
+"home_add_money" = "入金";
+"home_send_money" = "送金";
+"home_assets_title" = "資産";
+"home_assets_summary" = "5チェーン上の7つの資産";
+"home_space_title" = "スペース";
+"home_profile" = "プロフィール";
+"home_preferences" = "設定";
+"home_wallet_backup" = "ウォレットのバックアップ";
+"home_address_book" = "アドレス帳";
+"home_ai_agent" = "AIエージェント";
+"home_logout" = "ログアウト";
+
+"address_book_title" = "アドレス帳";
+"search_placeholder" = "検索";
+"empty_beneficiary" = "受取人が追加されていません";
+"add_beneficiary_title" = "受取人を追加";
+"add_beneficiary_cancel" = "キャンセル";
+"add_beneficiary_name" = "名前";
+"add_beneficiary_wallet_address" = "ウォレットアドレス";
+"add_beneficiary_chain_optional" = "チェーン (任意)";
+"add_beneficiary_save" = "保存";
+"add_beneficiary_placeholder_name" = "アリス";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "受け取る";
+"receive_share" = "共有";
+"receive_copied" = "コピーしました";
+"receive_tap_to_copy" = "タップしてコピー";
+
+"wallet_backup_title" = "ウォレットのバックアップ";
+"wallet_backup_instructions" = "以下の順序で単語を書き留め、安全に保管してください。共有しないでください！";
+"wallet_backup_secret_phrase" = "シークレットフレーズ";
+"wallet_backup_copy" = "クリップボードにコピー";
+
+"onboarding_title" = "チェーンをスキップ\n支払うだけ。";
+"onboarding_subtitle" = "エージェント決済ウォレット。金額を入力するだけで、ウォレットがチェーン間の処理を行います";
+"onboarding_create_wallet" = "ウォレット作成";
+"onboarding_log_in" = "ログイン";
+
+"session_key_title" = "セッションキー";
+"session_key_coming_soon" = "近日公開";
+"session_key_description" = "各非接触セッションキーカードは\nあなたのウォレットから支出する権限を持つ\n一時的なウォレットです。\n設定後にこれらの権限を\nカスタマイズできます。";
+
+"profile_title" = "プロフィール";
+"profile_save" = "保存";
+"profile_saving" = "保存中";
+"profile_ens_name" = "ENS名";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "アバターURL (任意)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "自己紹介 (任意)";
+"profile_info_prompt" = "名前を入力して利用可能性と登録費用を確認してください。";
+"profile_name_available" = "この名前は %@ ETH で利用可能です。";
+"profile_name_unavailable" = "この名前は利用できません。";
+"profile_error_name_required" = "ENS名は必須です。";
+"profile_error_use_available_name" = "保存する前に利用可能なENS名を使用してください。";
+"profile_no_changes_to_save" = "保存するENSの変更はありません";
+"profile_saved_changes" = "%d 件のENS変更を保存しました";
+
+"toggle_accessibility" = "切り替え";
+"button_label_default" = "文字列値";

@@ -1,0 +1,73 @@
+"preferences_title" = "Preferenze";
+"preferences_appearance" = "Aspetto";
+"preferences_haptics" = "Feedback aptico";
+"preferences_currency" = "Valuta";
+"preferences_language" = "Lingua";
+"preferences_business" = "Metu per le Aziende";
+"sheet_currency_title" = "Valuta";
+"sheet_language_title" = "Lingua";
+
+"home_title" = "Home";
+"home_balance_title" = "Saldo";
+"home_add_money" = "Aggiungi denaro";
+"home_send_money" = "Invia denaro";
+"home_assets_title" = "I TUOI ASSET";
+"home_assets_summary" = "7 Asset in 5 chain";
+"home_space_title" = "IL TUO SPAZIO";
+"home_profile" = "Profilo";
+"home_preferences" = "Preferenze";
+"home_wallet_backup" = "Backup del portafoglio";
+"home_address_book" = "Rubrica";
+"home_ai_agent" = "Agente IA";
+"home_logout" = "Disconnetti";
+
+"address_book_title" = "Rubrica";
+"search_placeholder" = "Cerca";
+"empty_beneficiary" = "Non hai aggiunto alcun beneficiario";
+"add_beneficiary_title" = "Aggiungi beneficiario";
+"add_beneficiary_cancel" = "Annulla";
+"add_beneficiary_name" = "Nome";
+"add_beneficiary_wallet_address" = "Indirizzo portafoglio";
+"add_beneficiary_chain_optional" = "Chain (opzionale)";
+"add_beneficiary_save" = "Salva";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Ricevi";
+"receive_share" = "Condividi";
+"receive_copied" = "copiato";
+"receive_tap_to_copy" = "tocca per copiare";
+
+"wallet_backup_title" = "Backup del portafoglio";
+"wallet_backup_instructions" = "Scrivi le parole nella sequenza sottostante e tienile al sicuro. Non condividere!";
+"wallet_backup_secret_phrase" = "Frase segreta";
+"wallet_backup_copy" = "Copia negli appunti";
+
+"onboarding_title" = "Salta le Chain\nPaga semplicemente.";
+"onboarding_subtitle" = "Portafoglio di pagamenti agentico. Inserisci un importo e lascia che il portafoglio gestisca le chain per te";
+"onboarding_create_wallet" = "Crea portafoglio";
+"onboarding_log_in" = "Accedi";
+
+"session_key_title" = "Chiave di sessione";
+"session_key_coming_soon" = "Prossimamente";
+"session_key_description" = "Ogni chiave di sessione contactless\nè un portafoglio temporaneo con\npermessi di spesa dal tuo portafoglio.\nPuoi personalizzare questi permessi\ndopo la configurazione.";
+
+"profile_title" = "Profilo";
+"profile_save" = "Salva";
+"profile_saving" = "Salvataggio";
+"profile_ens_name" = "Nome ENS";
+"profile_ens_placeholder" = "iluonome.eth";
+"profile_avatar_optional" = "URL Avatar (opzionale)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Bio (opzionale)";
+"profile_info_prompt" = "Inserisci un nome per verificare la disponibilità e il costo di registrazione.";
+"profile_name_available" = "Questo nome è disponibile per %@ ETH.";
+"profile_name_unavailable" = "Questo nome non è disponibile.";
+"profile_error_name_required" = "Il nome ENS è obbligatorio.";
+"profile_error_use_available_name" = "Utilizza un nome ENS disponibile prima di salvare.";
+"profile_no_changes_to_save" = "Nessuna modifica ENS da salvare";
+"profile_saved_changes" = "%d modifica/he ENS salvata/e";
+
+"toggle_accessibility" = "Attiva/Disattiva";
+"button_label_default" = "Valore stringa";

@@ -1,0 +1,73 @@
+"preferences_title" = "ప్రాధాన్యతలు";
+"preferences_appearance" = "స్వరూపం";
+"preferences_haptics" = "హాప్టిక్ ఫీడ్‌బ్యాక్";
+"preferences_currency" = "కరెన్సీ";
+"preferences_language" = "భాష";
+"preferences_business" = "వ్యాపారం కోసం Metu";
+"sheet_currency_title" = "కరెన్సీ";
+"sheet_language_title" = "భాష";
+
+"home_title" = "హోమ్";
+"home_balance_title" = "బ్యాలెన్స్";
+"home_add_money" = "డబ్బు జోడించు";
+"home_send_money" = "డబ్బు పంపు";
+"home_assets_title" = "మీ ఆస్తులు";
+"home_assets_summary" = "5 చైన్‌లపై 7 ఆస్తులు";
+"home_space_title" = "మీ స్పేస్";
+"home_profile" = "ప్రొఫైల్";
+"home_preferences" = "ప్రాధాన్యతలు";
+"home_wallet_backup" = "వాలెట్ బ్యాకప్";
+"home_address_book" = "చిరునామా పుస్తకం";
+"home_ai_agent" = "AI ఏజెంట్";
+"home_logout" = "లాగ్ అవుట్";
+
+"address_book_title" = "చిరునామా పుస్తకం";
+"search_placeholder" = "శోధించు";
+"empty_beneficiary" = "మీరు లబ్ధిదారులెవరినీ జోడించలేదు";
+"add_beneficiary_title" = "లబ్ధిదారుని జోడించు";
+"add_beneficiary_cancel" = "రద్దు చేయి";
+"add_beneficiary_name" = "పేరు";
+"add_beneficiary_wallet_address" = "వాలెట్ చిరునామా";
+"add_beneficiary_chain_optional" = "చైన్ (ఐచ్ఛికం)";
+"add_beneficiary_save" = "సేవ్ చేయి";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "స్వీకరించు";
+"receive_share" = "భాగస్వామ్యం చేయి";
+"receive_copied" = "కాపీ చేయబడింది";
+"receive_tap_to_copy" = "కాపీ చేయడానికి నొక్కండి";
+
+"wallet_backup_title" = "వాలెట్ బ్యాకప్";
+"wallet_backup_instructions" = "క్రింది క్రమంలో పదాలను వ్రాసి సురక్షితమైన ప్రదేశంలో ఉంచండి. భాగస్వామ్యం చేయవద్దు!";
+"wallet_backup_secret_phrase" = "రహస్య వాక్యం";
+"wallet_backup_copy" = "క్లిప్‌బోర్డ్‌కు కాపీ చేయి";
+
+"onboarding_title" = "చైన్‌లను దాటవేయి\nకేవలం చెల్లించు.";
+"onboarding_subtitle" = "ఏజెంటిక్ పేమెంట్ వాలెట్. మొత్తాన్ని నమోదు చేయండి మరియు వాలెట్ మీ కోసం చైన్‌లను నిర్వహించనివ్వండి";
+"onboarding_create_wallet" = "వాలెట్ సృష్టించు";
+"onboarding_log_in" = "లాగ్ ఇన్";
+
+"session_key_title" = "సెషన్ కీ";
+"session_key_coming_soon" = "త్వరలో వస్తుంది";
+"session_key_description" = "ప్రతి కాంటాక్ట్‌లెస్ సెషన్ కీ కార్డ్\nమీ వాలెట్ నుండి ఖర్చు చేయడానికి అనుమతులు ఉన్న\nఒక తాత్కాలిక వాలెట్.\nసెటప్ తర్వాత మీరు ఈ అనుమతులను\nఅనుకూలీకరించవచ్చు.";
+
+"profile_title" = "ప్రొఫైల్";
+"profile_save" = "సేవ్ చేయి";
+"profile_saving" = "సేవ్ చేస్తోంది";
+"profile_ens_name" = "ENS పేరు";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "అవతార్ URL (ఐచ్ఛికం)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "బయో (ఐచ్ఛికం)";
+"profile_info_prompt" = "లభ్యత మరియు రిజిస్ట్రేషన్ ధరను తనిఖీ చేయడానికి పేరును నమోదు చేయండి.";
+"profile_name_available" = "ఈ పేరు %@ ETH కు అందుబాటులో ఉంది.";
+"profile_name_unavailable" = "ఈ పేరు అందుబాటులో లేదు.";
+"profile_error_name_required" = "ENS పేరు అవసరం.";
+"profile_error_use_available_name" = "దయచేసి సేవ్ చేయడానికి ముందు అందుబాటులో ఉన్న ENS పేరును ఉపయోగించండి.";
+"profile_no_changes_to_save" = "సేవ్ చేయడానికి ENS మార్పులు లేవు";
+"profile_saved_changes" = "%d ENS మార్పు(లు) సేవ్ చేయబడ్డాయి";
+
+"toggle_accessibility" = "టోగుల్";
+"button_label_default" = "స్ట్రింగ్ విలువ";

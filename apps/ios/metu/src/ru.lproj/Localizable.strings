@@ -1,0 +1,73 @@
+"preferences_title" = "Настройки";
+"preferences_appearance" = "Внешний вид";
+"preferences_haptics" = "Тактильная отдача";
+"preferences_currency" = "Валюта";
+"preferences_language" = "Язык";
+"preferences_business" = "Metu для бизнеса";
+"sheet_currency_title" = "Валюта";
+"sheet_language_title" = "Язык";
+
+"home_title" = "Главная";
+"home_balance_title" = "Баланс";
+"home_add_money" = "Пополнить";
+"home_send_money" = "Отправить";
+"home_assets_title" = "ВАШИ АКТИВЫ";
+"home_assets_summary" = "7 активов в 5 сетях";
+"home_space_title" = "ВАШЕ ПРОСТРАНСТВО";
+"home_profile" = "Профиль";
+"home_preferences" = "Настройки";
+"home_wallet_backup" = "Резервная копия";
+"home_address_book" = "Адресная книга";
+"home_ai_agent" = "AI Агент";
+"home_logout" = "Выйти";
+
+"address_book_title" = "Адресная книга";
+"search_placeholder" = "Поиск";
+"empty_beneficiary" = "Вы не добавили получателей";
+"add_beneficiary_title" = "Добавить получателя";
+"add_beneficiary_cancel" = "Отмена";
+"add_beneficiary_name" = "Имя";
+"add_beneficiary_wallet_address" = "Адрес кошелька";
+"add_beneficiary_chain_optional" = "Сеть (необязательно)";
+"add_beneficiary_save" = "Сохранить";
+"add_beneficiary_placeholder_name" = "Алиса";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Получить";
+"receive_share" = "Поделиться";
+"receive_copied" = "скопировано";
+"receive_tap_to_copy" = "нажмите, чтобы скопировать";
+
+"wallet_backup_title" = "Резервная копия";
+"wallet_backup_instructions" = "Запишите слова в указанном порядке и храните их в надежном месте. Никому не сообщайте!";
+"wallet_backup_secret_phrase" = "Секретная фраза";
+"wallet_backup_copy" = "Копировать в буфер";
+
+"onboarding_title" = "Забудьте о сетях\nПросто платите.";
+"onboarding_subtitle" = "Агентный платежный кошелек. Введите сумму, и кошелек сам выберет нужные сети";
+"onboarding_create_wallet" = "Создать кошелек";
+"onboarding_log_in" = "Войти";
+
+"session_key_title" = "Ключ сессии";
+"session_key_coming_soon" = "Скоро";
+"session_key_description" = "Каждая бесконтактная карта ключа сессии\n— это временный кошелек с\nразрешениями на траты из вашего кошелька.\nВы можете настроить эти разрешения\nпосле установки.";
+
+"profile_title" = "Профиль";
+"profile_save" = "Сохранить";
+"profile_saving" = "Сохранение";
+"profile_ens_name" = "Имя ENS";
+"profile_ens_placeholder" = "вашеимя.eth";
+"profile_avatar_optional" = "URL аватара (необяз.)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Био (необяз.)";
+"profile_info_prompt" = "Введите имя, чтобы проверить доступность и стоимость регистрации.";
+"profile_name_available" = "Это имя доступно за %@ ETH.";
+"profile_name_unavailable" = "Это имя недоступно.";
+"profile_error_name_required" = "Требуется имя ENS.";
+"profile_error_use_available_name" = "Пожалуйста, выберите доступное имя ENS перед сохранением.";
+"profile_no_changes_to_save" = "Нет изменений ENS для сохранения";
+"profile_saved_changes" = "Сохранено %d измен. ENS";
+
+"toggle_accessibility" = "Переключить";
+"button_label_default" = "Строковое значение";

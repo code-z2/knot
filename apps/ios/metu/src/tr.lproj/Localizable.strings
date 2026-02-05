@@ -1,0 +1,73 @@
+"preferences_title" = "Tercihler";
+"preferences_appearance" = "Görünüm";
+"preferences_haptics" = "Dokunsal Geribildirim";
+"preferences_currency" = "Para Birimi";
+"preferences_language" = "Dil";
+"preferences_business" = "İşletmeler için Metu";
+"sheet_currency_title" = "Para Birimi";
+"sheet_language_title" = "Dil";
+
+"home_title" = "Ana Sayfa";
+"home_balance_title" = "Bakiye";
+"home_add_money" = "Para Ekle";
+"home_send_money" = "Para Gönder";
+"home_assets_title" = "VARLIKLARINIZ";
+"home_assets_summary" = "5 Ağda 7 Varlık";
+"home_space_title" = "ALANINIZ";
+"home_profile" = "Profil";
+"home_preferences" = "Tercihler";
+"home_wallet_backup" = "Cüzdan Yedeği";
+"home_address_book" = "Adres Defteri";
+"home_ai_agent" = "Yapay Zeka Ajanı";
+"home_logout" = "Çıkış Yap";
+
+"address_book_title" = "Adres Defteri";
+"search_placeholder" = "Ara";
+"empty_beneficiary" = "Henüz bir alıcı eklemediniz";
+"add_beneficiary_title" = "Alıcı Ekle";
+"add_beneficiary_cancel" = "İptal";
+"add_beneficiary_name" = "İsim";
+"add_beneficiary_wallet_address" = "Cüzdan Adresi";
+"add_beneficiary_chain_optional" = "Ağ (isteğe bağlı)";
+"add_beneficiary_save" = "Kaydet";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Al";
+"receive_share" = "Paylaş";
+"receive_copied" = "kopyalandı";
+"receive_tap_to_copy" = "kopyalamak için dokun";
+
+"wallet_backup_title" = "Cüzdan Yedeği";
+"wallet_backup_instructions" = "Kelimeleri aşağıdaki sırayla yazın ve güvenli bir yerde saklayın. Paylaşmayın!";
+"wallet_backup_secret_phrase" = "Gizli İfade";
+"wallet_backup_copy" = "Pano'ya Kopyala";
+
+"onboarding_title" = "Ağları Atla\nSadece Öde.";
+"onboarding_subtitle" = "Ajan tabanlı ödeme cüzdanı. Bir miktar girin ve cüzdanın sizin için ağlar arasında işlem yapmasına izin verin";
+"onboarding_create_wallet" = "Cüzdan Oluştur";
+"onboarding_log_in" = "Giriş Yap";
+
+"session_key_title" = "Oturum Anahtarı";
+"session_key_coming_soon" = "Yakında";
+"session_key_description" = "Her temassız oturum anahtarı kartı\ncüzdanınızdan harcama izinlerine sahip\ngeçici bir cüzdandır.\nBu izinleri kurulumdan sonra\nözelleştirebilirsiniz.";
+
+"profile_title" = "Profil";
+"profile_save" = "Kaydet";
+"profile_saving" = "Kaydediliyor";
+"profile_ens_name" = "ENS Adı";
+"profile_ens_placeholder" = "isminiz.eth";
+"profile_avatar_optional" = "Avatar URL'si (isteğe bağlı)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Biyografi (isteğe bağlı)";
+"profile_info_prompt" = "Uygunluk ve kayıt maliyetini kontrol etmek için bir ad girin.";
+"profile_name_available" = "Bu ad %@ ETH karşılığında kullanılabilir.";
+"profile_name_unavailable" = "Bu ad kullanılamıyor.";
+"profile_error_name_required" = "ENS adı gereklidir.";
+"profile_error_use_available_name" = "Lütfen kaydetmeden önce uygun bir ENS adı kullanın.";
+"profile_no_changes_to_save" = "Kaydedilecek ENS değişikliği yok";
+"profile_saved_changes" = "%d ENS değişikliği kaydedildi";
+
+"toggle_accessibility" = "Değiştir";
+"button_label_default" = "Dize değeri";

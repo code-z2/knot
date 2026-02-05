@@ -1,0 +1,73 @@
+"preferences_title" = "설정";
+"preferences_appearance" = "화면 테마";
+"preferences_haptics" = "햅틱 피드백";
+"preferences_currency" = "통화";
+"preferences_language" = "언어";
+"preferences_business" = "비즈니스용 Metu";
+"sheet_currency_title" = "통화";
+"sheet_language_title" = "언어";
+
+"home_title" = "홈";
+"home_balance_title" = "잔액";
+"home_add_money" = "충전";
+"home_send_money" = "송금";
+"home_assets_title" = "보유 자산";
+"home_assets_summary" = "5개 체인의 7개 자산";
+"home_space_title" = "내 공간";
+"home_profile" = "프로필";
+"home_preferences" = "설정";
+"home_wallet_backup" = "지갑 백업";
+"home_address_book" = "주소록";
+"home_ai_agent" = "AI 에이전트";
+"home_logout" = "로그아웃";
+
+"address_book_title" = "주소록";
+"search_placeholder" = "검색";
+"empty_beneficiary" = "수취인이 없습니다";
+"add_beneficiary_title" = "수취인 추가";
+"add_beneficiary_cancel" = "취소";
+"add_beneficiary_name" = "이름";
+"add_beneficiary_wallet_address" = "지갑 주소";
+"add_beneficiary_chain_optional" = "체인 (선택)";
+"add_beneficiary_save" = "저장";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "받기";
+"receive_share" = "공유";
+"receive_copied" = "복사됨";
+"receive_tap_to_copy" = "탭하여 복사";
+
+"wallet_backup_title" = "지갑 백업";
+"wallet_backup_instructions" = "아래 순서대로 단어를 적어 안전한 곳에 보관하세요. 공유하지 마세요!";
+"wallet_backup_secret_phrase" = "비밀 구문";
+"wallet_backup_copy" = "클립보드에 복사";
+
+"onboarding_title" = "체인은 잊으세요\n그냥 결제하세요.";
+"onboarding_subtitle" = "에이전트 기반 결제 지갑. 금액만 입력하면 지갑이 알아서 체인을 관리합니다";
+"onboarding_create_wallet" = "지갑 생성";
+"onboarding_log_in" = "로그인";
+
+"session_key_title" = "세션 키";
+"session_key_coming_soon" = "준비 중";
+"session_key_description" = "각 비접촉 세션 키 카드는\n지갑에서 지출할 수 있는 권한을 가진\n임시 지갑입니다.\n설정 후 권한을\n사용자 지정할 수 있습니다.";
+
+"profile_title" = "프로필";
+"profile_save" = "저장";
+"profile_saving" = "저장 중";
+"profile_ens_name" = "ENS 이름";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "아바타 URL (선택)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "소개 (선택)";
+"profile_info_prompt" = "이름을 입력하여 사용 가능 여부와 등록 비용을 확인하세요.";
+"profile_name_available" = "이 이름은 %@ ETH로 사용 가능합니다.";
+"profile_name_unavailable" = "이 이름은 사용할 수 없습니다.";
+"profile_error_name_required" = "ENS 이름은 필수입니다.";
+"profile_error_use_available_name" = "저장하기 전에 사용 가능한 ENS 이름을 사용하세요.";
+"profile_no_changes_to_save" = "저장할 ENS 변경 사항 없음";
+"profile_saved_changes" = "%d개의 ENS 변경 사항 저장됨";
+
+"toggle_accessibility" = "토글";
+"button_label_default" = "문자열 값";
