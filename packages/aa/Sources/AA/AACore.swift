@@ -117,4 +117,13 @@ public actor AACore {
       responseType: String.self
     )
   }
+
+  public func sendUserOperationSync(_ userOperation: UserOperation) async throws -> String {
+    try await rpcClient.makeBundlerRpcCall(
+      chainId: userOperation.chainId,
+      method: "eth_sendUserOperationSync",
+      params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
+      responseType: String.self
+    )
+  }
 }
