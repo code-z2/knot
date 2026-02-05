@@ -10,12 +10,6 @@ struct SessionKeyView: View {
             AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("session_key_title")
-                    .font(.custom("Roboto-Medium", size: 24))
-                    .foregroundStyle(AppThemeColor.labelPrimary)
-                    .padding(.top, 47)
-                    .padding(.bottom, 44)
-
                 ZStack {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(
@@ -42,6 +36,7 @@ struct SessionKeyView: View {
                     }
                 }
                 .frame(height: 375)
+                .padding(.top, AppHeaderMetrics.contentTopPadding)
 
                 Spacer()
 
@@ -52,6 +47,13 @@ struct SessionKeyView: View {
                     .padding(.horizontal, 40)
                     .padding(.bottom, 140)
             }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            AppHeader(
+                title: "session_key_title",
+                titleFont: .custom("Roboto-Medium", size: 24),
+                titleColor: AppThemeColor.labelPrimary
+            )
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomNavigation(

@@ -28,14 +28,14 @@ struct AppRootView: View {
   }
 
   var body: some View {
-    Group {
+    ZStack {
       switch route {
       case .splash:
         SplashView()
           .task {
             try? await Task.sleep(for: .seconds(1.2))
             guard let activeEOA = sessionStore.activeEOAAddress else {
-              withAnimation(.easeInOut(duration: 0.25)) {
+              withAnimation(.easeInOut(duration: 0.18)) {
                 route = .onboarding
               }
               return
@@ -43,14 +43,14 @@ struct AppRootView: View {
 
             if let restored = try? await accountService.restoreSession(eoaAddress: activeEOA) {
               hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
-              withAnimation(.easeInOut(duration: 0.25)) {
+              withAnimation(.easeInOut(duration: 0.18)) {
                 currentEOA = restored.eoaAddress
                 route = .home
               }
             } else {
               sessionStore.clearActiveSession()
               hasLocalWalletMaterial = false
-              withAnimation(.easeInOut(duration: 0.25)) {
+              withAnimation(.easeInOut(duration: 0.18)) {
                 route = .onboarding
               }
             }
@@ -114,7 +114,18 @@ struct AppRootView: View {
         )
       }
     }
+    .transition(shouldAnimateRoute ? .opacity.combined(with: .scale(scale: 0.98)) : .identity)
+    .animation(shouldAnimateRoute ? .easeInOut(duration: 0.18) : nil, value: route)
     .environment(\.locale, preferencesStore.locale)
+  }
+
+  private var shouldAnimateRoute: Bool {
+    switch route {
+    case .profile, .preferences, .addressBook, .receive, .walletBackup:
+      return true
+    case .splash, .onboarding, .home, .sessionKey:
+      return false
+    }
   }
 
   @MainActor

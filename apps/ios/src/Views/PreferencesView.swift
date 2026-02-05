@@ -8,19 +8,10 @@ struct PreferencesView: View {
   @State private var showLanguageSheet = false
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
+    ZStack {
       AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
-      BackNavigationButton(action: onBack)
-        .offset(x: 20, y: 39)
-
       VStack(spacing: 0) {
-        Text("preferences_title")
-          .font(.custom("Roboto-Bold", size: 22))
-          .foregroundStyle(AppThemeColor.labelSecondary)
-          .padding(.top, 48)
-          .padding(.bottom, 36)
-
         VStack(spacing: 12) {
           PreferenceRow(
             title: "preferences_appearance",
@@ -51,10 +42,19 @@ struct PreferencesView: View {
           //     trailing: .chevron
           // )
         }
+        .padding(.top, AppHeaderMetrics.contentTopPadding)
         .padding(.horizontal, 20)
 
         Spacer()
       }
+    }
+    .safeAreaInset(edge: .top, spacing: 0) {
+      AppHeader(
+        title: "preferences_title",
+        titleFont: .custom("Roboto-Bold", size: 22),
+        titleColor: AppThemeColor.labelSecondary,
+        onBack: onBack
+      )
     }
     .sheet(isPresented: $showCurrencySheet) {
       CurrencyPickerSheet(

@@ -9,22 +9,4 @@ struct AppEntry: App {
         .preferredColorScheme(.dark)
     }
   }
-
-  init() {
-    #if DEBUG
-    FontDebug.printAvailableFonts()
-    #endif
-  }
-}
-
-private enum FontDebug {
-  static func printAvailableFonts() {
-    let families = UIFont.familyNames.sorted()
-    for family in families {
-      let names = UIFont.fontNames(forFamilyName: family)
-      if !names.isEmpty {
-        print("Family: \(family) Font names: \(names)")
-      }
-    }
-  }
 }

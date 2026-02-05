@@ -45,12 +45,19 @@ struct HomeView: View {
         AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
         VStack(spacing: 0) {
-          topHeader()
           ScrollView(showsIndicators: false) {
             contentSection
           }
+          .padding(.top, AppHeaderMetrics.contentTopPadding)
         }
       }
+    }
+    .safeAreaInset(edge: .top, spacing: 0) {
+      AppHeader(
+        title: "home_title",
+        titleFont: .custom("Roboto-Medium", size: 24),
+        titleColor: AppThemeColor.labelPrimary
+      )
     }
     .safeAreaInset(edge: .bottom, spacing: 0) {
       BottomNavigation(
@@ -60,14 +67,6 @@ struct HomeView: View {
         onSessionKeyTap: onSessionKeyTap
       )
     }
-  }
-
-  private func topHeader() -> some View {
-    Text("home_title")
-      .font(.custom("Roboto-Medium", size: 24))
-      .foregroundStyle(AppThemeColor.labelPrimary)
-      .padding(.top, 8)
-      .padding(.bottom, 12)
   }
 
   @State private var isBalanceHidden: Bool = false
