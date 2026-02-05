@@ -73,7 +73,7 @@ final class AAExecutionService {
     destinationChainId: UInt64,
     jobId: Data,
     chainCalls: [ChainCalls]
-  ) async throws -> ExecuteChainCallsResult {
+  ) async throws -> (destinationSubmission: String, otherSubmissions: [String]) {
     do {
       let context = try await makeContext(accountService: accountService, account: account)
       let passkey = try await accountService.passkeyPublicKeyData(for: context.account)
@@ -108,7 +108,7 @@ final class AAExecutionService {
       }
 
       // 3. Sign Once
-      let hash = try hashUserOperation(representativeOp)
+        let hash = try hashUserOperation(representativeOp, .chainCalls)
       let signature = try await accountService.signPayloadWithStoredPasskey(
         account: context.account,
         payload: hash
@@ -145,7 +145,7 @@ final class AAExecutionService {
         return results
       }
 
-      return ExecuteChainCallsResult(
+      return (
         destinationSubmission: destTxHash,
         otherSubmissions: otherSubmissions
       )
@@ -177,9 +177,9 @@ final class AAExecutionService {
     return userOp
   }
 
-  private func hashUserOperation(_ userOp: UserOperation) throws -> Data {
+  private func hashUserOperation(_ userOp: UserOperation,_ route: UserOperation.HashRoute) throws -> Data {
     do {
-      return try userOp.hash()
+      return try userOp.hash(route: route)
     } catch {
       throw AAExecutionServiceError.userOperationFailed(error)
     }
@@ -234,7 +234,7 @@ final class AAExecutionService {
       chainId: chainId,
       payload: payload
     )
-    let hash = try hashUserOperation(userOp)
+      let hash = try hashUserOperation(userOp, .normal)
     let signature = try await accountService.signPayloadWithStoredPasskey(
       account: context.account,
       payload: hash

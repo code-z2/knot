@@ -43,6 +43,10 @@ public struct PackedUserOperationForSignature: Sendable, Codable, Equatable {
 }
 
 public struct UserOperation: Sendable, Codable, Equatable {
+  public enum HashRoute: Sendable {
+    case normal
+    case chainCalls
+  }
   public var chainId: UInt64
   public var entryPoint: String
   public var sender: String
@@ -159,7 +163,16 @@ public struct UserOperation: Sendable, Codable, Equatable {
     )
   }
 
-  public func hash() throws -> Data {
+  public func hash(route: HashRoute = .normal) throws -> Data {
+    switch route {
+    case .normal:
+      return try hashForDefaultRoute()
+    case .chainCalls:
+      return try hashForChainCallsRoute()
+    }
+  }
+
+  public func hashForDefaultRoute() throws -> Data {
     let packed = try packForSignature()
     let senderWord = try ABIWord.address(packed.sender)
     let nonceWord = try AAUtils.uintWord(packed.nonce)
@@ -182,6 +195,25 @@ public struct UserOperation: Sendable, Codable, Equatable {
     let opStructHash = Data(encoded.sha3(.keccak256))
     let domain = try AAUtils.domainSeparator(chainId: chainId, entryPoint: entryPoint)
     return Data((Data([0x19, 0x01]) + domain + opStructHash).sha3(.keccak256))
+  }
+
+  public func hashForChainCallsRoute() throws -> Data {
+    let packed = try packForSignature()
+    let senderWord = try ABIWord.address(packed.sender)
+    let nonceWord = try AAUtils.uintWord(packed.nonce)
+    let initCodeHash = try AAUtils.wordData(packed.initCodeHash)
+    let callDataHash = try AAUtils.wordData(packed.callDataHash)
+    let accountGasLimits = try AAUtils.wordData(packed.accountGasLimits)
+    let gasFees = try AAUtils.wordData(packed.gasFees)
+    let encoded =
+      AAUtils.packedUserOpTypeHash +
+      senderWord +
+      nonceWord +
+      initCodeHash +
+      callDataHash +
+      accountGasLimits +
+      gasFees
+    return Data(encoded.sha3(.keccak256))
   }
 
   public var rpcObject: [String: Any] {
