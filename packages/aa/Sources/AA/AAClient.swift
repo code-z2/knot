@@ -46,6 +46,10 @@ public actor AAClient {
     try await core.sendUserOperation(userOperation)
   }
 
+  public func sendUserOperationSync(_ userOperation: UserOperation) async throws -> String {
+    try await core.sendUserOperationSync(userOperation)
+  }
+
   public func sendUserOperations(_ operations: [ChainUserOperation]) async throws {
     for operation in operations {
       guard var op = operation.userOperation.value as? UserOperation else {
