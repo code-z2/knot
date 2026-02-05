@@ -53,10 +53,12 @@ public enum SmartAccount {
 
   public enum ExecuteChainCalls {
     public static func encodeCall(chainCallsBlob: Data) -> Data {
-      ABIEncoder.functionCall(
+      let selector = Data("executeChainCalls(bytes)".utf8).sha3(.keccak256).prefix(4)
+      let payload = Data(selector) + chainCallsBlob
+      return ABIEncoder.functionCall(
         signature: "executeChainCalls(bytes)",
         words: [],
-        dynamic: [ABIEncoder.encodeBytes(chainCallsBlob)]
+        dynamic: [ABIEncoder.encodeBytes(payload)]
       )
     }
 

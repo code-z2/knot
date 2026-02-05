@@ -1,5 +1,7 @@
 import SwiftUI
+import AccountSetup
 
+@MainActor
 struct AppRootView: View {
   @State private var route: Route = .splash
   @State private var currentEOA: String?
@@ -9,12 +11,15 @@ struct AppRootView: View {
   @State private var preferencesStore = PreferencesStore()
   private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
+  private let ensService = ENSService()
+  private let aaExecutionService = AAExecutionService()
   private let sessionStore = SessionStore()
 
   enum Route {
     case splash
     case onboarding
     case home
+    case profile
     case preferences
     case addressBook
     case receive
@@ -67,10 +72,19 @@ struct AppRootView: View {
           onAddMoney: { route = .receive },
           onHomeTap: { route = .home },
           onSessionKeyTap: { route = .sessionKey },
+          onProfileTap: { route = .profile },
           onPreferencesTap: { route = .preferences },
           onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
           onAddressBookTap: { route = .addressBook },
           showWalletBackup: hasLocalWalletMaterial
+        )
+      case .profile:
+        ProfileView(
+          eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+          accountService: accountService,
+          ensService: ensService,
+          aaExecutionService: aaExecutionService,
+          onBack: { route = .home }
         )
       case .preferences:
         PreferencesView(

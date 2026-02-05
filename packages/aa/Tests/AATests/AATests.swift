@@ -1,5 +1,6 @@
 import XCTest
 @testable import AA
+import BigInt
 import Transactions
 
 final class AATests: XCTestCase {
@@ -118,5 +119,38 @@ final class AATests: XCTestCase {
     XCTAssertEqual(compacted[0].preVerificationGas, "0x3000")
     XCTAssertEqual(compacted[0].paymaster, "0x2222222222222222222222222222222222222222")
     XCTAssertEqual(compacted[0].paymasterData, "0xaaaa")
+  }
+
+  func testCompactOperationsPrependsChainCallsSelector() throws {
+    let chainCalls = [ChainCalls(chainId: 8453, calls: [])]
+    let callData = try SmartAccount.ExecuteChainCalls.encodeCall(chainCalls: chainCalls)
+    let op = UserOperation(
+      chainId: 8453,
+      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
+      nonce: "0x1",
+      callData: "0x" + callData.toHexString(),
+      maxPriorityFeePerGas: "0x1",
+      maxFeePerGas: "0x1",
+      callGasLimit: "0x1",
+      verificationGasLimit: "0x1",
+      preVerificationGas: "0x1",
+      eip7702Auth: EIP7702Auth(
+        address: "0x1111111111111111111111111111111111111111",
+        chainId: "0x2105",
+        nonce: "0x0",
+        r: "0x1",
+        s: "0x2",
+        yParity: "0x1"
+      )
+    )
+
+    let compacted = try AACompactionTemp.compactOperations([op])
+    let compactedData = try AAUtils.hexToData(compacted[0].callData)
+    let selector = Data("executeChainCalls(bytes)".utf8).sha3(.keccak256).prefix(4)
+    let bytesOffset = Int(BigUInt(compactedData.subdata(in: 4..<(4 + 32))))
+    let payloadLengthIndex = 4 + bytesOffset
+    let payloadStart = payloadLengthIndex + 32
+    let payload = compactedData.subdata(in: payloadStart..<(payloadStart + 4))
+    XCTAssertEqual(payload.prefix(4), selector)
   }
 }

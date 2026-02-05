@@ -7,6 +7,7 @@ struct HomeView: View {
   let onHomeTap: () -> Void
   let onTransactionsTap: () -> Void
   let onSessionKeyTap: () -> Void
+  let onProfileTap: () -> Void
   let onPreferencesTap: () -> Void
   let onWalletBackupTap: () -> Void
   let onAddressBookTap: () -> Void
@@ -19,6 +20,7 @@ struct HomeView: View {
     onHomeTap: @escaping () -> Void = {},
     onTransactionsTap: @escaping () -> Void = {},
     onSessionKeyTap: @escaping () -> Void = {},
+    onProfileTap: @escaping () -> Void = {},
     onPreferencesTap: @escaping () -> Void = {},
     onWalletBackupTap: @escaping () -> Void = {},
     onAddressBookTap: @escaping () -> Void = {},
@@ -30,6 +32,7 @@ struct HomeView: View {
     self.onHomeTap = onHomeTap
     self.onTransactionsTap = onTransactionsTap
     self.onSessionKeyTap = onSessionKeyTap
+    self.onProfileTap = onProfileTap
     self.onPreferencesTap = onPreferencesTap
     self.onWalletBackupTap = onWalletBackupTap
     self.onAddressBookTap = onAddressBookTap
@@ -187,6 +190,20 @@ struct HomeView: View {
 
       VStack(alignment: .leading, spacing: 36) {
         VStack(spacing: 12) {
+          MenuRow(
+            title: "Profile",
+            action: onProfileTap,
+            leading: {
+              IconBadge(style: .defaultStyle) {
+                Image("Icons/user_01")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 21, height: 21)
+                  .foregroundColor(AppThemeColor.glyphPrimary)
+              }
+            }
+          )
           MenuRow(
             title: "Preferences",
             action: onPreferencesTap,
