@@ -7,13 +7,20 @@ public enum AppButtonVariant {
   case neutral
 }
 
+public enum AppButtonSize {
+  case regular
+  case compact
+}
+
 public struct AppButton: View {
   let fullWidth: Bool
   let label: LocalizedStringKey
   let variant: AppButtonVariant
+  let size: AppButtonSize
   let showLabel: Bool
   let showIcon: Bool
   let iconName: String?
+  let underlinedLabel: Bool
   let foregroundColorOverride: Color?
   let backgroundColorOverride: Color?
   let action: () -> Void
@@ -22,9 +29,11 @@ public struct AppButton: View {
     fullWidth: Bool = false,
     label: LocalizedStringKey = "button_label_default",
     variant: AppButtonVariant = .default,
+    size: AppButtonSize = .regular,
     showLabel: Bool = true,
     showIcon: Bool = false,
     iconName: String? = nil,
+    underlinedLabel: Bool = false,
     foregroundColorOverride: Color? = nil,
     backgroundColorOverride: Color? = nil,
     action: @escaping () -> Void
@@ -32,9 +41,11 @@ public struct AppButton: View {
     self.fullWidth = fullWidth
     self.label = label
     self.variant = variant
+    self.size = size
     self.showLabel = showLabel
     self.showIcon = showIcon
     self.iconName = iconName
+    self.underlinedLabel = underlinedLabel
     self.foregroundColorOverride = foregroundColorOverride
     self.backgroundColorOverride = backgroundColorOverride
     self.action = action
@@ -45,7 +56,8 @@ public struct AppButton: View {
       HStack(spacing: 10) {
         if showLabel {
           Text(label)
-            .font(.custom("Roboto-Bold", size: 15))
+            .font(labelFont)
+            .underline(underlinedLabel, color: foregroundColor)
             .foregroundStyle(foregroundColor)
             .lineLimit(1)
         }
@@ -55,8 +67,8 @@ public struct AppButton: View {
         }
       }
       .frame(maxWidth: fullWidth ? .infinity : nil)
-      .padding(.horizontal, 18)
-      .padding(.vertical, 14)
+      .padding(.horizontal, horizontalPadding)
+      .padding(.vertical, verticalPadding)
       .background(background)
       .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
@@ -95,6 +107,33 @@ public struct AppButton: View {
       return AppThemeColor.accentRed
     case .neutral:
       return AppThemeColor.labelSecondary
+    }
+  }
+
+  private var labelFont: Font {
+    switch size {
+    case .regular:
+      return .custom("Roboto-Bold", size: 15)
+    case .compact:
+      return .custom("Roboto-Medium", size: 14)
+    }
+  }
+
+  private var horizontalPadding: CGFloat {
+    switch size {
+    case .regular:
+      return 18
+    case .compact:
+      return 12
+    }
+  }
+
+  private var verticalPadding: CGFloat {
+    switch size {
+    case .regular:
+      return 14
+    case .compact:
+      return 8
     }
   }
 

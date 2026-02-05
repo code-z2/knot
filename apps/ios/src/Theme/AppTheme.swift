@@ -4,6 +4,8 @@ public enum AppThemeColor {
   // Core surfaces
   public static let backgroundPrimaryDark = Color(hex: "#000000")
   public static let backgroundPrimaryLight = Color(hex: "#FFFFFF")
+  public static let backgroundSecondaryDark = Color(hex: "#1C1C1E")
+  public static let backgroundSecondaryLight = Color(hex: "#F2F2F7")
 
   public static let labelPrimaryDark = Color(hex: "#FFFFFF")
   public static let labelPrimaryLight = Color(hex: "#000000")
@@ -55,6 +57,7 @@ public enum AppThemeColor {
 
   // Dark-first app defaults
   public static let backgroundPrimary = backgroundPrimaryDark
+  public static let backgroundSecondary = backgroundSecondaryDark
   public static let labelPrimary = labelPrimaryDark
   public static let labelSecondary = labelSecondaryDark
   public static let labelVibrantPrimary = labelVibrantPrimaryDark
