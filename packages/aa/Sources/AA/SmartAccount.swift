@@ -305,11 +305,11 @@ public actor SmartAccountClient {
       throw SmartAccountError.malformedRPCResponse("Failed to build destination chain bundle")
     }
 
-    let payload = [destination] + others
+    let allChainCalls = [destination] + others
+    let payload = try SmartAccount.ExecuteChainCalls.encodeCall(chainCalls: allChainCalls)
     return ExecuteChainCallsBuildResult(
       payload: payload,
-      destinationChainCall: destination,
-      otherChainCalls: others
+      chainCalls: allChainCalls
     )
   }
 
@@ -406,13 +406,11 @@ public struct ExecuteBuildResult: Sendable, Equatable {
 }
 
 public struct ExecuteChainCallsBuildResult: Sendable, Equatable {
-  public let payload: [ChainCalls]
-  public let destinationChainCall: ChainCalls
-  public let otherChainCalls: [ChainCalls]
+  public let payload: Data
+  public let chainCalls: [ChainCalls]
 
-  public init(payload: [ChainCalls], destinationChainCall: ChainCalls, otherChainCalls: [ChainCalls]) {
+  public init(payload: Data, chainCalls: [ChainCalls]) {
     self.payload = payload
-    self.destinationChainCall = destinationChainCall
-    self.otherChainCalls = otherChainCalls
+    self.chainCalls = chainCalls
   }
 }
