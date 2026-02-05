@@ -1,24 +1,24 @@
 import SwiftUI
 
-struct AppHeader<Trailing: View>: View {
+struct AppHeader<ActionButton: View>: View {
   let title: LocalizedStringKey
   let titleFont: Font
   let titleColor: Color
   let onBack: (() -> Void)?
-  @ViewBuilder let trailing: Trailing
+  @ViewBuilder let actionButton: ActionButton
 
   init(
     title: LocalizedStringKey,
     titleFont: Font,
     titleColor: Color,
     onBack: (() -> Void)? = nil,
-    @ViewBuilder trailing: () -> Trailing
+    @ViewBuilder actionButton: () -> ActionButton
   ) {
     self.title = title
     self.titleFont = titleFont
     self.titleColor = titleColor
     self.onBack = onBack
-    self.trailing = trailing()
+    self.actionButton = actionButton()
   }
 
   init(
@@ -26,12 +26,12 @@ struct AppHeader<Trailing: View>: View {
     titleFont: Font,
     titleColor: Color,
     onBack: (() -> Void)? = nil
-  ) where Trailing == EmptyView {
+  ) where ActionButton == EmptyView {
     self.title = title
     self.titleFont = titleFont
     self.titleColor = titleColor
     self.onBack = onBack
-    self.trailing = EmptyView()
+    self.actionButton = EmptyView()
   }
 
   var body: some View {
@@ -49,7 +49,7 @@ struct AppHeader<Trailing: View>: View {
 
         Spacer(minLength: 0)
 
-        trailing
+        actionButton
       }
     }
     .frame(height: AppHeaderMetrics.height)
