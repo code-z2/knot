@@ -1,0 +1,73 @@
+"preferences_title" = "Einstellungen";
+"preferences_appearance" = "Erscheinungsbild";
+"preferences_haptics" = "Haptisches Feedback";
+"preferences_currency" = "Währung";
+"preferences_language" = "Sprache";
+"preferences_business" = "Metu für Unternehmen";
+"sheet_currency_title" = "Währung";
+"sheet_language_title" = "Sprache";
+
+"home_title" = "Startseite";
+"home_balance_title" = "Guthaben";
+"home_add_money" = "Geld hinzufügen";
+"home_send_money" = "Geld senden";
+"home_assets_title" = "IHRE VERMÖGENSWERTE";
+"home_assets_summary" = "7 Vermögenswerte auf 5 Chains";
+"home_space_title" = "IHR PLATZ";
+"home_profile" = "Profil";
+"home_preferences" = "Einstellungen";
+"home_wallet_backup" = "Wallet-Backup";
+"home_address_book" = "Adressbuch";
+"home_ai_agent" = "KI-Agent";
+"home_logout" = "Abmelden";
+
+"address_book_title" = "Adressbuch";
+"search_placeholder" = "Suchen";
+"empty_beneficiary" = "Sie haben keinen Empfänger hinzugefügt";
+"add_beneficiary_title" = "Empfänger hinzufügen";
+"add_beneficiary_cancel" = "Abbrechen";
+"add_beneficiary_name" = "Name";
+"add_beneficiary_wallet_address" = "Wallet-Adresse";
+"add_beneficiary_chain_optional" = "Chain (optional)";
+"add_beneficiary_save" = "Speichern";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Empfangen";
+"receive_share" = "Teilen";
+"receive_copied" = "kopiert";
+"receive_tap_to_copy" = "zum Kopieren tippen";
+
+"wallet_backup_title" = "Wallet-Backup";
+"wallet_backup_instructions" = "Schreiben Sie die Wörter in der untenstehenden Reihenfolge auf und bewahren Sie sie sicher auf. Nicht teilen!";
+"wallet_backup_secret_phrase" = "Geheime Phrase";
+"wallet_backup_copy" = "In die Zwischenablage kopieren";
+
+"onboarding_title" = "Überspringen Sie Chains\nEinfach bezahlen.";
+"onboarding_subtitle" = "Agentische Zahlungs-Wallet. Geben Sie einen Betrag ein und lassen Sie die Wallet für Sie zwischen den Chains jonglieren";
+"onboarding_create_wallet" = "Wallet erstellen";
+"onboarding_log_in" = "Anmelden";
+
+"session_key_title" = "Sitzungsschlüssel";
+"session_key_coming_soon" = "Demnächst";
+"session_key_description" = "Jede kontaktlose Sitzungsschlüsselkarte\nist eine temporäre Wallet mit\nBerechtigungen zum Ausgeben von Ihrer Wallet.\nSie können diese Berechtigungen\nnach der Einrichtung anpassen.";
+
+"profile_title" = "Profil";
+"profile_save" = "Speichern";
+"profile_saving" = "Speichern...";
+"profile_ens_name" = "ENS-Name";
+"profile_ens_placeholder" = "ihrname.eth";
+"profile_avatar_optional" = "Avatar-URL (optional)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Bio (optional)";
+"profile_info_prompt" = "Geben Sie einen Namen ein, um Verfügbarkeit und Registrierungskosten zu prüfen.";
+"profile_name_available" = "Dieser Name ist für %@ ETH verfügbar.";
+"profile_name_unavailable" = "Dieser Name ist nicht verfügbar.";
+"profile_error_name_required" = "ENS-Name ist erforderlich.";
+"profile_error_use_available_name" = "Bitte verwenden Sie einen verfügbaren ENS-Namen vor dem Speichern.";
+"profile_no_changes_to_save" = "Keine ENS-Änderungen zu speichern";
+"profile_saved_changes" = "%d ENS-Änderung(en) gespeichert";
+
+"toggle_accessibility" = "Umschalten";
+"button_label_default" = "Zeichenfolgewert";

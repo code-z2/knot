@@ -1,0 +1,73 @@
+"preferences_title" = "விருப்பத்தேர்வுகள்";
+"preferences_appearance" = "தோற்றம்";
+"preferences_haptics" = "ஹேப்டிக் கருத்து";
+"preferences_currency" = "நாணயம்";
+"preferences_language" = "மொழி";
+"preferences_business" = "வணிகத்திற்கான Metu";
+"sheet_currency_title" = "நாணயம்";
+"sheet_language_title" = "மொழி";
+
+"home_title" = "முகப்பு";
+"home_balance_title" = "இருப்பு";
+"home_add_money" = "பணம் சேர்";
+"home_send_money" = "பணம் அனுப்பு";
+"home_assets_title" = "உங்கள் சொத்துக்கள்";
+"home_assets_summary" = "5 செயின்களில் 7 சொத்துக்கள்";
+"home_space_title" = "உங்கள் இடம்";
+"home_profile" = "சுயவிவரம்";
+"home_preferences" = "விருப்பத்தேர்வுகள்";
+"home_wallet_backup" = "வாலட் காப்பு";
+"home_address_book" = "முகவரி புத்தகம்";
+"home_ai_agent" = "AI ஏஜென்ட்";
+"home_logout" = "வெளியேறு";
+
+"address_book_title" = "முகவரி புத்தகம்";
+"search_placeholder" = "தேடு";
+"empty_beneficiary" = "நீங்கள் எந்த பயனாளியையும் சேர்க்கவில்லை";
+"add_beneficiary_title" = "பயனாளியைச் சேர்";
+"add_beneficiary_cancel" = "ரத்துசெய்";
+"add_beneficiary_name" = "பெயர்";
+"add_beneficiary_wallet_address" = "வாலட் முகவரி";
+"add_beneficiary_chain_optional" = "செயின் (விருப்பத்தேர்வு)";
+"add_beneficiary_save" = "சேமி";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "பெறு";
+"receive_share" = "பகிர்";
+"receive_copied" = "நகலெடுக்கப்பட்டது";
+"receive_tap_to_copy" = "நகலெடுக்க தட்டவும்";
+
+"wallet_backup_title" = "வாலட் காப்பு";
+"wallet_backup_instructions" = "கீழே உள்ள வரிசையில் வார்த்தைகளை எழுதி பாதுகாப்பான இடத்தில் வைக்கவும். பகிர வேண்டாம்!";
+"wallet_backup_secret_phrase" = "ரகசிய வாக்கியம்";
+"wallet_backup_copy" = "கிளிப்போர்டுக்கு நகலெடு";
+
+"onboarding_title" = "செயின்களைத் தவிர்\nவெறுமனே பணம் செலுத்து.";
+"onboarding_subtitle" = "ஏஜென்டிக் பேமெண்ட் வாலட். ஒரு தொகையை உள்ளிட்டு, வாலட் உங்களுக்காக செயின்களைக் கையாள விடுங்கள்";
+"onboarding_create_wallet" = "வாலட் உருவாக்கு";
+"onboarding_log_in" = "உள்நுழை";
+
+"session_key_title" = "அமர்வு திறவுகோல்";
+"session_key_coming_soon" = "விரைவில் வருகிறது";
+"session_key_description" = "ஒவ்வொரு தொடர்பு இல்லாத அமர்வு திறவுகோல் அட்டையும்\nஉங்கள் வாலட்டில் இருந்து செலவழிக்க அனுமதியுள்ள\nஒரு தற்காலிக வாலட் ஆகும்.\nஅமைப்பிற்குப் பிறகு இந்த அனுமதிகளை\nநீங்கள் தனிப்பயனாக்கலாம்.";
+
+"profile_title" = "சுயவிவரம்";
+"profile_save" = "சேமி";
+"profile_saving" = "சேமிக்கப்படுகிறது";
+"profile_ens_name" = "ENS பெயர்";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "அவதார் URL (விருப்பத்தேர்வு)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "பயோ (விருப்பத்தேர்வு)";
+"profile_info_prompt" = "கிடைக்கும் தன்மை மற்றும் பதிவுச் செலவைச் சரிபார்க்க ஒரு பெயரை உள்ளிடவும்.";
+"profile_name_available" = "இந்த பெயர் %@ ETH க்கு கிடைக்கிறது.";
+"profile_name_unavailable" = "இந்த பெயர் கிடைக்கவில்லை.";
+"profile_error_name_required" = "ENS பெயர் தேவை.";
+"profile_error_use_available_name" = "சேமிப்பதற்கு முன் கோருவதற்கு கிடைக்கும் ENS பெயரைப் பயன்படுத்தவும்.";
+"profile_no_changes_to_save" = "சேமிக்க எந்த ENS மாற்றங்களும் இல்லை";
+"profile_saved_changes" = "%d ENS மாற்றம்(கள்) சேமிக்கப்பட்டது";
+
+"toggle_accessibility" = "மாற்று";
+"button_label_default" = "சரம் மதிப்பு";

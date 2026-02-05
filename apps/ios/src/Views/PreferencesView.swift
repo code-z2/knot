@@ -1,58 +1,64 @@
+import Observation
 import SwiftUI
 
 struct PreferencesView: View {
-  let preferencesStore: PreferencesStore
+  @Bindable var preferencesStore: PreferencesStore
   var onBack: () -> Void = {}
   @State private var showCurrencySheet = false
   @State private var showLanguageSheet = false
-  @State private var hapticsEnabled = true
 
   var body: some View {
     ZStack(alignment: .topLeading) {
       AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
       BackNavigationButton(action: onBack)
-      .offset(x: 20, y: 39)
+        .offset(x: 20, y: 39)
 
       VStack(spacing: 0) {
-        Text("Preferences")
+        Text("preferences_title")
           .font(.custom("Roboto-Bold", size: 22))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .padding(.top, 48)
           .padding(.bottom, 36)
 
         VStack(spacing: 12) {
-          PreferenceRow(title: "Appearance", iconName: "Icons/lightbulb_02", trailing: .chevron)
           PreferenceRow(
-            title: "Haptic feedback",
-            iconName: "Icons/vibration",
-            trailing: .toggle(isOn: $hapticsEnabled)
+            title: "preferences_appearance",
+            iconName: "Icons/lightbulb_02",
+            trailing: .chevron
           )
           PreferenceRow(
-            title: "Currency",
+            title: "preferences_haptics",
+            iconName: "Icons/vibration",
+            trailing: .toggle(isOn: $preferencesStore.hapticsEnabled)
+          )
+          PreferenceRow(
+            title: "preferences_currency",
             iconName: "Icons/bank_note_03",
             trailing: .valueChevron(preferencesStore.selectedCurrencyCode.lowercased()),
             action: { showCurrencySheet = true }
           )
           PreferenceRow(
-            title: "Language",
+            title: "preferences_language",
             iconName: "Icons/translate_01",
-            trailing: .valueChevron(preferencesStore.languageCode),
+            trailing: .valueChevron(
+              preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode),
             action: { showLanguageSheet = true }
           )
-          PreferenceRow(title: "Metu for Business", iconName: "Icons/building_02", trailing: .chevron)
+          // PreferenceRow(
+          //     title: "preferences_business",
+          //     iconName: "Icons/building_02",
+          //     trailing: .chevron
+          // )
         }
         .padding(.horizontal, 20)
 
         Spacer()
       }
     }
-    .onAppear { hapticsEnabled = preferencesStore.hapticsEnabled }
-    .onChange(of: hapticsEnabled) { _, newValue in
-      preferencesStore.hapticsEnabled = newValue
-    }
     .sheet(isPresented: $showCurrencySheet) {
       CurrencyPickerSheet(
+        title: "sheet_currency_title",
         currencies: preferencesStore.supportedCurrencies,
         selectedCode: preferencesStore.selectedCurrencyCode,
         onSelect: { code in
@@ -66,6 +72,7 @@ struct PreferencesView: View {
     }
     .sheet(isPresented: $showLanguageSheet) {
       LanguagePickerSheet(
+        title: "sheet_language_title",
         languages: preferencesStore.supportedLanguages,
         selectedCode: preferencesStore.languageCode,
         onSelect: { code in
@@ -87,7 +94,7 @@ private struct PreferenceRow: View {
     case valueChevron(String)
   }
 
-  let title: String
+  let title: LocalizedStringKey
   let iconName: String
   let trailing: Trailing
   var action: (() -> Void)? = nil
@@ -127,8 +134,7 @@ private struct PreferenceRow: View {
         chevron
       case .toggle(let isOn):
         ToggleSwitch(isOn: isOn)
-          .padding(.horizontal, 12)
-          .padding(.vertical, 8)
+          .padding(.horizontal, 8)
       case .valueChevron(let value):
         HStack(spacing: 10) {
           Text(value)
@@ -137,8 +143,6 @@ private struct PreferenceRow: View {
             .foregroundStyle(AppThemeColor.labelSecondary)
           chevron
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 12)
       }
     }
     .frame(maxWidth: .infinity, minHeight: 48)
@@ -151,12 +155,12 @@ private struct PreferenceRow: View {
       .aspectRatio(contentMode: .fit)
       .frame(width: 12, height: 12)
       .foregroundStyle(AppThemeColor.glyphSecondary)
-      .padding(.horizontal, 6)
-      .padding(.vertical, 12)
+      .padding(.horizontal, 8)
   }
 }
 
 private struct CurrencyPickerSheet: View {
+  let title: LocalizedStringKey
   let currencies: [CurrencyOption]
   let selectedCode: String
   let onSelect: (String) -> Void
@@ -172,7 +176,7 @@ private struct CurrencyPickerSheet: View {
         .padding(.top, 18)
 
       VStack(alignment: .leading, spacing: 0) {
-        Text("Currency")
+        Text(title)
           .font(.custom("Roboto-Bold", size: 14))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .padding(.leading, 38)
@@ -241,6 +245,7 @@ private struct CurrencyOptionRow: View {
 }
 
 private struct LanguagePickerSheet: View {
+  let title: LocalizedStringKey
   let languages: [LanguageOption]
   let selectedCode: String
   let onSelect: (String) -> Void
@@ -256,7 +261,7 @@ private struct LanguagePickerSheet: View {
         .padding(.top, 18)
 
       VStack(alignment: .leading, spacing: 0) {
-        Text("Language")
+        Text(title)
           .font(.custom("Roboto-Bold", size: 14))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .padding(.leading, 38)

@@ -40,7 +40,7 @@ struct HomeView: View {
   }
 
   var body: some View {
-    GeometryReader { proxy in
+    GeometryReader { _ in
       ZStack {
         AppThemeColor.fixedDarkSurface.ignoresSafeArea()
 
@@ -63,7 +63,7 @@ struct HomeView: View {
   }
 
   private func topHeader() -> some View {
-    Text("Home")
+    Text("home_title")
       .font(.custom("Roboto-Medium", size: 24))
       .foregroundStyle(AppThemeColor.labelPrimary)
       .padding(.top, 8)
@@ -76,7 +76,7 @@ struct HomeView: View {
   private var balanceSection: some View {
     VStack(spacing: 44) {
       VStack(spacing: 16) {
-        Text("Balance")
+        Text("home_balance_title")
           .font(.custom("Roboto-Bold", size: 16))
           .foregroundStyle(AppThemeColor.labelSecondary)
 
@@ -90,7 +90,7 @@ struct HomeView: View {
 
       HStack(spacing: 0) {
         Button(action: onAddMoney) {
-          Text("Add money")
+          Text("home_add_money")
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.backgroundPrimary)
             .frame(width: 120, height: 52)
@@ -104,7 +104,7 @@ struct HomeView: View {
         Spacer(minLength: 0)
 
         Button(action: onSendMoney) {
-          Text("Send money")
+          Text("home_send_money")
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.backgroundPrimary)
             .frame(width: 120, height: 52)
@@ -147,7 +147,7 @@ struct HomeView: View {
 
   private var assetsSection: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("YOUR ASSETS")
+      Text("home_assets_title")
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -173,7 +173,7 @@ struct HomeView: View {
             .foregroundColor(AppThemeColor.labelSecondary)
         }
 
-        Text("7 Assets across 5 chains")
+        Text("home_assets_summary")
           .font(.custom("Roboto-Medium", size: 15))
           .foregroundStyle(AppThemeColor.labelSecondary)
       }
@@ -183,7 +183,7 @@ struct HomeView: View {
 
   private var spaceSection: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("YOUR SPACE")
+      Text("home_space_title")
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -191,7 +191,7 @@ struct HomeView: View {
       VStack(alignment: .leading, spacing: 36) {
         VStack(spacing: 12) {
           MenuRow(
-            title: "Profile",
+            title: "home_profile",
             action: onProfileTap,
             leading: {
               IconBadge(style: .defaultStyle) {
@@ -205,7 +205,7 @@ struct HomeView: View {
             }
           )
           MenuRow(
-            title: "Preferences",
+            title: "home_preferences",
             action: onPreferencesTap,
             leading: {
               IconBadge(style: .defaultStyle) {
@@ -220,7 +220,7 @@ struct HomeView: View {
           )
           if showWalletBackup {
             MenuRow(
-              title: "Wallet Backup",
+              title: "home_wallet_backup",
               action: onWalletBackupTap,
               leading: {
                 IconBadge(style: .defaultStyle) {
@@ -235,7 +235,7 @@ struct HomeView: View {
             )
           }
           MenuRow(
-            title: "Address Book",
+            title: "home_address_book",
             action: onAddressBookTap,
             leading: {
               IconBadge(style: .defaultStyle) {
@@ -249,7 +249,7 @@ struct HomeView: View {
             }
           )
           MenuRow(
-            title: "AI Agent",
+            title: "home_ai_agent",
             leading: {
               IconBadge(style: .defaultStyle) {
                 Image("Icons/cpu_chip_02")
@@ -274,7 +274,7 @@ struct HomeView: View {
                 .foregroundColor(AppThemeColor.accentRed)
             }
 
-            Text("Logout")
+            Text("home_logout")
               .font(.custom("Roboto-Medium", size: 15))
               .foregroundStyle(AppThemeColor.accentRed)
           }
@@ -290,11 +290,14 @@ struct HomeView: View {
 }
 
 private struct MenuRow<Leading: View>: View {
-  let title: String
+  let title: LocalizedStringKey
   let action: (() -> Void)?
   let leading: () -> Leading
 
-  init(title: String, action: (() -> Void)? = nil, @ViewBuilder leading: @escaping () -> Leading) {
+  init(
+    title: LocalizedStringKey, action: (() -> Void)? = nil,
+    @ViewBuilder leading: @escaping () -> Leading
+  ) {
     self.title = title
     self.action = action
     self.leading = leading

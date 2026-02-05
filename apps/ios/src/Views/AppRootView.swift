@@ -114,6 +114,7 @@ struct AppRootView: View {
         )
       }
     }
+    .environment(\.locale, preferencesStore.locale)
   }
 
   @MainActor
@@ -151,6 +152,12 @@ struct AppRootView: View {
     guard let mnemonic = try? await accountService.localMnemonic(for: eoa) else { return }
     walletBackupMnemonic = mnemonic
     route = .walletBackup
+  }
+
+  private var layoutDirection: LayoutDirection {
+    Locale.characterDirection(forLanguage: preferencesStore.languageCode) == .rightToLeft
+      ? .rightToLeft
+      : .leftToRight
   }
 }
 

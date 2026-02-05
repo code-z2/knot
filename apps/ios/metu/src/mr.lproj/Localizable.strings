@@ -1,0 +1,73 @@
+"preferences_title" = "प्राधान्ये";
+"preferences_appearance" = "दिसणे";
+"preferences_haptics" = "हॅप्टिक अभिप्राय";
+"preferences_currency" = "चलन";
+"preferences_language" = "भाषा";
+"preferences_business" = "व्यवसाय साठी Metu";
+"sheet_currency_title" = "चलन";
+"sheet_language_title" = "भाषा";
+
+"home_title" = "होम";
+"home_balance_title" = "शिल्लक";
+"home_add_money" = "पैसे जोडा";
+"home_send_money" = "पैसे पाठवा";
+"home_assets_title" = "तुमची मालमत्ता";
+"home_assets_summary" = "५ चेनवर ७ मालमत्ता";
+"home_space_title" = "तुमची स्पेस";
+"home_profile" = "प्रोफाइल";
+"home_preferences" = "प्राधान्ये";
+"home_wallet_backup" = "वॉलेट बॅकअप";
+"home_address_book" = "पत्ता पुस्तिका";
+"home_ai_agent" = "AI एजंट";
+"home_logout" = "बाहेर पडा";
+
+"address_book_title" = "पत्ता पुस्तिका";
+"search_placeholder" = "शोधा";
+"empty_beneficiary" = "तुम्ही कोणताही लाभार्थी जोडलेला नाही";
+"add_beneficiary_title" = "लाभार्थी जोडा";
+"add_beneficiary_cancel" = "रद्द करा";
+"add_beneficiary_name" = "नाव";
+"add_beneficiary_wallet_address" = "वॉलेट पत्ता";
+"add_beneficiary_chain_optional" = "चेन (पर्यायी)";
+"add_beneficiary_save" = "जतन करा";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "प्राप्त करा";
+"receive_share" = "शेअर करा";
+"receive_copied" = "कॉपी केले";
+"receive_tap_to_copy" = "कॉपी करण्यासाठी टॅप करा";
+
+"wallet_backup_title" = "वॉलेट बॅकअप";
+"wallet_backup_instructions" = "खालील क्रमाने शब्द लिहा आणि सुरक्षित ठेवा. शेअर करू नका!";
+"wallet_backup_secret_phrase" = "गुप्त वाक्यांश";
+"wallet_backup_copy" = "क्लिपबोर्डवर कॉपी करा";
+
+"onboarding_title" = "चेन वगळा\nफक्त पैसे द्या.";
+"onboarding_subtitle" = "एजंट पेमेंट वॉलेट. रक्कम प्रविष्ट करा आणि वॉलेटला तुमच्यासाठी चेन व्यवस्थापित करू द्या";
+"onboarding_create_wallet" = "वॉलेट तयार करा";
+"onboarding_log_in" = "लॉग इन करा";
+
+"session_key_title" = "सेशन की";
+"session_key_coming_soon" = "लवकरच येत आहे";
+"session_key_description" = "प्रत्येक कॉन्टॅक्टलेस सेशन की कार्ड\nएक तात्पुरते वॉलेट आहे ज्याला\nतुमच्या वॉलेटमधून खर्च करण्याची परवानगी आहे.\nसेटअप केल्यानंतर तुम्ही या परवानग्या\nसानुकूलित करू शकता.";
+
+"profile_title" = "प्रोफाइल";
+"profile_save" = "जतन करा";
+"profile_saving" = "जतन करत आहे";
+"profile_ens_name" = "ENS नाव";
+"profile_ens_placeholder" = "yourname.eth";
+"profile_avatar_optional" = "अवतार URL (पर्यायी)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "बायो (पर्यायी)";
+"profile_info_prompt" = "उपलब्धता आणि नोंदणी खर्च तपासण्यासाठी नाव प्रविष्ट करा.";
+"profile_name_available" = "हे नाव %@ ETH साठी उपलब्ध आहे.";
+"profile_name_unavailable" = "हे नाव उपलब्ध नाही.";
+"profile_error_name_required" = "ENS नाव आवश्यक आहे.";
+"profile_error_use_available_name" = "जतन करण्यापूर्वी कृपया उपलब्ध ENS नाव वापरा.";
+"profile_no_changes_to_save" = "जतन करण्यासाठी कोणतेही ENS बदल नाहीत";
+"profile_saved_changes" = "%d ENS बदल जतन केले";
+
+"toggle_accessibility" = "टॉगल";
+"button_label_default" = "स्ट्रिंग मूल्य";

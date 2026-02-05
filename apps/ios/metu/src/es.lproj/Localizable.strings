@@ -1,0 +1,73 @@
+"preferences_title" = "Preferencias";
+"preferences_appearance" = "Apariencia";
+"preferences_haptics" = "Respuesta háptica";
+"preferences_currency" = "Moneda";
+"preferences_language" = "Idioma";
+"preferences_business" = "Metu para Negocios";
+"sheet_currency_title" = "Moneda";
+"sheet_language_title" = "Idioma";
+
+"home_title" = "Inicio";
+"home_balance_title" = "Saldo";
+"home_add_money" = "Agregar dinero";
+"home_send_money" = "Enviar dinero";
+"home_assets_title" = "TUS ACTIVOS";
+"home_assets_summary" = "7 Activos en 5 cadenas";
+"home_space_title" = "TU ESPACIO";
+"home_profile" = "Perfil";
+"home_preferences" = "Preferencias";
+"home_wallet_backup" = "Copia de seguridad";
+"home_address_book" = "Libreta de direcciones";
+"home_ai_agent" = "Agente IA";
+"home_logout" = "Cerrar sesión";
+
+"address_book_title" = "Libreta de direcciones";
+"search_placeholder" = "Buscar";
+"empty_beneficiary" = "No has añadido ningún beneficiario";
+"add_beneficiary_title" = "Añadir beneficiario";
+"add_beneficiary_cancel" = "Cancelar";
+"add_beneficiary_name" = "Nombre";
+"add_beneficiary_wallet_address" = "Dirección de billetera";
+"add_beneficiary_chain_optional" = "Cadena (opcional)";
+"add_beneficiary_save" = "Guardar";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Recibir";
+"receive_share" = "Compartir";
+"receive_copied" = "copiado";
+"receive_tap_to_copy" = "toca para copiar";
+
+"wallet_backup_title" = "Copia de seguridad";
+"wallet_backup_instructions" = "Escribe las palabras en el siguiente orden y guárdalas en un lugar seguro. ¡No las compartas!";
+"wallet_backup_secret_phrase" = "Frase secreta";
+"wallet_backup_copy" = "Copiar al portapapeles";
+
+"onboarding_title" = "Salta las cadenas\nSolo paga.";
+"onboarding_subtitle" = "Billetera de pagos agéntica. Ingresa un monto y deja que la billetera maneje las cadenas por ti";
+"onboarding_create_wallet" = "Crear billetera";
+"onboarding_log_in" = "Iniciar sesión";
+
+"session_key_title" = "Llave de sesión";
+"session_key_coming_soon" = "Próximamente";
+"session_key_description" = "Cada tarjeta de llave de sesión sin contacto\nes una billetera temporal con\npermisos para gastar desde tu billetera.\nPuedes personalizar estos permisos\ndespués de la configuración.";
+
+"profile_title" = "Perfil";
+"profile_save" = "Guardar";
+"profile_saving" = "Guardando";
+"profile_ens_name" = "Nombre ENS";
+"profile_ens_placeholder" = "tunombre.eth";
+"profile_avatar_optional" = "URL del avatar (opcional)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Biografía (opcional)";
+"profile_info_prompt" = "Ingresa un nombre para verificar disponibilidad y costo de registro.";
+"profile_name_available" = "Este nombre está disponible por %@ ETH.";
+"profile_name_unavailable" = "Este nombre no está disponible.";
+"profile_error_name_required" = "Se requiere el nombre ENS.";
+"profile_error_use_available_name" = "Por favor usa un nombre ENS disponible antes de guardar.";
+"profile_no_changes_to_save" = "No hay cambios de ENS para guardar";
+"profile_saved_changes" = "Se guardaron %d cambio(s) de ENS";
+
+"toggle_accessibility" = "Alternar";
+"button_label_default" = "Valor de cadena";

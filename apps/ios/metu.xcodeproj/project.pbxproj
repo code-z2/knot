@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D03AA2D82F32698C00122EF8 /* metu-Info.plist */; };
 		D0EAD1462F338A17003B1EE1 /* AA in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1452F338A17003B1EE1 /* AA */; };
 		D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1482F338A51003B1EE1 /* ENS */; };
 		D0EAD14B2F33D734003B1EE1 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */; };
 		D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
+		D0F0B0022F35C1A7001A2B3C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0F0B0012F35C1A7001A2B3C /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +40,25 @@
 		D0EEE9792F312A97001771BB /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9832F312A97001771BB /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0EEE9C02F3130AE001771BB /* metu.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = metu.entitlements; sourceTree = "<group>"; };
+		D0F0B1002F35C1A7001A2B3C /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = metu/src/ar.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1012F35C1A7001A2B3C /* bn */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = bn; path = metu/src/bn.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1022F35C1A7001A2B3C /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = metu/src/de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1032F35C1A7001A2B3C /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = metu/src/en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1042F35C1A7001A2B3C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = metu/src/es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1052F35C1A7001A2B3C /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = metu/src/fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1062F35C1A7001A2B3C /* hi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hi; path = metu/src/hi.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1072F35C1A7001A2B3C /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = metu/src/it.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1082F35C1A7001A2B3C /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = metu/src/ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1092F35C1A7001A2B3C /* jv */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = jv; path = metu/src/jv.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10A2F35C1A7001A2B3C /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = metu/src/ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10B2F35C1A7001A2B3C /* mr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = mr; path = metu/src/mr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10C2F35C1A7001A2B3C /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = metu/src/pt.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10D2F35C1A7001A2B3C /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = metu/src/ru.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10E2F35C1A7001A2B3C /* sw */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = sw; path = metu/src/sw.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B10F2F35C1A7001A2B3C /* ta */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ta; path = metu/src/ta.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1102F35C1A7001A2B3C /* te */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = te; path = metu/src/te.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1112F35C1A7001A2B3C /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = metu/src/tr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1122F35C1A7001A2B3C /* ur */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ur; path = metu/src/ur.lproj/Localizable.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -104,6 +123,7 @@
 		D0EEE9612F312A96001771BB = {
 			isa = PBXGroup;
 			children = (
+				D0F0B0012F35C1A7001A2B3C /* Localizable.strings */,
 				D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */,
 				D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */,
 				D03AA2D82F32698C00122EF8 /* metu-Info.plist */,
@@ -227,7 +247,24 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
+				bn,
+				ar,
+				hi,
+				te,
+				tr,
+				it,
+				ko,
+				ta,
+				pt,
+				ur,
+				ja,
+				de,
+				sw,
+				mr,
+				es,
+				fr,
+				ru,
+				jv,
 			);
 			mainGroup = D0EEE9612F312A96001771BB;
 			minimizedProjectReferenceProxies = 1;
@@ -254,9 +291,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0F0B0022F35C1A7001A2B3C /* Localizable.strings in Resources */,
 				D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */,
 				D0EAD14B2F33D734003B1EE1 /* Config.xcconfig in Resources */,
-				D03AA2D92F32698C00122EF8 /* metu-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -313,9 +350,39 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		D0F0B0012F35C1A7001A2B3C /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D0F0B1002F35C1A7001A2B3C /* ar */,
+				D0F0B1012F35C1A7001A2B3C /* bn */,
+				D0F0B1022F35C1A7001A2B3C /* de */,
+				D0F0B1032F35C1A7001A2B3C /* en */,
+				D0F0B1042F35C1A7001A2B3C /* es */,
+				D0F0B1052F35C1A7001A2B3C /* fr */,
+				D0F0B1062F35C1A7001A2B3C /* hi */,
+				D0F0B1072F35C1A7001A2B3C /* it */,
+				D0F0B1082F35C1A7001A2B3C /* ja */,
+				D0F0B1092F35C1A7001A2B3C /* jv */,
+				D0F0B10A2F35C1A7001A2B3C /* ko */,
+				D0F0B10B2F35C1A7001A2B3C /* mr */,
+				D0F0B10C2F35C1A7001A2B3C /* pt */,
+				D0F0B10D2F35C1A7001A2B3C /* ru */,
+				D0F0B10E2F35C1A7001A2B3C /* sw */,
+				D0F0B10F2F35C1A7001A2B3C /* ta */,
+				D0F0B1102F35C1A7001A2B3C /* te */,
+				D0F0B1112F35C1A7001A2B3C /* tr */,
+				D0F0B1122F35C1A7001A2B3C /* ur */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
 		D0EEE98B2F312A97001771BB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -381,6 +448,7 @@
 		};
 		D0EEE98C2F312A97001771BB /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -448,10 +516,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "metu-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Metu;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -486,10 +554,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "metu-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Metu;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_UIAppFonts = "src/Fonts/Roboto/Roboto-Black.ttf src/Fonts/Roboto/Roboto-Bold.ttf src/Fonts/Roboto/Roboto-ExtraBold.ttf src/Fonts/Roboto/Roboto-ExtraLight.ttf src/Fonts/Roboto/Roboto-Light.ttf src/Fonts/Roboto/Roboto-Medium.ttf src/Fonts/Roboto/Roboto-Regular.ttf src/Fonts/Roboto/Roboto-SemiBold.ttf src/Fonts/Roboto/Roboto-Thin.ttf src/Fonts/Roboto/RobotoCondensed-Black.ttf src/Fonts/Roboto/RobotoCondensed-Bold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraBold.ttf src/Fonts/Roboto/RobotoCondensed-ExtraLight.ttf src/Fonts/Roboto/RobotoCondensed-Light.ttf src/Fonts/Roboto/RobotoCondensed-Medium.ttf src/Fonts/Roboto/RobotoCondensed-Regular.ttf src/Fonts/Roboto/RobotoCondensed-SemiBold.ttf src/Fonts/Roboto/RobotoCondensed-Thin.ttf src/Fonts/Roboto/RobotoFlex-VariableFont.ttf src/Fonts/Roboto/RobotoMono-Bold.ttf src/Fonts/Roboto/RobotoMono-ExtraLight.ttf src/Fonts/Roboto/RobotoMono-Light.ttf src/Fonts/Roboto/RobotoMono-Medium.ttf src/Fonts/Roboto/RobotoMono-Regular.ttf src/Fonts/Roboto/RobotoMono-SemiBold.ttf src/Fonts/Roboto/RobotoMono-Thin.ttf Fonts/Roboto/Roboto-Black.ttf Fonts/Roboto/Roboto-Bold.ttf Fonts/Roboto/Roboto-ExtraBold.ttf Fonts/Roboto/Roboto-ExtraLight.ttf Fonts/Roboto/Roboto-Light.ttf Fonts/Roboto/Roboto-Medium.ttf Fonts/Roboto/Roboto-Regular.ttf Fonts/Roboto/Roboto-SemiBold.ttf Fonts/Roboto/Roboto-Thin.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -520,7 +588,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.peteranyaogu.Tests;
@@ -542,7 +610,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.peteranyaogu.Tests;
@@ -563,7 +631,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.peteranyaogu.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -583,7 +651,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QHUBYNZ482;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.peteranyaogu.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

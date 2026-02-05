@@ -1,0 +1,73 @@
+"preferences_title" = "Pilihan";
+"preferences_appearance" = "Tampilan";
+"preferences_haptics" = "Umpan balik geter";
+"preferences_currency" = "Mata Uang";
+"preferences_language" = "Basa";
+"preferences_business" = "Metu kanggo Bisnis";
+"sheet_currency_title" = "Mata Uang";
+"sheet_language_title" = "Basa";
+
+"home_title" = "Omah";
+"home_balance_title" = "Saldo";
+"home_add_money" = "Nambah Dhuwit";
+"home_send_money" = "Ngirim Dhuwit";
+"home_assets_title" = "ASETMU";
+"home_assets_summary" = "7 Aset ing 5 rante";
+"home_space_title" = "RUANGMU";
+"home_profile" = "Profil";
+"home_preferences" = "Pilihan";
+"home_wallet_backup" = "Serep Dompet";
+"home_address_book" = "Buku Alamat";
+"home_ai_agent" = "Agen AI";
+"home_logout" = "Metu";
+
+"address_book_title" = "Buku Alamat";
+"search_placeholder" = "Golek";
+"empty_beneficiary" = "Sampeyan durung nambah panampa";
+"add_beneficiary_title" = "Nambah Panampa";
+"add_beneficiary_cancel" = "Batal";
+"add_beneficiary_name" = "Jeneng";
+"add_beneficiary_wallet_address" = "Alamat Dompet";
+"add_beneficiary_chain_optional" = "Rante (opsional)";
+"add_beneficiary_save" = "Simpen";
+"add_beneficiary_placeholder_name" = "Alice";
+"add_beneficiary_placeholder_address" = "0x...";
+"add_beneficiary_placeholder_chain" = "Base";
+
+"receive_title" = "Nampa";
+"receive_share" = "Nuduhake";
+"receive_copied" = "disalin";
+"receive_tap_to_copy" = "tutul kanggo nyalin";
+
+"wallet_backup_title" = "Serep Dompet";
+"wallet_backup_instructions" = "Tulis tembung-tembung ing urutan ing ngisor iki lan simpen ing papan sing aman. Aja nuduhake!";
+"wallet_backup_secret_phrase" = "Frasa Rahasia";
+"wallet_backup_copy" = "Nyalin menyang Papan Klip";
+
+"onboarding_title" = "Luncati Rante\nMung Bayar.";
+"onboarding_subtitle" = "Dompet pembayaran agen. Lebokake jumlah lan wenehi dompet ngatur rante kanggo sampeyan";
+"onboarding_create_wallet" = "Gawe Dompet";
+"onboarding_log_in" = "Mlebu";
+
+"session_key_title" = "Kunci Sesi";
+"session_key_coming_soon" = "Arep Teka";
+"session_key_description" = "Saben kertu kunci sesi tanpa kontak\nyakuwi dompet sauntara kanthi\nidin kanggo blanja saka dompet sampeyan.\nSampeyan bisa ngatur idin iki\nsawise persiyapan.";
+
+"profile_title" = "Profil";
+"profile_save" = "Simpen";
+"profile_saving" = "Nyimpen";
+"profile_ens_name" = "Jeneng ENS";
+"profile_ens_placeholder" = "jenengmu.eth";
+"profile_avatar_optional" = "URL Avatar (opsional)";
+"profile_avatar_placeholder" = "https://...";
+"profile_bio_optional" = "Bio (opsional)";
+"profile_info_prompt" = "Lebokake jeneng kanggo mriksa kasedhiyan lan biaya pendaftaran.";
+"profile_name_available" = "Jeneng iki kasedhiya kanggo %@ ETH.";
+"profile_name_unavailable" = "Jeneng iki ora kasedhiya.";
+"profile_error_name_required" = "Jeneng ENS dibutuhake.";
+"profile_error_use_available_name" = "Mangga gunakake jeneng ENS sing kasedhiya sadurunge nyimpen.";
+"profile_no_changes_to_save" = "Ora ana owah-owahan ENS kanggo disimpen";
+"profile_saved_changes" = "Disimpen %d owah-owahan ENS";
+
+"toggle_accessibility" = "Ganti";
+"button_label_default" = "Nilai senar";
