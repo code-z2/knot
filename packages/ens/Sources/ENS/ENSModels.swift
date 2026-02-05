@@ -71,6 +71,16 @@ public struct ReverseAddressRequest: Sendable {
   }
 }
 
+public struct TextRecordRequest: Sendable {
+  public let name: String
+  public let recordKey: String
+
+  public init(name: String, recordKey: String) {
+    self.name = name
+    self.recordKey = recordKey
+  }
+}
+
 public struct AddRecordRequest: Sendable {
   public let name: String
   public let recordKey: String

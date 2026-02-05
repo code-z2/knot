@@ -8,3 +8,4 @@
 // Configuration settings file format documentation can be found at:
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 #include "Secrets.xcconfig"
+PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL = https://upload.peteranyaogu.com
