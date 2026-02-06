@@ -19,6 +19,7 @@ struct AppRootView: View {
     case splash
     case onboarding
     case home
+    case transactions
     case profile
     case preferences
     case addressBook
@@ -71,12 +72,19 @@ struct AppRootView: View {
           },
           onAddMoney: { route = .receive },
           onHomeTap: { route = .home },
+          onTransactionsTap: { route = .transactions },
           onSessionKeyTap: { route = .sessionKey },
           onProfileTap: { route = .profile },
           onPreferencesTap: { route = .preferences },
           onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
           onAddressBookTap: { route = .addressBook },
           showWalletBackup: hasLocalWalletMaterial
+        )
+      case .transactions:
+        TransactionsView(
+          onHomeTap: { route = .home },
+          onTransactionsTap: { route = .transactions },
+          onSessionKeyTap: { route = .sessionKey }
         )
       case .profile:
         ProfileView(
@@ -105,6 +113,7 @@ struct AppRootView: View {
       case .sessionKey:
         SessionKeyView(
           onHomeTap: { route = .home },
+          onTransactionsTap: { route = .transactions },
           onSessionKeyTap: { route = .sessionKey }
         )
       case .walletBackup:
@@ -125,7 +134,7 @@ struct AppRootView: View {
     switch route {
     case .profile, .preferences, .addressBook, .receive, .walletBackup:
       return true
-    case .splash, .onboarding, .home, .sessionKey:
+    case .splash, .onboarding, .home, .transactions, .sessionKey:
       return false
     }
   }
