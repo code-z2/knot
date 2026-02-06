@@ -68,6 +68,7 @@ struct DropdownInputField<DropdownContent: View>: View {
   var showsTrailingIcon = true
   var onExpandRequest: (() -> Void)? = nil
   var onBadgeTap: (() -> Void)? = nil
+  var onTrailingIconTap: (() -> Void)? = nil
   @ViewBuilder let dropdownContent: () -> DropdownContent
 
   @FocusState private var isInputFocused: Bool
@@ -170,12 +171,24 @@ struct DropdownInputField<DropdownContent: View>: View {
       Spacer(minLength: 0)
 
       if let trailingIconAssetName = resolvedTrailingIconAssetName {
-        Image(trailingIconAssetName)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 24, height: 24)
-          .foregroundStyle(AppThemeColor.accentBrown)
+        if let onTrailingIconTap {
+          Button(action: onTrailingIconTap) {
+            Image(trailingIconAssetName)
+              .renderingMode(.template)
+              .resizable()
+              .scaledToFit()
+              .frame(width: 24, height: 24)
+              .foregroundStyle(AppThemeColor.accentBrown)
+          }
+          .buttonStyle(.plain)
+        } else {
+          Image(trailingIconAssetName)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 24, height: 24)
+            .foregroundStyle(AppThemeColor.accentBrown)
+        }
       }
     }
     .padding(.horizontal, properties.horizontalPadding)

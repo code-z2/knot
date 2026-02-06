@@ -174,9 +174,14 @@ final class ProfileImageStorageService {
     if let configured = Bundle.main.object(
       forInfoDictionaryKey: "PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL"
     ) as? String,
-      let url = URL(string: configured),
       !configured.isEmpty {
-      return url
+      let normalized = configured.trimmingCharacters(in: .whitespacesAndNewlines)
+      let urlString = normalized.contains("://") ? normalized : "https://\(normalized)"
+      if let url = URL(string: urlString),
+      let host = url.host,
+        !host.isEmpty {
+        return url
+      }
     }
 
     return URL(string: "https://upload.peteranyaogu.com")!
