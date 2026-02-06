@@ -90,6 +90,7 @@ struct AssetList: View {
   let query: String
   let state: AssetListState
   var showSectionLabels = true
+  var onSelect: ((MockAsset) -> Void)? = nil
 
   var body: some View {
     Group {
@@ -101,7 +102,8 @@ struct AssetList: View {
         AssetListContent(
           query: query,
           assets: assets,
-          showSectionLabels: showSectionLabels
+          showSectionLabels: showSectionLabels,
+          onSelect: onSelect
         )
         .transition(.opacity)
       }
@@ -119,6 +121,7 @@ private struct AssetListContent: View {
   let query: String
   let assets: [MockAsset]
   let showSectionLabels: Bool
+  let onSelect: ((MockAsset) -> Void)?
 
   private var filteredAssets: [MockAsset] {
     SearchSystem.filter(
@@ -172,7 +175,10 @@ private struct AssetListContent: View {
 
       VStack(alignment: .leading, spacing: 8) {
         ForEach(assets) { asset in
-          AssetItem(asset: asset)
+          AssetItem(
+            asset: asset,
+            onTap: onSelect == nil ? nil : { onSelect?(asset) }
+          )
         }
       }
     }
@@ -181,8 +187,22 @@ private struct AssetListContent: View {
 
 private struct AssetItem: View {
   let asset: MockAsset
+  var onTap: (() -> Void)? = nil
 
   var body: some View {
+    Group {
+      if let onTap {
+        Button(action: onTap) {
+          rowContent
+        }
+        .buttonStyle(.plain)
+      } else {
+        rowContent
+      }
+    }
+  }
+
+  private var rowContent: some View {
     HStack(spacing: 0) {
       HStack(spacing: 16) {
         Image(asset.iconAssetName)
