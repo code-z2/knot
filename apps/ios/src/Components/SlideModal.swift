@@ -31,17 +31,12 @@ struct SlideModal<Content: View>: View {
           .ignoresSafeArea()
           .contentShape(Rectangle())
           .onTapGesture {
-            withAnimation(modalAnimation) {
-              onDismiss()
-            }
+            onDismiss()
           }
-          .transition(.opacity)
 
         panel
-          .transition(.move(edge: .bottom).combined(with: .opacity))
       }
     }
-    .animation(modalAnimation, value: isPresented)
     .onChange(of: isPresented) { _, presented in
       if !presented {
         dragOffset = 0
@@ -73,10 +68,6 @@ struct SlideModal<Content: View>: View {
     .ignoresSafeArea(edges: .bottom)
   }
 
-  private var modalAnimation: Animation {
-    .spring(response: 0.36, dampingFraction: 0.92)
-  }
-
   private var dragGesture: some Gesture {
     DragGesture(minimumDistance: 4)
       .onChanged { value in
@@ -85,14 +76,10 @@ struct SlideModal<Content: View>: View {
       .onEnded { value in
         let shouldDismiss = dragOffset > 90 || value.predictedEndTranslation.height > 140
         if shouldDismiss {
-          withAnimation(modalAnimation) {
-            dragOffset = 0
-            onDismiss()
-          }
+          dragOffset = 0
+          onDismiss()
         } else {
-          withAnimation(modalAnimation) {
-            dragOffset = 0
-          }
+          dragOffset = 0
         }
       }
   }

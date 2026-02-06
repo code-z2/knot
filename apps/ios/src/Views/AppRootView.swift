@@ -24,6 +24,7 @@ struct AppRootView: View {
     case preferences
     case addressBook
     case receive
+    case sendMoney
     case sessionKey
     case walletBackup
   }
@@ -71,6 +72,7 @@ struct AppRootView: View {
             route = .onboarding
           },
           onAddMoney: { route = .receive },
+          onSendMoney: { route = .sendMoney },
           onHomeTap: { route = .home },
           onTransactionsTap: { route = .transactions },
           onSessionKeyTap: { route = .sessionKey },
@@ -110,6 +112,12 @@ struct AppRootView: View {
           address: currentEOA ?? "0x0000000000000000000000000000000000000000",
           onBack: { route = .home }
         )
+      case .sendMoney:
+        SendMoneyView(
+          eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+          store: beneficiaryStore,
+          onBack: { route = .home }
+        )
       case .sessionKey:
         SessionKeyView(
           onHomeTap: { route = .home },
@@ -132,7 +140,7 @@ struct AppRootView: View {
 
   private var shouldAnimateRoute: Bool {
     switch route {
-    case .profile, .preferences, .addressBook, .receive, .walletBackup:
+    case .profile, .preferences, .addressBook, .receive, .sendMoney, .walletBackup:
       return true
     case .splash, .onboarding, .home, .transactions, .sessionKey:
       return false
