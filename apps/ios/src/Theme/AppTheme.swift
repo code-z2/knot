@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 public enum AppThemeColor {
   // Core surfaces
@@ -55,18 +56,27 @@ public enum AppThemeColor {
   public static let fixedDarkText = Color(hex: "#FFFFFF")
   public static let onboardingProgressActive = offWhite
 
-  // Dark-first app defaults
-  public static let backgroundPrimary = backgroundPrimaryDark
-  public static let backgroundSecondary = backgroundSecondaryDark
-  public static let labelPrimary = labelPrimaryDark
-  public static let labelSecondary = labelSecondaryDark
-  public static let labelVibrantPrimary = labelVibrantPrimaryDark
-  public static let accentBrown = accentBrownDark
-  public static let fillSecondary = fillSecondaryDark
-  public static let separatorNonOpaque = separatorNonOpaqueDark
-  public static let separatorOpaque = separatorOpaqueDark
-  public static let gray2 = gray2Dark
-  public static let toggleAXLabelOff = toggleAXLabelOffDark
-  public static let glyphPrimary = glyphPrimaryDark
-  public static let glyphSecondary = glyphSecondaryDary
+  // Adaptive app defaults
+  public static let backgroundPrimary = adaptive("#000000", "#FFFFFF")
+  public static let backgroundSecondary = adaptive("#1C1C1E", "#F2F2F7")
+  public static let labelPrimary = adaptive("#FFFFFF", "#000000")
+  public static let labelSecondary = adaptive("#EBEBF599", "#3C3C4399")
+  public static let labelVibrantPrimary = adaptive("#FFFFFF", "#333333")
+  public static let accentBrown = adaptive("#B78A66", "#AC7F5E")
+  public static let fillSecondary = adaptive("#78788052", "#78788029")
+  public static let separatorNonOpaque = adaptive("#FFFFFF2B", "#0000001F")
+  public static let separatorOpaque = adaptive("#38383A", "#C6C6C8")
+  public static let gray2 = adaptive("#636366", "#AEAEB2")
+  public static let toggleAXLabelOff = adaptive("#A6A6A6", "#B3B3B3")
+  public static let glyphPrimary = adaptive("#A6A6A6", "#636366")
+  public static let glyphSecondary = adaptive("#4D4D4D", "#8E8E93")
+
+  private static func adaptive(_ darkHex: String, _ lightHex: String) -> Color {
+    Color(
+      uiColor: UIColor { traits in
+        let isDark = traits.userInterfaceStyle != .light
+        return UIColor(hex: isDark ? darkHex : lightHex)
+      }
+    )
+  }
 }

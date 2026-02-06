@@ -28,7 +28,7 @@ struct BeneficiaryRow: View {
 
       VStack(alignment: .leading, spacing: 4) {
         Text(beneficiary.name)
-          .font(.custom("Inter-Medium", size: 14))
+          .font(.custom("Inter-Regular_Medium", size: 14))
           .foregroundStyle(AppThemeColor.labelPrimary)
 
         Text(metaLine)

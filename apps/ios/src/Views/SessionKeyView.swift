@@ -7,7 +7,7 @@ struct SessionKeyView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+            AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 ZStack {

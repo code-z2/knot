@@ -12,7 +12,7 @@ struct AddressBookView: View {
 
   var body: some View {
     ZStack {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+      AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
       VStack(spacing: 0) {
         headerTools
@@ -186,45 +186,45 @@ private struct AddBeneficiarySheet: View {
 
   @State private var name = ""
   @State private var address = ""
-  @State private var chain = ""
+  @State private var chainQuery = ""
+  @State private var selectedChainID: String?
 
   let onSave: (AddBeneficiaryDraft) async -> Void
 
   var body: some View {
     NavigationStack {
       ZStack {
-        AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+        AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
-        VStack(spacing: 14) {
-          field(
-            title: "add_beneficiary_name", text: $name,
-            placeholder: "add_beneficiary_placeholder_name")
-          field(
-            title: "add_beneficiary_wallet_address", text: $address,
-            placeholder: "add_beneficiary_placeholder_address")
-          field(
-            title: "add_beneficiary_chain_optional", text: $chain,
-            placeholder: "add_beneficiary_placeholder_chain")
+        ScrollView(showsIndicators: false) {
+          VStack(spacing: 14) {
+            field(
+              title: "add_beneficiary_name", text: $name,
+              placeholder: "add_beneficiary_placeholder_name")
+            field(
+              title: "add_beneficiary_wallet_address", text: $address,
+              placeholder: "add_beneficiary_placeholder_address")
+            chainPicker
 
-          AppButton(label: "add_beneficiary_save", variant: .default) {
-            Task {
-              await onSave(
-                .init(
-                  name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                  address: address.trimmingCharacters(in: .whitespacesAndNewlines),
-                  chain: chain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? nil : chain.trimmingCharacters(in: .whitespacesAndNewlines)
+            AppButton(label: "add_beneficiary_save", variant: .default) {
+              Task {
+                await onSave(
+                  .init(
+                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    address: address.trimmingCharacters(in: .whitespacesAndNewlines),
+                    chain: selectedChain?.name
+                  )
                 )
-              )
-              dismiss()
+                dismiss()
+              }
             }
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .disabled(!isValid)
+            .opacity(isValid ? 1 : 0.5)
+            .padding(.top, 8)
           }
-          .frame(maxWidth: .infinity, minHeight: 48)
-          .disabled(!isValid)
-          .opacity(isValid ? 1 : 0.5)
-          .padding(.top, 8)
+          .padding(20)
         }
-        .padding(20)
       }
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
@@ -243,6 +243,51 @@ private struct AddBeneficiarySheet: View {
   private var isValid: Bool {
     !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  private var selectedChain: ChainOption? {
+    guard let selectedChainID else { return nil }
+    return ChainCatalog.all.first { $0.id == selectedChainID }
+  }
+
+  private var chainPicker: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("add_beneficiary_chain_optional")
+        .font(.custom("RobotoMono-Medium", size: 12))
+        .foregroundStyle(AppThemeColor.labelSecondary)
+
+      SearchInput(text: $chainQuery, placeholderKey: "search_placeholder", width: nil)
+
+      ChainList(query: chainQuery, selectedChainID: selectedChainID) { chain in
+        selectedChainID = chain.id
+      }
+      .frame(maxHeight: 220)
+
+      if let selectedChain {
+        HStack(spacing: 8) {
+          Text(selectedChain.name)
+            .font(.custom("Inter-Regular_Medium", size: 14))
+            .foregroundStyle(AppThemeColor.labelVibrantPrimary)
+
+          Spacer(minLength: 0)
+
+          Button {
+            selectedChainID = nil
+          } label: {
+            Image("Icons/x_close")
+              .renderingMode(.template)
+              .foregroundStyle(AppThemeColor.labelSecondary)
+          }
+          .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(AppThemeColor.fillPrimary)
+        )
+      }
+    }
   }
 
   private func field(

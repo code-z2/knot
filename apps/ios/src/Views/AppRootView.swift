@@ -116,7 +116,9 @@ struct AppRootView: View {
     }
     .transition(shouldAnimateRoute ? .opacity.combined(with: .scale(scale: 0.98)) : .identity)
     .animation(shouldAnimateRoute ? .easeInOut(duration: 0.18) : nil, value: route)
+    .preferredColorScheme(preferredColorScheme)
     .environment(\.locale, preferencesStore.locale)
+    .environment(\.layoutDirection, layoutDirection)
   }
 
   private var shouldAnimateRoute: Bool {
@@ -166,9 +168,25 @@ struct AppRootView: View {
   }
 
   private var layoutDirection: LayoutDirection {
-    Locale.characterDirection(forLanguage: preferencesStore.languageCode) == .rightToLeft
+    Locale.Language(identifier: preferencesStore.languageCode).characterDirection == .rightToLeft
       ? .rightToLeft
       : .leftToRight
+  }
+
+  private var preferredColorScheme: ColorScheme? {
+    switch route {
+    case .splash, .onboarding:
+      return .dark
+    default:
+      switch preferencesStore.appearance {
+      case .dark:
+        return .dark
+      case .light:
+        return .light
+      case .system:
+        return nil
+      }
+    }
   }
 }
 

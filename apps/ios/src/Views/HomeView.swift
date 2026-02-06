@@ -1,5 +1,9 @@
 import SwiftUI
 
+private enum HomeModal {
+  case assets
+}
+
 struct HomeView: View {
   let onSignOut: () -> Void
   let onAddMoney: () -> Void
@@ -42,13 +46,14 @@ struct HomeView: View {
   var body: some View {
     GeometryReader { _ in
       ZStack {
-        AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+        AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
         VStack(spacing: 0) {
           ScrollView(showsIndicators: false) {
             contentSection
           }
-          .padding(.top, AppHeaderMetrics.contentTopPadding)
+          // .padding(.top, AppHeaderMetrics.contentTopPadding) override for home screen
+          .padding(.top, 12)
         }
       }
     }
@@ -67,9 +72,28 @@ struct HomeView: View {
         onSessionKeyTap: onSessionKeyTap
       )
     }
+    .task {
+      guard case .loading = assetListState else { return }
+      try? await Task.sleep(for: .milliseconds(520))
+      withAnimation(.easeInOut(duration: 0.22)) {
+        assetListState = .loaded(MockAssetData.portfolio)
+      }
+    }
+    .overlay(alignment: .bottom) {
+      SlideModal(
+        isPresented: activeModal != nil,
+        kind: .fullHeight(topInset: 12),
+        onDismiss: dismissModal
+      ) {
+        assetsModal
+      }
+    }
   }
 
   @State private var isBalanceHidden: Bool = false
+  @State private var activeModal: HomeModal?
+  @State private var assetSearchText = ""
+  @State private var assetListState: AssetListState = .loading
   let accountBalance = "$12,450.88"
 
   private var balanceSection: some View {
@@ -140,42 +164,46 @@ struct HomeView: View {
 
       Spacer(minLength: 0)
     }
-    .padding(.top, 0)
     .padding(.bottom, 50)
   }
 
   private var assetsSection: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 12) {
       Text("home_assets_title")
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
 
-      HStack(spacing: 16) {
-        ZStack(alignment: .topLeading) {
-          IconBadge(style: .neutral) {
+      Button(action: presentAssetsModal) {
+        HStack(spacing: 16) {
+          IconBadge(style: .defaultStyle) {
             Image("Icons/coins_03")
               .renderingMode(.template)
               .resizable()
               .aspectRatio(contentMode: .fit)
               .frame(width: 21, height: 21)
-              .foregroundColor(AppThemeColor.labelSecondary)
+              .foregroundStyle(AppThemeColor.glyphPrimary)
           }
-          .frame(width: 37, height: 37)
 
-          Image("Icons/currency_ethereum")
+          VStack(alignment: .leading, spacing: 2) {
+            Text("home_assets_summary")
+              .font(.custom("RobotoMono-Medium", size: 15))
+              .foregroundStyle(AppThemeColor.labelSecondary)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+
+          Image("Icons/chevron_right")
             .renderingMode(.template)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 10, height: 10)
-            .offset(x: 11, y: 16)
-            .foregroundColor(AppThemeColor.labelSecondary)
+            .frame(width: 12, height: 12)
+            .foregroundStyle(AppThemeColor.glyphSecondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 12)
         }
-
-        Text("home_assets_summary")
-          .font(.custom("Roboto-Medium", size: 15))
-          .foregroundStyle(AppThemeColor.labelSecondary)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
       }
+      .buttonStyle(.plain)
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
   }
@@ -279,11 +307,33 @@ struct HomeView: View {
           }
         }
         .buttonStyle(.plain)
-        .padding(.top, 28)
+        .padding(.top, 24)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
+  }
+
+  @ViewBuilder
+  private var assetsModal: some View {
+    if activeModal == .assets {
+      AssetsListModal(
+        query: $assetSearchText,
+        state: assetListState
+      )
+    } else {
+      EmptyView()
+    }
+  }
+
+  private func presentAssetsModal() {
+    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
+      activeModal = .assets
+    }
+  }
+
+  private func dismissModal() {
+    activeModal = nil
   }
 
 }
@@ -337,6 +387,33 @@ private struct MenuRow<Leading: View>: View {
       .cornerRadius(15)
     }
     .frame(maxWidth: .infinity, minHeight: 48)
+  }
+}
+
+private struct AssetsListModal: View {
+  @Binding var query: String
+  let state: AssetListState
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      SearchInput(text: $query, placeholderKey: "search_placeholder", width: nil)
+        .padding(.horizontal, 20)
+        .padding(.top, 13)
+        .padding(.bottom, 21)
+
+      Rectangle()
+        .fill(AppThemeColor.separatorOpaque)
+        .frame(height: 4)
+
+      ScrollView(showsIndicators: false) {
+        AssetList(query: query, state: state)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.bottom, 28)
+      }
+      .padding(.horizontal, 20)
+      .padding(.top, 24)
+      .padding(.bottom, 24)
+    }
   }
 }
 

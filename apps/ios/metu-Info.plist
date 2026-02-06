@@ -24,6 +24,7 @@
 	<string>$(PROFILE_IMAGE_UPLOAD_CLIENT_TOKEN)</string>
 	<key>UIAppFonts</key>
 	<array>
+		<string>InterVariable.ttf</string>
 		<string>Roboto-Black.ttf</string>
 		<string>Roboto-Bold.ttf</string>
 		<string>Roboto-ExtraBold.ttf</string>

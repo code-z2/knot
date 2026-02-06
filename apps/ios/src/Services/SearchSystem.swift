@@ -58,7 +58,7 @@ enum SearchSystem {
       }
   }
 
-  private static func normalize(_ text: String) -> String {
+  nonisolated private static func normalize(_ text: String) -> String {
     text
       .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
       .lowercased()
