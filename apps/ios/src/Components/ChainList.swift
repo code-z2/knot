@@ -39,7 +39,6 @@ enum ChainCatalog {
 
 struct ChainList: View {
   let query: String
-  let selectedChainID: String?
   let onSelect: (ChainOption) -> Void
 
   private var suggestedChains: [ChainOption] {
@@ -98,7 +97,6 @@ struct ChainList: View {
         ForEach(chains) { chain in
           ChainRow(
             chain: chain,
-            isSelected: chain.id == selectedChainID,
             onTap: { onSelect(chain) }
           )
         }
@@ -109,7 +107,6 @@ struct ChainList: View {
 
 private struct ChainRow: View {
   let chain: ChainOption
-  let isSelected: Bool
   let onTap: () -> Void
 
   var body: some View {
@@ -129,10 +126,6 @@ private struct ChainRow: View {
       }
       .padding(.horizontal, 8)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-          .fill(isSelected ? AppThemeColor.fillPrimary : .clear)
-      )
     }
     .buttonStyle(.plain)
   }
@@ -143,7 +136,7 @@ private struct ChainRow: View {
     AppThemeColor.fixedDarkSurface.ignoresSafeArea()
     VStack(spacing: 12) {
       SearchInput(text: .constant(""), width: nil)
-      ChainList(query: "", selectedChainID: "base", onSelect: { _ in })
+      ChainList(query: "", onSelect: { _ in })
     }
     .padding()
   }

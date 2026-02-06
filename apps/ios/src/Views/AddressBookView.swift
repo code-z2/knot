@@ -7,7 +7,7 @@ struct AddressBookView: View {
 
   @State private var searchText = ""
   @State private var beneficiaries: [Beneficiary] = []
-  @State private var showAddSheet = false
+  @State private var showAddScreen = false
   @State private var errorMessage: String?
 
   var body: some View {
@@ -45,12 +45,10 @@ struct AddressBookView: View {
       )
     }
     .task { await reload() }
-    .sheet(isPresented: $showAddSheet) {
-      AddBeneficiarySheet { draft in
+    .fullScreenCover(isPresented: $showAddScreen) {
+      AddAddressView(beneficiaries: beneficiaries) { draft in
         await addBeneficiary(draft)
       }
-      .presentationDetents([.fraction(0.50)])
-      .presentationDragIndicator(.visible)
     }
   }
 
@@ -59,7 +57,7 @@ struct AddressBookView: View {
       SearchInput(text: $searchText, placeholderKey: "search_placeholder", width: 285)
 
       Button {
-        showAddSheet = true
+        showAddScreen = true
       } label: {
         Image("Icons/plus")
           .renderingMode(.template)
@@ -181,139 +179,498 @@ private struct AddBeneficiaryDraft {
   let chain: String?
 }
 
-private struct AddBeneficiarySheet: View {
+private enum AddAddressField: Hashable {
+  case address
+  case chain
+}
+
+private struct AddAddressView: View {
   @Environment(\.dismiss) private var dismiss
 
-  @State private var name = ""
-  @State private var address = ""
-  @State private var chainQuery = ""
-  @State private var selectedChainID: String?
-
+  let beneficiaries: [Beneficiary]
   let onSave: (AddBeneficiaryDraft) async -> Void
+  let addressValidationMode: DropdownInputValidationMode
+
+  @State private var activeField: AddAddressField?
+
+  @State private var addressQuery = ""
+  @State private var chainQuery = ""
+  @State private var alias = ""
+
+  @State private var selectedBeneficiary: Beneficiary?
+  @State private var selectedChain: ChainOption?
+  @State private var finalizedAddressValue: String?
+  @State private var isSaving = false
+  @State private var addressDetectionTask: Task<Void, Never>?
+  @State private var isAddressInputFocused = false
+  @State private var isChainInputFocused = false
+  @State private var isAliasInputFocused = false
+
+  private enum AddressDetectionResult: Sendable {
+    case evmAddress(String)
+    case ensName(String)
+    case invalid
+  }
+
+  init(
+    beneficiaries: [Beneficiary],
+    addressValidationMode: DropdownInputValidationMode = .strictAddressOrENS,
+    onSave: @escaping (AddBeneficiaryDraft) async -> Void
+  ) {
+    self.beneficiaries = beneficiaries
+    self.addressValidationMode = addressValidationMode
+    self.onSave = onSave
+  }
 
   var body: some View {
-    NavigationStack {
-      ZStack {
-        AppThemeColor.backgroundPrimary.ignoresSafeArea()
+    ZStack {
+      AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
+      VStack(spacing: 0) {
+        addressInputField
+          .zIndex(activeField == .address ? 30 : 1)
+
+        chainInputField
+          .zIndex(activeField == .chain ? 20 : 1)
+
+        aliasInputField
+
+        Spacer()
+      }
+      .padding(.top, AppHeaderMetrics.contentTopPadding)
+
+      addButton
+        .padding(.bottom, 96)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+    .safeAreaInset(edge: .top, spacing: 0) {
+      AppHeader(
+        title: "New Address",
+        titleFont: .custom("Roboto-Bold", size: 22),
+        titleColor: AppThemeColor.labelSecondary,
+        onBack: {
+          dismiss()
+        }
+      )
+    }
+    .onChange(of: addressQuery) { _, newValue in
+      handleAddressQueryDidChange(newValue)
+    }
+    .onChange(of: chainQuery) { _, newValue in
+      guard activeField == .chain else { return }
+      if let selectedChain, selectedChain.name != newValue {
+        self.selectedChain = nil
+      }
+    }
+    .onDisappear {
+      addressDetectionTask?.cancel()
+    }
+    .onAppear {
+      focusFirstIncompleteField()
+    }
+  }
+
+  private var addressInputField: some View {
+    DropdownInputField(
+      variant: .address,
+      properties: .init(
+        placeholder: "Address or ENS name",
+        trailingIconAssetName: nil,
+        textColor: AppThemeColor.labelPrimary,
+        placeholderColor: AppThemeColor.labelSecondary
+      ),
+      query: $addressQuery,
+      badge: addressBadge,
+      isExpanded: expandedBinding(for: .address),
+      isFocused: $isAddressInputFocused,
+      showsTrailingIcon: false,
+      onExpandRequest: { activate(.address) },
+      onBadgeTap: clearAddressSelectionAndStartEditing
+    ) {
+      addressDropdown
+    }
+  }
+
+  private var chainInputField: some View {
+    DropdownInputField(
+      variant: .chain,
+      properties: .init(
+        placeholder: "Chain",
+        trailingIconAssetName: nil,
+        textColor: AppThemeColor.labelSecondary,
+        placeholderColor: AppThemeColor.labelSecondary
+      ),
+      query: $chainQuery,
+      badge: chainBadge,
+      isExpanded: expandedBinding(for: .chain),
+      isFocused: $isChainInputFocused,
+      showsTrailingIcon: false,
+      onExpandRequest: { activate(.chain) },
+      onBadgeTap: clearChainSelectionAndStartEditing
+    ) {
+      chainDropdown
+    }
+  }
+
+  private var aliasInputField: some View {
+    DropdownInputField(
+      variant: .noDropdown,
+      properties: .init(
+        placeholder: "Name or Alias",
+        trailingIconAssetName: nil,
+        textFont: .custom("Inter-Regular_Medium", size: 14),
+        textColor: AppThemeColor.labelPrimary,
+        placeholderColor: AppThemeColor.labelSecondary
+      ),
+      query: $alias,
+      badge: nil,
+      isExpanded: .constant(false),
+      isFocused: $isAliasInputFocused,
+      showsTrailingIcon: false
+    ) {
+      EmptyView()
+    }
+  }
+
+  private var addButton: some View {
+    Button {
+      Task {
+        await save()
+      }
+    } label: {
+      Text("Add")
+        .font(.custom("Roboto-Bold", size: 15))
+        .foregroundStyle(AppThemeColor.backgroundPrimary)
+        .padding(.horizontal, 17)
+        .padding(.vertical, 15)
+        .background(
+          RoundedRectangle(cornerRadius: 15, style: .continuous)
+            .fill(AppThemeColor.accentBrown)
+        )
+    }
+    .buttonStyle(.plain)
+    .disabled(!canSave || isSaving)
+    .opacity(canSave && !isSaving ? 1 : 0)
+    .animation(.easeInOut(duration: 0.18), value: canSave)
+  }
+
+  private var addressDropdown: some View {
+    Group {
+      if filteredBeneficiaries.isEmpty {
+        Text("No beneficiaries found")
+          .font(.custom("Roboto-Regular", size: 13))
+          .foregroundStyle(AppThemeColor.labelSecondary)
+          .frame(maxWidth: .infinity, alignment: .center)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 36)
+      } else {
         ScrollView(showsIndicators: false) {
-          VStack(spacing: 14) {
-            field(
-              title: "add_beneficiary_name", text: $name,
-              placeholder: "add_beneficiary_placeholder_name")
-            field(
-              title: "add_beneficiary_wallet_address", text: $address,
-              placeholder: "add_beneficiary_placeholder_address")
-            chainPicker
-
-            AppButton(label: "add_beneficiary_save", variant: .default) {
-              Task {
-                await onSave(
-                  .init(
-                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                    address: address.trimmingCharacters(in: .whitespacesAndNewlines),
-                    chain: selectedChain?.name
-                  )
-                )
-                dismiss()
+          LazyVStack(spacing: 6) {
+            ForEach(filteredBeneficiaries) { beneficiary in
+              BeneficiaryRow(beneficiary: beneficiary) {
+                selectedBeneficiary = beneficiary
+                finalizedAddressValue = beneficiary.address
+                addressQuery = ""
+                focusFirstIncompleteField()
               }
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .disabled(!isValid)
-            .opacity(isValid ? 1 : 0.5)
-            .padding(.top, 8)
           }
-          .padding(20)
         }
-      }
-      .toolbar {
-        ToolbarItem(placement: .topBarLeading) {
-          Button("add_beneficiary_cancel") { dismiss() }
-            .foregroundStyle(AppThemeColor.labelSecondary)
-        }
-        ToolbarItem(placement: .principal) {
-          Text("add_beneficiary_title")
-            .font(.custom("Roboto-Bold", size: 16))
-            .foregroundStyle(AppThemeColor.labelPrimary)
-        }
+        .frame(maxHeight: 182)
       }
     }
   }
 
-  private var isValid: Bool {
-    !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-      && !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  private var chainDropdown: some View {
+    ChainList(query: chainQuery) { chain in
+      selectedChain = chain
+      chainQuery = ""
+      focusFirstIncompleteField()
+    }
+    .frame(maxHeight: 360)
   }
 
-  private var selectedChain: ChainOption? {
-    guard let selectedChainID else { return nil }
-    return ChainCatalog.all.first { $0.id == selectedChainID }
+  private var filteredBeneficiaries: [Beneficiary] {
+    SearchSystem.filter(
+      query: addressQuery,
+      items: beneficiaries,
+      toDocument: {
+        SearchDocument(
+          id: $0.id,
+          title: $0.name,
+          keywords: [$0.address, $0.chainLabel ?? ""]
+        )
+      },
+      itemID: { $0.id }
+    )
   }
 
-  private var chainPicker: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("add_beneficiary_chain_optional")
-        .font(.custom("RobotoMono-Medium", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
+  private var addressBadge: DropdownBadgeValue? {
+    let rawValue = selectedBeneficiary?.address ?? finalizedAddressValue
+    guard let rawValue, !rawValue.isEmpty else { return nil }
+    return DropdownBadgeValue(text: displayAddressOrENS(rawValue))
+  }
 
-      SearchInput(text: $chainQuery, placeholderKey: "search_placeholder", width: nil)
+  private var chainBadge: DropdownBadgeValue? {
+    guard let selectedChain else { return nil }
+    return DropdownBadgeValue(
+      text: selectedChain.name, iconAssetName: selectedChain.assetName, iconStyle: .network)
+  }
 
-      ChainList(query: chainQuery, selectedChainID: selectedChainID) { chain in
-        selectedChainID = chain.id
-      }
-      .frame(maxHeight: 220)
+  private var resolvedAddress: String? {
+    if let selectedBeneficiary {
+      return selectedBeneficiary.address.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
-      if let selectedChain {
-        HStack(spacing: 8) {
-          Text(selectedChain.name)
-            .font(.custom("Inter-Regular_Medium", size: 14))
-            .foregroundStyle(AppThemeColor.labelVibrantPrimary)
+    if let finalizedAddressValue {
+      return finalizedAddressValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
-          Spacer(minLength: 0)
+    let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !candidate.isEmpty else { return nil }
+    guard isAddressInputValid(candidate) else { return nil }
+    return candidate
+  }
 
-          Button {
-            selectedChainID = nil
-          } label: {
-            Image("Icons/x_close")
-              .renderingMode(.template)
-              .foregroundStyle(AppThemeColor.labelSecondary)
-          }
-          .buttonStyle(.plain)
+  private var canSave: Bool {
+    guard let resolvedAddress, !resolvedAddress.isEmpty else { return false }
+    guard selectedChain != nil else { return false }
+    return !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  private func expandedBinding(for field: AddAddressField) -> Binding<Bool> {
+    Binding(
+      get: { activeField == field },
+      set: { isExpanded in
+        if isExpanded {
+          activate(field)
+        } else if activeField == field {
+          collapseAllFields()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppThemeColor.fillPrimary)
-        )
+      }
+    )
+  }
+
+  private func activate(_ field: AddAddressField) {
+    if activeField == .address, field != .address {
+      finalizeAddressIfNeeded()
+    }
+
+    activeField = field
+
+    if field == .chain, let selectedChain, chainQuery.isEmpty {
+      chainQuery = selectedChain.name
+    }
+
+    switch field {
+    case .address:
+      isAddressInputFocused = true
+      isChainInputFocused = false
+      isAliasInputFocused = false
+    case .chain:
+      isAddressInputFocused = false
+      isChainInputFocused = true
+      isAliasInputFocused = false
+    }
+  }
+
+  private func collapseAllFields() {
+    if activeField == .address {
+      finalizeAddressIfNeeded()
+    }
+
+    if selectedChain == nil {
+      chainQuery = ""
+    } else {
+      chainQuery = selectedChain?.name ?? ""
+    }
+
+    activeField = nil
+    isAddressInputFocused = false
+    isChainInputFocused = false
+    isAliasInputFocused = false
+  }
+
+  private func clearAddressSelectionAndStartEditing() {
+    selectedBeneficiary = nil
+    finalizedAddressValue = nil
+    addressQuery = ""
+    activate(.address)
+  }
+
+  private func clearChainSelectionAndStartEditing() {
+    selectedChain = nil
+    chainQuery = ""
+    activate(.chain)
+  }
+
+  private func focusFirstIncompleteField() {
+    if addressBadge == nil {
+      activate(.address)
+      return
+    }
+
+    if chainBadge == nil {
+      activate(.chain)
+      return
+    }
+
+    activeField = nil
+    isAddressInputFocused = false
+    isChainInputFocused = false
+    isAliasInputFocused = alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
+  private func handleAddressQueryDidChange(_ newValue: String) {
+    let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    if !trimmed.isEmpty, selectedBeneficiary != nil || finalizedAddressValue != nil {
+      selectedBeneficiary = nil
+      finalizedAddressValue = nil
+    }
+
+    addressDetectionTask?.cancel()
+
+    guard !trimmed.isEmpty else { return }
+
+    let snapshot = trimmed
+    let mode = addressValidationMode
+
+    addressDetectionTask = Task(priority: .userInitiated) {
+      let detection = await Task.detached(priority: .userInitiated) {
+        AddAddressView.detectAddressCandidate(snapshot, mode: mode)
+      }.value
+
+      guard !Task.isCancelled else { return }
+
+      await MainActor.run {
+        applyAddressDetectionResult(detection, sourceInput: snapshot)
       }
     }
   }
 
-  private func field(
-    title: LocalizedStringKey, text: Binding<String>, placeholder: LocalizedStringKey
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(title)
-        .font(.custom("RobotoMono-Medium", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
+  @MainActor
+  private func applyAddressDetectionResult(
+    _ detection: AddressDetectionResult,
+    sourceInput: String
+  ) {
+    let current = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard current == sourceInput else { return }
+    guard selectedBeneficiary == nil else { return }
 
-      TextField(placeholder, text: text)
-        .font(.custom("Roboto-Regular", size: 15))
-        .foregroundStyle(AppThemeColor.labelPrimary)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled(true)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppThemeColor.fillPrimary)
-        )
-        .overlay(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(AppThemeColor.fillSecondary, lineWidth: 1)
-        )
+    switch detection {
+    case .evmAddress(let address):
+      finalizedAddressValue = address
+      selectedBeneficiary = nil
+      addressQuery = ""
+      focusFirstIncompleteField()
+    case .ensName(let ensName):
+      finalizedAddressValue = ensName
+      selectedBeneficiary = nil
+      addressQuery = ""
+      focusFirstIncompleteField()
+    case .invalid:
+      finalizedAddressValue = nil
     }
+  }
+
+  private func finalizeAddressIfNeeded() {
+    if let selectedBeneficiary {
+      finalizedAddressValue = selectedBeneficiary.address
+      return
+    }
+
+    let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !candidate.isEmpty else {
+      return
+    }
+
+    finalizedAddressValue = isAddressInputValid(candidate) ? candidate : nil
+  }
+
+  private func isAddressInputValid(_ input: String) -> Bool {
+    switch addressValidationMode {
+    case .flexible:
+      return !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    case .strictAddressOrENS:
+      return AddAddressView.isLikelyEVMAddress(input) || AddAddressView.isLikelyENSName(input)
+    }
+  }
+
+  nonisolated private static func detectAddressCandidate(
+    _ input: String,
+    mode: DropdownInputValidationMode
+  ) -> AddressDetectionResult {
+    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !normalized.isEmpty else { return .invalid }
+
+    switch mode {
+    case .strictAddressOrENS:
+      if isLikelyEVMAddress(normalized) {
+        return .evmAddress(normalized)
+      }
+      if isLikelyENSName(normalized) {
+        return .ensName(normalized.lowercased())
+      }
+      return .invalid
+    case .flexible:
+      return .ensName(normalized)
+    }
+  }
+
+  nonisolated private static func isLikelyEVMAddress(_ input: String) -> Bool {
+    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
+    let pattern = #"^0x[a-fA-F0-9]{40}$"#
+    return normalized.range(of: pattern, options: .regularExpression) != nil
+  }
+
+  nonisolated private static func isLikelyENSName(_ input: String) -> Bool {
+    let normalized =
+      input
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+
+    let pattern =
+      #"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.eth$"#
+    return normalized.range(of: pattern, options: .regularExpression) != nil
+  }
+
+  private func displayAddressOrENS(_ value: String) -> String {
+    if AddAddressView.isLikelyEVMAddress(value) {
+      return AddressShortener.shortened(value)
+    }
+    return value
+  }
+
+  @MainActor
+  private func save() async {
+    guard !isSaving else { return }
+
+    finalizeAddressIfNeeded()
+
+    guard
+      let address = resolvedAddress,
+      let chain = selectedChain?.name,
+      !address.isEmpty
+    else {
+      return
+    }
+
+    let trimmedAlias = alias.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedAlias.isEmpty else { return }
+
+    isSaving = true
+    defer { isSaving = false }
+
+    await onSave(
+      .init(
+        name: trimmedAlias,
+        address: address,
+        chain: chain
+      )
+    )
+
+    dismiss()
   }
 }
 
