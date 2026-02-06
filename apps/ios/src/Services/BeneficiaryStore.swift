@@ -34,7 +34,8 @@ extension BeneficiaryStoreError: LocalizedError {
   }
 }
 
-actor BeneficiaryStore {
+@MainActor
+final class BeneficiaryStore {
   private let service: String
   private let accountPrefix = "beneficiaries.v1"
 
@@ -45,7 +46,7 @@ actor BeneficiaryStore {
   func list(eoaAddress: String) throws -> [Beneficiary] {
     do {
       let data = try readData(eoaAddress: eoaAddress)
-      return try JSONDecoder().decode([Beneficiary].self, from: data)
+      return try decodeBeneficiaries(from: data)
     } catch BeneficiaryStoreError.keychain(let status) where status == errSecItemNotFound {
       return []
     } catch is DecodingError {
@@ -60,6 +61,7 @@ actor BeneficiaryStore {
     } else {
       all.append(beneficiary)
     }
+
     try save(all, eoaAddress: eoaAddress)
   }
 
@@ -114,6 +116,10 @@ actor BeneficiaryStore {
       throw BeneficiaryStoreError.decodingFailed
     }
     return data
+  }
+
+  private func decodeBeneficiaries(from data: Data) throws -> [Beneficiary] {
+    return try JSONDecoder().decode([Beneficiary].self, from: data)
   }
 
   private func accountName(for eoaAddress: String) -> String {

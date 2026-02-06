@@ -122,7 +122,7 @@ struct AddressBookView: View {
   @MainActor
   private func reload() async {
     do {
-      beneficiaries = try await store.list(eoaAddress: eoaAddress)
+      beneficiaries = try store.list(eoaAddress: eoaAddress)
     } catch {
       showError(error)
     }
@@ -132,8 +132,8 @@ struct AddressBookView: View {
   private func addBeneficiary(_ draft: AddBeneficiaryDraft) async {
     let entry = Beneficiary(name: draft.name, address: draft.address, chainLabel: draft.chain)
     do {
-      try await store.upsert(entry, for: eoaAddress)
-      beneficiaries = try await store.list(eoaAddress: eoaAddress)
+      try store.upsert(entry, for: eoaAddress)
+      beneficiaries = try store.list(eoaAddress: eoaAddress)
     } catch {
       showError(error)
     }
@@ -142,7 +142,7 @@ struct AddressBookView: View {
   @MainActor
   private func deleteBeneficiary(_ id: UUID) async {
     do {
-      try await store.delete(id: id, for: eoaAddress)
+      try store.delete(id: id, for: eoaAddress)
       beneficiaries.removeAll { $0.id == id }
     } catch {
       showError(error)
@@ -173,7 +173,7 @@ struct AddressBookView: View {
   }
 }
 
-private struct AddBeneficiaryDraft {
+private struct AddBeneficiaryDraft: Sendable {
   let name: String
   let address: String
   let chain: String?
@@ -188,7 +188,7 @@ private struct AddAddressView: View {
   @Environment(\.dismiss) private var dismiss
 
   let beneficiaries: [Beneficiary]
-  let onSave: (AddBeneficiaryDraft) async -> Void
+  let onSave: @MainActor @Sendable (AddBeneficiaryDraft) async -> Void
   let addressValidationMode: DropdownInputValidationMode
 
   @State private var activeField: AddAddressField?
@@ -215,7 +215,7 @@ private struct AddAddressView: View {
   init(
     beneficiaries: [Beneficiary],
     addressValidationMode: DropdownInputValidationMode = .strictAddressOrENS,
-    onSave: @escaping (AddBeneficiaryDraft) async -> Void
+    onSave: @escaping @MainActor @Sendable (AddBeneficiaryDraft) async -> Void
   ) {
     self.beneficiaries = beneficiaries
     self.addressValidationMode = addressValidationMode
