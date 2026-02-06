@@ -1,6 +1,22 @@
 import Foundation
 import Observation
 
+enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
+    case dark
+    case system
+    case light
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .dark: return "Dark"
+        case .system: return "System"
+        case .light: return "Light"
+        }
+    }
+}
+
 struct CurrencyOption: Identifiable, Equatable, Sendable {
     let code: String
     let name: String
@@ -28,6 +44,7 @@ final class PreferencesStore {
         static let selectedCurrencyCode = "prefs.selectedCurrencyCode"
         static let hapticsEnabled = "prefs.hapticsEnabled"
         static let languageCode = "prefs.languageCode"
+        static let appearance = "prefs.appearance"
     }
 
     @ObservationIgnored
@@ -61,6 +78,17 @@ final class PreferencesStore {
         }
     }
 
+    var appearance: AppAppearance {
+        didSet {
+            let normalized = PreferencesStore.normalizeAppearance(appearance)
+            if appearance != normalized {
+                appearance = normalized
+                return
+            }
+            defaults.set(normalized.rawValue, forKey: Key.appearance)
+        }
+    }
+
     init(
         defaults: UserDefaults = .standard,
         supportedCurrencies: [CurrencyOption] = PreferencesStore.defaultCurrencies,
@@ -85,6 +113,9 @@ final class PreferencesStore {
             supported: supportedLanguages,
             fallback: PreferencesStore.defaultLanguageCode
         )
+
+        let storedAppearance = defaults.string(forKey: Key.appearance)
+        self.appearance = PreferencesStore.resolveAppearance(storedAppearance)
     }
 
     func updateSupportedCurrencies(_ currencies: [CurrencyOption]) {
@@ -125,6 +156,15 @@ final class PreferencesStore {
         let normalized = code.lowercased()
         if supported.map(\.code).contains(normalized) { return normalized }
         return resolveLanguageCode(stored: nil, supported: supported, fallback: defaultLanguageCode)
+    }
+
+    private static func normalizeAppearance(_ appearance: AppAppearance) -> AppAppearance {
+        appearance
+    }
+
+    private static func resolveAppearance(_ rawValue: String?) -> AppAppearance {
+        guard let rawValue else { return .dark }
+        return AppAppearance(rawValue: rawValue) ?? .dark
     }
 
     private static func resolveLanguageCode(

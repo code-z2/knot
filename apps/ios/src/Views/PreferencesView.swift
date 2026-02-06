@@ -1,22 +1,28 @@
 import Observation
 import SwiftUI
 
+private enum PreferencesModal {
+  case appearance
+  case currency
+  case language
+}
+
 struct PreferencesView: View {
   @Bindable var preferencesStore: PreferencesStore
   var onBack: () -> Void = {}
-  @State private var showCurrencySheet = false
-  @State private var showLanguageSheet = false
+  @State private var activeModal: PreferencesModal?
 
   var body: some View {
     ZStack {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+      AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
       VStack(spacing: 0) {
         VStack(spacing: 12) {
           PreferenceRow(
             title: "preferences_appearance",
             iconName: "Icons/lightbulb_02",
-            trailing: .chevron
+            trailing: .valueChevron(preferencesStore.appearance.displayName),
+            action: { present(.appearance) }
           )
           PreferenceRow(
             title: "preferences_haptics",
@@ -26,21 +32,17 @@ struct PreferencesView: View {
           PreferenceRow(
             title: "preferences_currency",
             iconName: "Icons/bank_note_03",
-            trailing: .valueChevron(preferencesStore.selectedCurrencyCode.lowercased()),
-            action: { showCurrencySheet = true }
+            trailing: .valueChevron(preferencesStore.selectedCurrencyCode.uppercased()),
+            action: { present(.currency) }
           )
           PreferenceRow(
             title: "preferences_language",
             iconName: "Icons/translate_01",
             trailing: .valueChevron(
-              preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode),
-            action: { showLanguageSheet = true }
+              preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode
+            ),
+            action: { present(.language) }
           )
-          // PreferenceRow(
-          //     title: "preferences_business",
-          //     iconName: "Icons/building_02",
-          //     trailing: .chevron
-          // )
         }
         .padding(.top, AppHeaderMetrics.contentTopPadding)
         .padding(.horizontal, 20)
@@ -56,33 +58,77 @@ struct PreferencesView: View {
         onBack: onBack
       )
     }
-    .sheet(isPresented: $showCurrencySheet) {
-      CurrencyPickerSheet(
+    .overlay(alignment: .bottom) {
+      SlideModal(
+        isPresented: activeModal != nil,
+        kind: modalKind,
+        onDismiss: dismissModal
+      ) {
+        modalContent
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var modalContent: some View {
+    switch activeModal {
+    case .currency:
+      CurrencyPickerModal(
         title: "sheet_currency_title",
         currencies: preferencesStore.supportedCurrencies,
         selectedCode: preferencesStore.selectedCurrencyCode,
         onSelect: { code in
           preferencesStore.selectedCurrencyCode = code
-          showCurrencySheet = false
+          dismissModalAnimated()
         }
       )
-      .presentationDetents([.fraction(0.92)])
-      .presentationDragIndicator(.hidden)
-      .presentationCornerRadius(40)
-    }
-    .sheet(isPresented: $showLanguageSheet) {
-      LanguagePickerSheet(
+    case .language:
+      LanguagePickerModal(
         title: "sheet_language_title",
         languages: preferencesStore.supportedLanguages,
         selectedCode: preferencesStore.languageCode,
         onSelect: { code in
           preferencesStore.languageCode = code
-          showLanguageSheet = false
+          dismissModalAnimated()
         }
       )
-      .presentationDetents([.fraction(0.92)])
-      .presentationDragIndicator(.hidden)
-      .presentationCornerRadius(40)
+    case .appearance:
+      AppearancePickerModal(
+        selectedAppearance: preferencesStore.appearance,
+        onSelect: { appearance in
+          preferencesStore.appearance = appearance
+          dismissModalAnimated()
+        }
+      )
+    case .none:
+      EmptyView()
+    }
+  }
+
+  private var modalKind: SlideModalKind {
+    switch activeModal {
+    case .appearance:
+      return .compact(maxHeight: 281, horizontalInset: 0)
+    case .currency, .language:
+      return .fullHeight(topInset: 12)
+    case .none:
+      return .fullHeight(topInset: 12)
+    }
+  }
+
+  private func present(_ modal: PreferencesModal) {
+    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
+      activeModal = modal
+    }
+  }
+
+  private func dismissModal() {
+    activeModal = nil
+  }
+
+  private func dismissModalAnimated() {
+    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
+      activeModal = nil
     }
   }
 }
@@ -159,45 +205,47 @@ private struct PreferenceRow: View {
   }
 }
 
-private struct CurrencyPickerSheet: View {
+private struct ModalTitleBar: View {
+  let title: LocalizedStringKey
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Text(title)
+        .font(.custom("Roboto-Bold", size: 15))
+        .foregroundStyle(AppThemeColor.labelSecondary)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 24)
+    .padding(.top, 14)
+    .padding(.bottom, 16)
+  }
+}
+
+private struct CurrencyPickerModal: View {
   let title: LocalizedStringKey
   let currencies: [CurrencyOption]
   let selectedCode: String
   let onSelect: (String) -> Void
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+    VStack(alignment: .leading, spacing: 0) {
+      ModalTitleBar(title: title)
 
-      RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-        .fill(AppThemeColor.gray2)
-        .frame(width: 90, height: 5)
-        .frame(maxWidth: .infinity)
-        .padding(.top, 18)
+      Rectangle()
+        .fill(AppThemeColor.separatorOpaque)
+        .frame(height: 4)
 
-      VStack(alignment: .leading, spacing: 0) {
-        Text(title)
-          .font(.custom("Roboto-Bold", size: 14))
-          .foregroundStyle(AppThemeColor.labelSecondary)
-          .padding(.leading, 38)
-          .padding(.top, 56)
-          .padding(.bottom, 16)
-
-        Rectangle()
-          .fill(AppThemeColor.separatorOpaque)
-          .frame(height: 4)
-
-        ScrollView(showsIndicators: false) {
-          VStack(alignment: .leading, spacing: 20) {
-            ForEach(currencies) { currency in
-              CurrencyOptionRow(currency: currency, isSelected: currency.code == selectedCode) {
-                onSelect(currency.code)
-              }
+      ScrollView(showsIndicators: false) {
+        VStack(alignment: .leading, spacing: 20) {
+          ForEach(currencies) { currency in
+            CurrencyOptionRow(currency: currency, isSelected: currency.code == selectedCode) {
+              onSelect(currency.code)
             }
           }
-          .padding(.horizontal, 20)
-          .padding(.top, 20)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
       }
     }
   }
@@ -223,7 +271,7 @@ private struct CurrencyOptionRow: View {
 
         VStack(alignment: .leading, spacing: 2) {
           Text(currency.code)
-            .font(.custom("Inter-Medium", size: 14))
+            .font(.custom("Inter-Regular_Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
           Text(currency.name)
             .font(.custom("RobotoMono-Medium", size: 12))
@@ -244,59 +292,133 @@ private struct CurrencyOptionRow: View {
   }
 }
 
-private struct LanguagePickerSheet: View {
+private struct LanguagePickerModal: View {
   let title: LocalizedStringKey
   let languages: [LanguageOption]
   let selectedCode: String
   let onSelect: (String) -> Void
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+    VStack(alignment: .leading, spacing: 0) {
+      ModalTitleBar(title: title)
 
-      RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-        .fill(AppThemeColor.gray2)
-        .frame(width: 90, height: 5)
-        .frame(maxWidth: .infinity)
-        .padding(.top, 18)
+      Rectangle()
+        .fill(AppThemeColor.separatorOpaque)
+        .frame(height: 4)
 
-      VStack(alignment: .leading, spacing: 0) {
-        Text(title)
-          .font(.custom("Roboto-Bold", size: 14))
-          .foregroundStyle(AppThemeColor.labelSecondary)
-          .padding(.leading, 38)
-          .padding(.top, 56)
-          .padding(.bottom, 16)
+      ScrollView(showsIndicators: false) {
+        VStack(alignment: .leading, spacing: 20) {
+          ForEach(languages) { language in
+            Button {
+              onSelect(language.code)
+            } label: {
+              HStack {
+                Text(language.listLabel)
+                  .font(.custom("Inter-Regular_Medium", size: 12))
+                  .foregroundStyle(AppThemeColor.labelPrimary)
+                  .frame(maxWidth: .infinity, alignment: .leading)
 
-        Rectangle()
-          .fill(AppThemeColor.separatorOpaque)
-          .frame(height: 4)
-
-        ScrollView(showsIndicators: false) {
-          VStack(alignment: .leading, spacing: 20) {
-            ForEach(languages) { language in
-              Button {
-                onSelect(language.code)
-              } label: {
-                HStack {
-                  Text(language.listLabel)
-                    .font(.custom("Inter-Medium", size: 12))
-                    .foregroundStyle(AppThemeColor.labelPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                  if language.code == selectedCode {
-                    Image(systemName: "checkmark.circle.fill")
-                      .foregroundStyle(AppThemeColor.accentBrown)
-                  }
+                if language.code == selectedCode {
+                  Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(AppThemeColor.accentBrown)
                 }
               }
-              .buttonStyle(.plain)
             }
+            .buttonStyle(.plain)
           }
-          .padding(.horizontal, 38)
-          .padding(.top, 20)
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
       }
+    }
+  }
+}
+
+private struct AppearancePickerModal: View {
+  let selectedAppearance: AppAppearance
+  let onSelect: (AppAppearance) -> Void
+
+  var body: some View {
+    HStack(spacing: 36) {
+      ForEach(AppAppearance.allCases) { appearance in
+        Button {
+          onSelect(appearance)
+        } label: {
+          VStack(spacing: 8) {
+            Text(appearance.displayName)
+              .font(.custom("RobotoCondensed-Medium", size: 14))
+              .foregroundStyle(AppThemeColor.labelPrimary)
+              .frame(height: 16)
+
+            AppearancePreviewCard(
+              appearance: appearance, isSelected: appearance == selectedAppearance)
+          }
+        }
+        .buttonStyle(.plain)
+      }
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.top, 36)
+    .padding(.bottom, 42)
+  }
+}
+
+private struct AppearancePreviewCard: View {
+  let appearance: AppAppearance
+  let isSelected: Bool
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 12) {
+        RoundedRectangle(cornerRadius: 40, style: .continuous)
+          .fill(AppThemeColor.gray2Light)
+          .frame(width: 12, height: 8)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+          .fill(AppThemeColor.gray2Light)
+          .frame(width: 32, height: 8)
+      }
+
+      RoundedRectangle(cornerRadius: 4, style: .continuous)
+        .fill(AppThemeColor.gray2Light)
+        .frame(width: 56, height: 22)
+
+      VStack(spacing: 8) {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+          .fill(AppThemeColor.gray2Light)
+          .frame(width: 56, height: 8)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+          .fill(AppThemeColor.gray2Light)
+          .frame(width: 56, height: 8)
+      }
+    }
+    .padding(12)
+    .frame(width: 80, height: 94, alignment: .topLeading)
+    .background(cardBackground)
+    .overlay {
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
+        .stroke(
+          isSelected ? AppThemeColor.accentBrown : AppThemeColor.separatorOpaque, lineWidth: 1)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+  }
+
+  @ViewBuilder
+  private var cardBackground: some View {
+    switch appearance {
+    case .dark:
+      AppThemeColor.grayBlack
+    case .system:
+      LinearGradient(
+        colors: [
+          AppThemeColor.grayBlack, AppThemeColor.grayBlack, AppThemeColor.grayWhite,
+          AppThemeColor.grayWhite,
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+      )
+    case .light:
+      AppThemeColor.grayWhite
     }
   }
 }

@@ -59,7 +59,7 @@ struct ProfileView: View {
 
   var body: some View {
     ZStack {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+      AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
       ScrollView {
         VStack(spacing: 0) {
@@ -280,6 +280,7 @@ struct ProfileView: View {
       }
       .frame(maxWidth: .infinity, minHeight: 164, alignment: .topLeading)
     }
+    .padding(.top, 24)
   }
 
   private var separator: some View {

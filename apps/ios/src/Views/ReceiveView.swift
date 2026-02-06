@@ -10,11 +10,16 @@ struct ReceiveView: View {
 
   var body: some View {
     ZStack {
-      AppThemeColor.fixedDarkSurface.ignoresSafeArea()
+      AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
       VStack(spacing: 0) {
         VStack(spacing: 36) {
-          StylizedQRCodeView(content: address, size: 217, foreground: .white, logo: "LogoMark")
+          StylizedQRCodeView(
+            content: address,
+            size: 217,
+            foreground: AppThemeColor.labelPrimary,
+            logo: "LogoMark"
+          )
 
           addressCard
             .frame(maxWidth: .infinity)
@@ -55,7 +60,7 @@ struct ReceiveView: View {
   private var addressCard: some View {
     VStack(alignment: .trailing, spacing: 8) {
       Text(address)
-        .font(.custom("RobotoFlex-Light", size: 12))
+        .font(.custom("RobotoFlex-Regular_Light", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .lineLimit(1)
         .kerning(0.12)
