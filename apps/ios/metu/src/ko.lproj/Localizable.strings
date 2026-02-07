@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "유형";
 "transaction_view_tx" = "Tx 보기";
 "wallet_backup_tap_to_reveal" = "탭하여 표시";
+
+"transaction_status_success" = "성공";
+"transaction_status_failed" = "실패";
+"transaction_row_received_usdc" = "USDC 수신";
+"transaction_row_sent_usdc" = "USDC 전송";
+"transaction_row_received_eth" = "ETH 수신";
+"transaction_row_contract_interaction" = "컨트랙트 상호작용";
+"transaction_row_multichain_transfer" = "멀티체인 전송";
+"transaction_row_subtitle_on_base" = "Base에서";
+"transaction_row_subtitle_from_ethereum" = "Ethereum에서";
+"transaction_row_subtitle_on_uniswap" = "Uniswap에서";
+"transaction_label_from" = "보낸 사람";
+"transaction_label_to" = "받는 사람";
+"transaction_label_contract" = "컨트랙트";
+"transaction_type_receive" = "수신";
+"transaction_type_send" = "전송";
+"transaction_type_contract_interaction" = "컨트랙트 상호작용";
+"transaction_type_multichain_transfer" = "멀티체인 전송";
+"transaction_receipt_subtitle_gas_fee" = "가스 수수료";
+"transaction_row_prefix_on" = "on";
+"transaction_row_prefix_from" = "from";
+"transaction_row_action_sent" = "전송";
+"transaction_row_action_received" = "수신";

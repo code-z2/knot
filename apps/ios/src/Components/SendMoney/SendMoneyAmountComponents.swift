@@ -22,21 +22,37 @@ struct SendMoneyAmountDisplay: View {
           Text(primaryAmountText)
             .font(.custom("RobotoMono-Medium", size: 48))
             .foregroundStyle(AppThemeColor.labelVibrantPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.25)
+            .allowsTightening(true)
+            .layoutPriority(1)
 
           Text(primarySymbolText)
             .font(.custom("RobotoCondensed-Medium", size: 18))
             .foregroundStyle(AppThemeColor.labelVibrantSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
         }
+        .frame(maxWidth: .infinity, alignment: .center)
 
         HStack(spacing: 4) {
           Text(secondaryAmountText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .allowsTightening(true)
+            .layoutPriority(1)
 
           Text(secondarySymbolText)
             .font(.custom("RobotoCondensed-Medium", size: 12))
             .foregroundStyle(AppThemeColor.labelVibrantSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
         }
+        .frame(maxWidth: .infinity, alignment: .center)
       }
       .frame(maxWidth: .infinity)
 

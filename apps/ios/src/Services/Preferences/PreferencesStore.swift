@@ -289,7 +289,7 @@ final class PreferencesStore {
         .init(code: "ETH", name: "ethereum", iconAssetName: "Icons/currency_ethereum_circle"),
         .init(code: "EUR", name: "european euro", iconAssetName: "Icons/currency_euro_circle"),
         .init(code: "GBP", name: "british pounds", iconAssetName: "Icons/currency_pound_circle"),
-        .init(code: "NGN", name: "nigerian naira", iconAssetName: "Icons/currency_dollar_circle"),
+        .init(code: "NGN", name: "nigerian naira", iconAssetName: "Icons/currency_naira_circle"),
         .init(code: "USD", name: "united states dollar", iconAssetName: "Icons/currency_dollar_circle"),
         .init(code: "JPY", name: "japanese yen", iconAssetName: "Icons/currency_yen_circle"),
         .init(code: "INR", name: "indian rupee", iconAssetName: "Icons/currency_rupee_circle"),

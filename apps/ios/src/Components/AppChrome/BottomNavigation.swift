@@ -13,31 +13,27 @@ struct BottomNavigation: View {
   var onSessionKeyTap: () -> Void = {}
 
   var body: some View {
-    HStack {
+      HStack(spacing: 10) {
       tabItem(
         iconName: "Icons/home_02",
         title: "bottom_nav_home",
-        titleWidth: 70,
+        titleWidth: 100,
         isActive: activeTab == .home,
         action: onHomeTap
       )
 
-      Spacer(minLength: 0)
-
       tabItem(
         iconName: "Icons/receipt",
         title: "bottom_nav_transactions",
-        titleWidth: 70,
+        titleWidth: 100,
         isActive: activeTab == .transactions,
         action: onTransactionsTap
       )
 
-      Spacer(minLength: 0)
-
       tabItem(
         iconName: "Icons/key_01",
         title: "bottom_nav_session_key",
-        titleWidth: 70,
+        titleWidth: 100,
         isActive: activeTab == .sessionKey,
         action: onSessionKeyTap
       )

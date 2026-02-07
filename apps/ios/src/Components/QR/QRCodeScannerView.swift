@@ -15,10 +15,18 @@ final class QRScannerController: NSObject, ObservableObject {
 
   let session = AVCaptureSession()
   var onCodeDetected: ((String) -> Bool)?
+  private let metadataDelegate = QRScannerMetadataDelegate()
 
   private let sessionQueue = DispatchQueue(label: "com.peteranyaogu.metu.qr-scanner")
   private var isConfigured = false
   private var isProcessing = false
+
+  override init() {
+    super.init()
+    metadataDelegate.onCodeDetected = { [weak self] code in
+      self?.handleDetectedCode(code)
+    }
+  }
 
   func start() {
     isProcessing = false
@@ -104,7 +112,7 @@ final class QRScannerController: NSObject, ObservableObject {
       }
 
       self.session.addOutput(output)
-      output.setMetadataObjectsDelegate(self, queue: .main)
+      output.setMetadataObjectsDelegate(self.metadataDelegate, queue: .main)
       output.metadataObjectTypes = [.qr]
       self.session.commitConfiguration()
 
@@ -138,24 +146,11 @@ final class QRScannerController: NSObject, ObservableObject {
       }
     }
   }
-}
 
-extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
-  func metadataOutput(
-    _ output: AVCaptureMetadataOutput,
-    didOutput metadataObjects: [AVMetadataObject],
-    from connection: AVCaptureConnection
-  ) {
+  private func handleDetectedCode(_ code: String) {
     guard !isProcessing else { return }
-
-    guard
-      let readableObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-      let code = readableObject.stringValue
-    else {
-      return
-    }
-
     isProcessing = true
+
     let accepted = onCodeDetected?(code) ?? false
     if accepted {
       stop()
@@ -165,6 +160,26 @@ extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
       self?.isProcessing = false
     }
+  }
+}
+
+private final class QRScannerMetadataDelegate: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+  nonisolated(unsafe) var onCodeDetected: ((String) -> Void)?
+
+  nonisolated
+  func metadataOutput(
+    _ output: AVCaptureMetadataOutput,
+    didOutput metadataObjects: [AVMetadataObject],
+    from connection: AVCaptureConnection
+  ) {
+    guard
+      let readableObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+      let code = readableObject.stringValue
+    else {
+      return
+    }
+
+    onCodeDetected?(code)
   }
 }
 

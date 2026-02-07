@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "Aina";
 "transaction_view_tx" = "Angalia Tx";
 "wallet_backup_tap_to_reveal" = "Gusa ili kufunua";
+
+"transaction_status_success" = "imefanikiwa";
+"transaction_status_failed" = "imeshindwa";
+"transaction_row_received_usdc" = "USDC imepokelewa";
+"transaction_row_sent_usdc" = "USDC imetumwa";
+"transaction_row_received_eth" = "ETH imepokelewa";
+"transaction_row_contract_interaction" = "muingiliano wa mkataba";
+"transaction_row_multichain_transfer" = "uhamisho wa minyororo mingi";
+"transaction_row_subtitle_on_base" = "kwenye Base";
+"transaction_row_subtitle_from_ethereum" = "kutoka Ethereum";
+"transaction_row_subtitle_on_uniswap" = "kwenye Uniswap";
+"transaction_label_from" = "Kutoka";
+"transaction_label_to" = "Kwa";
+"transaction_label_contract" = "Mkataba";
+"transaction_type_receive" = "Pokea";
+"transaction_type_send" = "Tuma";
+"transaction_type_contract_interaction" = "Muingiliano wa mkataba";
+"transaction_type_multichain_transfer" = "Uhamisho wa minyororo mingi";
+"transaction_receipt_subtitle_gas_fee" = "ada ya gesi";
+"transaction_row_prefix_on" = "kwenye";
+"transaction_row_prefix_from" = "kutoka";
+"transaction_row_action_sent" = "imetumwa";
+"transaction_row_action_received" = "imepokelewa";

@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "రకం";
 "transaction_view_tx" = "Txని చూడు";
 "wallet_backup_tap_to_reveal" = "బహిర్గతం చేయడానికి నొక్కండి";
+
+"transaction_status_success" = "విజయం";
+"transaction_status_failed" = "విఫలం";
+"transaction_row_received_usdc" = "USDC స్వీకరించబడింది";
+"transaction_row_sent_usdc" = "USDC పంపబడింది";
+"transaction_row_received_eth" = "ETH స్వీకరించబడింది";
+"transaction_row_contract_interaction" = "కాంట్రాక్ట్ ఇంటరాక్షన్";
+"transaction_row_multichain_transfer" = "మల్టీ-చైన్ బదిలీ";
+"transaction_row_subtitle_on_base" = "Base పై";
+"transaction_row_subtitle_from_ethereum" = "Ethereum నుండి";
+"transaction_row_subtitle_on_uniswap" = "Uniswap పై";
+"transaction_label_from" = "నుండి";
+"transaction_label_to" = "కు";
+"transaction_label_contract" = "కాంట్రాక్ట్";
+"transaction_type_receive" = "స్వీకరించు";
+"transaction_type_send" = "పంపు";
+"transaction_type_contract_interaction" = "కాంట్రాక్ట్ ఇంటరాక్షన్";
+"transaction_type_multichain_transfer" = "మల్టీ-చైన్ బదిలీ";
+"transaction_receipt_subtitle_gas_fee" = "గ్యాస్ ఫీ";
+"transaction_row_prefix_on" = "పై";
+"transaction_row_prefix_from" = "నుంచి";
+"transaction_row_action_sent" = "పంపబడింది";
+"transaction_row_action_received" = "స్వీకరించబడింది";

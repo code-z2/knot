@@ -229,7 +229,7 @@ struct ProfileView: View {
         TextField(
           "",
           text: $ensName,
-          prompt: Text(String(localized: "profile_enter_name_placeholder"))
+          prompt: Text("profile_enter_name_placeholder")
             .font(.custom("Roboto-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelSecondary)
         )

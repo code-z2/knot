@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "Type";
 "transaction_view_tx" = "Voir Tx";
 "wallet_backup_tap_to_reveal" = "Appuyer pour révéler";
+
+"transaction_status_success" = "réussi";
+"transaction_status_failed" = "échoué";
+"transaction_row_received_usdc" = "USDC reçu";
+"transaction_row_sent_usdc" = "USDC envoyé";
+"transaction_row_received_eth" = "ETH reçu";
+"transaction_row_contract_interaction" = "interaction de contrat";
+"transaction_row_multichain_transfer" = "transfert multichaîne";
+"transaction_row_subtitle_on_base" = "sur Base";
+"transaction_row_subtitle_from_ethereum" = "depuis Ethereum";
+"transaction_row_subtitle_on_uniswap" = "sur Uniswap";
+"transaction_label_from" = "De";
+"transaction_label_to" = "À";
+"transaction_label_contract" = "Contrat";
+"transaction_type_receive" = "Recevoir";
+"transaction_type_send" = "Envoyer";
+"transaction_type_contract_interaction" = "Interaction de contrat";
+"transaction_type_multichain_transfer" = "Transfert multichaîne";
+"transaction_receipt_subtitle_gas_fee" = "frais de gaz";
+"transaction_row_prefix_on" = "sur";
+"transaction_row_prefix_from" = "depuis";
+"transaction_row_action_sent" = "envoyé";
+"transaction_row_action_received" = "reçu";

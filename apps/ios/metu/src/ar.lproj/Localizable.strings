@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "النوع";
 "transaction_view_tx" = "عرض المعاملة";
 "wallet_backup_tap_to_reveal" = "انقر للكشف";
+
+"transaction_status_success" = "ناجحة";
+"transaction_status_failed" = "فاشلة";
+"transaction_row_received_usdc" = "تم استلام USDC";
+"transaction_row_sent_usdc" = "تم إرسال USDC";
+"transaction_row_received_eth" = "تم استلام ETH";
+"transaction_row_contract_interaction" = "تفاعل عقد";
+"transaction_row_multichain_transfer" = "تحويل متعدد السلاسل";
+"transaction_row_subtitle_on_base" = "على Base";
+"transaction_row_subtitle_from_ethereum" = "من Ethereum";
+"transaction_row_subtitle_on_uniswap" = "على Uniswap";
+"transaction_label_from" = "من";
+"transaction_label_to" = "إلى";
+"transaction_label_contract" = "العقد";
+"transaction_type_receive" = "استلام";
+"transaction_type_send" = "إرسال";
+"transaction_type_contract_interaction" = "تفاعل عقد";
+"transaction_type_multichain_transfer" = "تحويل متعدد السلاسل";
+"transaction_receipt_subtitle_gas_fee" = "رسوم الغاز";
+"transaction_row_prefix_on" = "على";
+"transaction_row_prefix_from" = "من";
+"transaction_row_action_sent" = "تم الإرسال";
+"transaction_row_action_received" = "تم الاستلام";

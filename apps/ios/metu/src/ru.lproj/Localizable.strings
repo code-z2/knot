@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "Тип";
 "transaction_view_tx" = "См. транзакцию";
 "wallet_backup_tap_to_reveal" = "Нажмите, чтобы показать";
+
+"transaction_status_success" = "успешно";
+"transaction_status_failed" = "неуспешно";
+"transaction_row_received_usdc" = "получено USDC";
+"transaction_row_sent_usdc" = "отправлено USDC";
+"transaction_row_received_eth" = "получено ETH";
+"transaction_row_contract_interaction" = "взаимодействие с контрактом";
+"transaction_row_multichain_transfer" = "мультичейн-перевод";
+"transaction_row_subtitle_on_base" = "в сети Base";
+"transaction_row_subtitle_from_ethereum" = "из Ethereum";
+"transaction_row_subtitle_on_uniswap" = "в Uniswap";
+"transaction_label_from" = "От";
+"transaction_label_to" = "К";
+"transaction_label_contract" = "Контракт";
+"transaction_type_receive" = "Получение";
+"transaction_type_send" = "Отправка";
+"transaction_type_contract_interaction" = "Взаимодействие с контрактом";
+"transaction_type_multichain_transfer" = "Мультичейн-перевод";
+"transaction_receipt_subtitle_gas_fee" = "комиссия газа";
+"transaction_row_prefix_on" = "в";
+"transaction_row_prefix_from" = "из";
+"transaction_row_action_sent" = "отправлено";
+"transaction_row_action_received" = "получено";

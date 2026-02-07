@@ -30,6 +30,103 @@ struct FrankfurterRateProvider: CurrencyRateProviding {
   }
 }
 
+struct OpenERAPIRateProvider: CurrencyRateProviding {
+  func latestRates(base: String) async throws -> [String: Decimal] {
+    guard let url = URL(string: "https://open.er-api.com/v6/latest/\(base.uppercased())") else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    let (data, response) = try await URLSession.shared.data(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    let decoded = try JSONDecoder().decode(OpenERAPIResponse.self, from: data)
+    guard decoded.result.lowercased() == "success" else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    var normalized: [String: Decimal] = [:]
+    normalized[base.uppercased()] = 1
+    for (k, v) in decoded.rates {
+      normalized[k.uppercased()] = Decimal(v)
+    }
+    return normalized
+  }
+}
+
+struct FallbackRateProvider: CurrencyRateProviding {
+  let primary: CurrencyRateProviding
+  let secondary: CurrencyRateProviding
+  let crypto: CurrencyRateProviding?
+
+  init(
+    primary: CurrencyRateProviding = FrankfurterRateProvider(),
+    secondary: CurrencyRateProviding = OpenERAPIRateProvider(),
+    crypto: CurrencyRateProviding? = CoinbaseCryptoRateProvider()
+  ) {
+    self.primary = primary
+    self.secondary = secondary
+    self.crypto = crypto
+  }
+
+  func latestRates(base: String) async throws -> [String: Decimal] {
+    async let primaryRatesTask: [String: Decimal]? = try? await primary.latestRates(base: base)
+    async let secondaryRatesTask: [String: Decimal]? = try? await secondary.latestRates(base: base)
+    async let cryptoRatesTask: [String: Decimal]? = try? await crypto?.latestRates(base: base)
+
+    let primaryRates = await primaryRatesTask
+    let secondaryRates = await secondaryRatesTask
+    let cryptoRates = await cryptoRatesTask
+
+    if primaryRates == nil, secondaryRates == nil, cryptoRates == nil {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    var merged = secondaryRates ?? [:]
+    if let primaryRates {
+      for (key, value) in primaryRates {
+        merged[key] = value
+      }
+    }
+    if let cryptoRates {
+      for (key, value) in cryptoRates {
+        merged[key] = value
+      }
+    }
+    merged[base.uppercased()] = 1
+    return merged
+  }
+}
+
+struct CoinbaseCryptoRateProvider: CurrencyRateProviding {
+  func latestRates(base: String) async throws -> [String: Decimal] {
+    let normalizedBase = base.uppercased()
+    guard normalizedBase == "USD" else {
+      return [normalizedBase: 1]
+    }
+
+    guard let url = URL(string: "https://api.coinbase.com/v2/prices/ETH-USD/spot") else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    let (data, response) = try await URLSession.shared.data(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    let decoded = try JSONDecoder().decode(CoinbaseSpotResponse.self, from: data)
+    guard let usdPerEth = Decimal(string: decoded.data.amount), usdPerEth > 0 else {
+      throw CurrencyConverterError.invalidResponse
+    }
+
+    return [
+      "USD": 1,
+      "ETH": Decimal(1) / usdPerEth,
+    ]
+  }
+}
+
 struct StaticRateProvider: CurrencyRateProviding {
   let table: [String: [String: Decimal]]
 
@@ -46,7 +143,7 @@ struct StaticRateProvider: CurrencyRateProviding {
 struct CurrencyConverter {
   let provider: CurrencyRateProviding
 
-  init(provider: CurrencyRateProviding = FrankfurterRateProvider()) {
+  init(provider: CurrencyRateProviding = FallbackRateProvider()) {
     self.provider = provider
   }
 
@@ -67,4 +164,17 @@ struct CurrencyConverter {
 
 private struct FrankfurterResponse: Decodable {
   let rates: [String: Double]
+}
+
+private struct OpenERAPIResponse: Decodable {
+  let result: String
+  let rates: [String: Double]
+}
+
+private struct CoinbaseSpotResponse: Decodable {
+  struct Payload: Decodable {
+    let amount: String
+  }
+
+  let data: Payload
 }

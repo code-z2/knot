@@ -1,6 +1,11 @@
 import Foundation
 
 enum CurrencyDisplayFormatter {
+  private static let symbolOverrides: [String: String] = [
+    "NGN": "₦",
+    "ETH": "Ξ",
+  ]
+
   static func format(
     amount: Decimal,
     currencyCode: String,
@@ -11,7 +16,11 @@ enum CurrencyDisplayFormatter {
     let formatter = NumberFormatter()
     formatter.locale = locale
     formatter.numberStyle = .currency
-    formatter.currencyCode = currencyCode.uppercased()
+    let normalizedCode = currencyCode.uppercased()
+    formatter.currencyCode = normalizedCode
+    if let symbol = symbolOverrides[normalizedCode] {
+      formatter.currencySymbol = symbol
+    }
     formatter.minimumFractionDigits = minimumFractionDigits
     formatter.maximumFractionDigits = maximumFractionDigits
     return formatter.string(from: amount as NSDecimalNumber) ?? "\(amount)"
@@ -21,7 +30,11 @@ enum CurrencyDisplayFormatter {
     let formatter = NumberFormatter()
     formatter.locale = locale
     formatter.numberStyle = .currency
-    formatter.currencyCode = currencyCode.uppercased()
+    let normalizedCode = currencyCode.uppercased()
+    formatter.currencyCode = normalizedCode
+    if let symbol = symbolOverrides[normalizedCode] {
+      formatter.currencySymbol = symbol
+    }
     return formatter.currencySymbol ?? currencyCode.uppercased()
   }
 }

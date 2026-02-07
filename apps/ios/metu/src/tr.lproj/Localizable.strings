@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "Tür";
 "transaction_view_tx" = "İşlemi Gör";
 "wallet_backup_tap_to_reveal" = "Göstermek için dokun";
+
+"transaction_status_success" = "başarılı";
+"transaction_status_failed" = "başarısız";
+"transaction_row_received_usdc" = "USDC alındı";
+"transaction_row_sent_usdc" = "USDC gönderildi";
+"transaction_row_received_eth" = "ETH alındı";
+"transaction_row_contract_interaction" = "sözleşme etkileşimi";
+"transaction_row_multichain_transfer" = "çoklu zincir transferi";
+"transaction_row_subtitle_on_base" = "Base üzerinde";
+"transaction_row_subtitle_from_ethereum" = "Ethereum'dan";
+"transaction_row_subtitle_on_uniswap" = "Uniswap üzerinde";
+"transaction_label_from" = "Kimden";
+"transaction_label_to" = "Kime";
+"transaction_label_contract" = "Sözleşme";
+"transaction_type_receive" = "Al";
+"transaction_type_send" = "Gönder";
+"transaction_type_contract_interaction" = "Sözleşme etkileşimi";
+"transaction_type_multichain_transfer" = "Çoklu zincir transferi";
+"transaction_receipt_subtitle_gas_fee" = "gas ücreti";
+"transaction_row_prefix_on" = "üzerinde";
+"transaction_row_prefix_from" = "-den";
+"transaction_row_action_sent" = "gönderildi";
+"transaction_row_action_received" = "alındı";
