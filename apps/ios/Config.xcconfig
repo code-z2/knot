@@ -9,3 +9,11 @@
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 #include "Secrets.xcconfig"
 PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL = upload.peteranyaogu.com
+
+// Chain support mode (active default for now)
+CHAIN_SUPPORT_MODE = LIMITED_TESTNET
+
+// Comma-separated chain ids
+SUPPORTED_CHAINS_LIMITED_TESTNET = 11155111,84532,421614
+SUPPORTED_CHAINS_LIMITED_MAINNET = 1,8453,137
+SUPPORTED_CHAINS_FULL_MAINNET = 1,10,137,8453

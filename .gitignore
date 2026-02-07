@@ -39,3 +39,9 @@ Secrets.xcconfig
 build/
 out/
 dist/
+
+.codex/
+.claude/
+.agent/
+.venv-codex/
+*.mcp.json

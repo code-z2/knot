@@ -8,26 +8,48 @@ public actor RPCClient {
 
   public init(
     endpointsByChain: [UInt64: ChainEndpoints]? = nil,
-    gelatoAPIKey: String? = nil,
-    pimlicoAPIKey: String? = nil
+    jsonRPCAPIKey: String? = nil,
+    bundlerAPIKey: String? = nil,
+    paymasterAPIKey: String? = nil,
+    walletAPIKey: String? = nil,
+    transactionsAPIKey: String? = nil
   ) {
     if let endpointsByChain {
       self.endpointsByChain = endpointsByChain
       return
     }
 
-    let resolvedGelato = gelatoAPIKey ?? Self.resolveSecret(
-      envKey: RPCSecrets.gelatoKeyEnv,
-      infoPlistKey: RPCSecrets.gelatoKeyInfoPlistKey
+    let resolvedJSONRPCAPIKey = jsonRPCAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.jsonRPCKeyInfoPlistKey
     )
-    let resolvedPimlico = pimlicoAPIKey ?? Self.resolveSecret(
-      envKey: RPCSecrets.pimlicoKeyEnv,
-      infoPlistKey: RPCSecrets.pimlicoKeyInfoPlistKey
+    let resolvedBundlerAPIKey = bundlerAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.bundlerKeyInfoPlistKey
     )
-    self.endpointsByChain = makeRPCDefaultEndpoints(
-      gelatoAPIKey: resolvedGelato,
-      pimlicoAPIKey: resolvedPimlico
+    let resolvedPaymasterAPIKey = paymasterAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.paymasterKeyInfoPlistKey
     )
+    let resolvedWalletAPIKey = walletAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.walletAPIKeyInfoPlistKey
+    )
+    let resolvedTransactionsAPIKey = transactionsAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.transactionsAPIKeyInfoPlistKey
+    )
+    let endpointConfig = RPCEndpointBuilderConfig(
+      jsonRPCAPIKey: resolvedJSONRPCAPIKey,
+      bundlerAPIKey: resolvedBundlerAPIKey,
+      paymasterAPIKey: resolvedPaymasterAPIKey,
+      walletAPIKey: resolvedWalletAPIKey,
+      transactionsAPIKey: resolvedTransactionsAPIKey,
+      jsonRPCURLTemplate: RPCSecrets.jsonRPCURLTemplate,
+      bundlerURLTemplate: RPCSecrets.bundlerURLTemplate,
+      paymasterURLTemplate: RPCSecrets.paymasterURLTemplate,
+      walletAPIURLTemplate: RPCSecrets.walletAPIURLTemplate,
+      transactionsAPIURLTemplate: RPCSecrets.transactionsAPIURLTemplate
+    )
+    let defaultEndpoints = makeRPCDefaultEndpoints(
+      config: endpointConfig
+    )
+    self.endpointsByChain = Self.applyChainSupportMode(defaultEndpoints)
   }
 
   public func getRpcUrl(chainId: UInt64) throws -> String {
@@ -49,6 +71,34 @@ public actor RPCClient {
       throw RPCError.unsupportedChain(chainId)
     }
     return endpoints.paymasterURL
+  }
+
+  public func getWalletApiUrl(chainId: UInt64) throws -> String {
+    guard let endpoints = endpointsByChain[chainId] else {
+      throw RPCError.unsupportedChain(chainId)
+    }
+    return endpoints.walletAPIURL
+  }
+
+  public func getWalletApiBearerToken(chainId: UInt64) throws -> String {
+    guard let endpoints = endpointsByChain[chainId] else {
+      throw RPCError.unsupportedChain(chainId)
+    }
+    return endpoints.walletAPIBearerToken
+  }
+
+  public func getTransactionsApiUrl(chainId: UInt64) throws -> String {
+    guard let endpoints = endpointsByChain[chainId] else {
+      throw RPCError.unsupportedChain(chainId)
+    }
+    return endpoints.transactionsAPIURL
+  }
+
+  public func getTransactionsApiBearerToken(chainId: UInt64) throws -> String {
+    guard let endpoints = endpointsByChain[chainId] else {
+      throw RPCError.unsupportedChain(chainId)
+    }
+    return endpoints.transactionsAPIBearerToken
   }
 
   public func getSupportedChains() -> [UInt64] {
@@ -149,16 +199,32 @@ public actor RPCClient {
     return result
   }
 
-  private static func resolveSecret(envKey: String, infoPlistKey: String) -> String {
-    let env = ProcessInfo.processInfo.environment[envKey]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    if !env.isEmpty { return env }
-
+  private static func resolveSetting(
+    infoPlistKey: String,
+    defaultValue: String = ""
+  ) -> String {
     if let plist = Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String {
       let trimmed = plist.trimmingCharacters(in: .whitespacesAndNewlines)
       if !trimmed.isEmpty {
         return trimmed
       }
     }
-    return ""
+
+    return defaultValue
+  }
+
+  private static func resolveChainSupportConfig() -> ChainSupportConfig? {
+    let config = ChainSupportRuntime.resolveConfig()
+    guard !config.chainIDs.isEmpty else { return nil }
+    return config
+  }
+
+  private static func applyChainSupportMode(_ endpointsByChain: [UInt64: ChainEndpoints]) -> [UInt64: ChainEndpoints] {
+    guard let config = resolveChainSupportConfig() else {
+      return endpointsByChain
+    }
+
+    let allowed = Set(config.chainIDs)
+    return endpointsByChain.filter { allowed.contains($0.key) }
   }
 }
