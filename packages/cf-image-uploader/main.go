@@ -33,6 +33,10 @@ type config struct {
 	r2Endpoint         string
 	r2SigningRegion    string
 	directUploadExpiry time.Duration
+
+	// Faucet (optional — empty faucetPrivateKey disables the endpoint).
+	faucetPrivateKey string
+	faucetRPCURLs    map[uint64]string // chainID -> RPC URL
 }
 
 type server struct {
@@ -68,6 +72,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/v1/images/direct-upload", s.handleDirectUpload)
+	mux.HandleFunc("/v1/faucet/fund", s.handleFaucetFund)
 
 	h := s.withCORS(s.withRequestLogging(mux))
 
@@ -119,6 +124,21 @@ func loadConfig() (config, error) {
 		return config{}, fmt.Errorf("invalid R2_PUBLIC_BASE_URL: %q", r2PublicBaseURL)
 	}
 
+	// Faucet config (optional — empty key means faucet is disabled).
+	faucetPrivateKey := strings.TrimSpace(os.Getenv("FAUCET_PRIVATE_KEY"))
+	faucetPrivateKey = strings.TrimPrefix(faucetPrivateKey, "0x")
+
+	faucetRPCURLs := make(map[uint64]string)
+	if rpc := strings.TrimSpace(os.Getenv("FAUCET_RPC_SEPOLIA")); rpc != "" {
+		faucetRPCURLs[11155111] = rpc
+	}
+	if rpc := strings.TrimSpace(os.Getenv("FAUCET_RPC_BASE_SEPOLIA")); rpc != "" {
+		faucetRPCURLs[84532] = rpc
+	}
+	if rpc := strings.TrimSpace(os.Getenv("FAUCET_RPC_ARB_SEPOLIA")); rpc != "" {
+		faucetRPCURLs[421614] = rpc
+	}
+
 	return config{
 		port:               port,
 		allowedOrigin:      allowedOrigin,
@@ -131,6 +151,8 @@ func loadConfig() (config, error) {
 		r2Endpoint:         r2Endpoint,
 		r2SigningRegion:    r2SigningRegion,
 		directUploadExpiry: time.Duration(expirySeconds) * time.Second,
+		faucetPrivateKey:   faucetPrivateKey,
+		faucetRPCURLs:      faucetRPCURLs,
 	}, nil
 }
 
