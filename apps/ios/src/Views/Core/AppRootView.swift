@@ -1,5 +1,6 @@
 import SwiftUI
 import AccountSetup
+import RPC
 
 @MainActor
 struct AppRootView: View {
@@ -16,6 +17,7 @@ struct AppRootView: View {
   private let ensService = ENSService()
   private let aaExecutionService = AAExecutionService()
   private let sessionStore = SessionStore()
+  private let faucetService = FaucetService()
 
   enum Route {
     case splash
@@ -181,6 +183,15 @@ struct AppRootView: View {
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
       hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
       route = .home
+
+      // Fire-and-forget: fund new account with testnet USDC + ETH.
+      if ChainSupportRuntime.resolveMode() == .limitedTestnet {
+        let address = restored.eoaAddress
+        let faucet = faucetService
+        Task.detached(priority: .utility) {
+          await faucet.fundAccount(eoaAddress: address)
+        }
+      }
     }
   }
 
