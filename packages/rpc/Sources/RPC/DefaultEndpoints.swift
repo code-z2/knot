@@ -34,6 +34,11 @@ public func makeRPCDefaultEndpoints(gelatoAPIKey: String, pimlicoAPIKey: String)
       bundlerURL: makeGelatoURL(chainId: 84532, apiKey: gelatoAPIKey),
       paymasterURL: makePimlicoURL(chainId: 84532, apiKey: pimlicoAPIKey)
     ),
+    11155111: ChainEndpoints(
+      rpcURL: "https://ethereum-sepolia-rpc.publicnode.com",
+      bundlerURL: makeGelatoURL(chainId: 11155111, apiKey: gelatoAPIKey),
+      paymasterURL: makePimlicoURL(chainId: 11155111, apiKey: pimlicoAPIKey)
+    ),
   ]
 }
 

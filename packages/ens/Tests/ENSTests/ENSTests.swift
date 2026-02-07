@@ -3,6 +3,22 @@ import XCTest
 import Web3Core
 
 final class ENSTests: XCTestCase {
+  func testDefaultConfigurationIsSepolia() {
+    let client = ENSClient()
+    XCTAssertEqual(client.configuration.chainID, 11155111)
+    XCTAssertEqual(client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
+    XCTAssertEqual(client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
+    XCTAssertEqual(client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
+  }
+
+  func testExplicitSepoliaConfigurationMatchesDefault() {
+    let client = ENSClient(configuration: .sepolia)
+    XCTAssertEqual(client.configuration.chainID, 11155111)
+    XCTAssertEqual(client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
+    XCTAssertEqual(client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
+    XCTAssertEqual(client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
+  }
+
   func testEthLabelRemovesSuffix() {
     XCTAssertEqual(ENSClient.ethLabel(from: "vitalik.eth"), "vitalik")
     XCTAssertEqual(ENSClient.ethLabel(from: "vitalik"), "vitalik")
@@ -14,5 +30,10 @@ final class ENSTests: XCTestCase {
       ENSClient.reverseNode(for: address),
       "f5bb7f874d8e3f41821175c0aa9910d30d10e193.addr.reverse"
     )
+  }
+
+  func testDNSEncodedName() {
+    let encoded = ENSClient.dnsEncodedName("metu.eth")
+    XCTAssertEqual(encoded?.toHexString(), "046d6574750365746800")
   }
 }

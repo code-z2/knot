@@ -11,7 +11,6 @@ struct ProfileView: View {
   let ensService: ENSService
   let aaExecutionService: AAExecutionService
   let imageStorageService: ProfileImageStorageService
-  let registrarControllerAddress: String
   var onBack: () -> Void = {}
 
   @State private var ensName = ""
@@ -37,7 +36,7 @@ struct ProfileView: View {
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var quoteTask: Task<Void, Never>?
   @State private var avatarUploadTask: Task<Void, Never>?
-  private let quoteWorker = ENSQuoteWorker()
+  private let quoteWorker: ENSQuoteWorker
 
   init(
     eoaAddress: String,
@@ -45,7 +44,6 @@ struct ProfileView: View {
     ensService: ENSService,
     aaExecutionService: AAExecutionService,
     imageStorageService: ProfileImageStorageService = ProfileImageStorageService(),
-    registrarControllerAddress: String = "0x253553366Da8546fC250F225fe3d25d0C782303b",
     onBack: @escaping () -> Void = {}
   ) {
     self.eoaAddress = eoaAddress
@@ -53,7 +51,7 @@ struct ProfileView: View {
     self.ensService = ensService
     self.aaExecutionService = aaExecutionService
     self.imageStorageService = imageStorageService
-    self.registrarControllerAddress = registrarControllerAddress
+    self.quoteWorker = ENSQuoteWorker(configuration: ensService.configuration)
     self.onBack = onBack
   }
 
@@ -396,7 +394,6 @@ struct ProfileView: View {
     }
     guard normalized != lastQuotedName else { return }
 
-    let registrarControllerAddress = registrarControllerAddress
     let quoteWorker = quoteWorker
     quoteTask = Task(priority: .utility) { [normalized] in
       do {
@@ -413,10 +410,7 @@ struct ProfileView: View {
           }
         }
 
-        let quote = try await quoteWorker.quote(
-          registrarControllerAddress: registrarControllerAddress,
-          name: normalized
-        )
+        let quote = try await quoteWorker.quote(name: normalized)
         try Task.checkCancellation()
 
         guard !self.isNameLocked else { return }
@@ -467,7 +461,12 @@ struct ProfileView: View {
           )
         )
       }
-      var allCalls: [Call] = []
+      var commitCall: Call?
+      var postCommitCalls: [Call] = []
+      var minCommitmentAgeSeconds: UInt64 = 60
+      let avatar = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+      let description = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+      var embeddedRecordKeys = Set<String>()
 
       if !isNameLocked {
         if normalizedName != lastQuotedName || nameInfoTone != .success {
@@ -482,50 +481,75 @@ struct ProfileView: View {
             )
           )
         }
-        let registerPayloads = try await ensService.registerNamePayloads(
-          registrarControllerAddress: registrarControllerAddress,
+        var initialRecords: [ENSRecordDraft] = []
+        if !avatar.isEmpty, avatar != initialAvatarURL {
+          initialRecords.append(ENSRecordDraft(key: "avatar", value: avatar))
+          embeddedRecordKeys.insert("avatar")
+        }
+        if !description.isEmpty, description != initialBio {
+          initialRecords.append(ENSRecordDraft(key: "description", value: description))
+          embeddedRecordKeys.insert("description")
+        }
+        let registrationPayloads = try await ensService.registerNamePayloads(
           name: normalizedName,
-          ownerAddress: eoaAddress
+          ownerAddress: eoaAddress,
+          initialRecords: initialRecords
         )
-        allCalls.append(contentsOf: registerPayloads)
-        preparedPayloads += registerPayloads.count
-        isNameLocked = true
+        commitCall = registrationPayloads.commitCall
+        postCommitCalls.append(registrationPayloads.registerCall)
+        minCommitmentAgeSeconds = max(1, registrationPayloads.minCommitmentAgeSeconds)
+        preparedPayloads += registrationPayloads.calls.count
       }
 
-      let avatar = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
-      if avatar != initialAvatarURL {
+      if avatar != initialAvatarURL, !embeddedRecordKeys.contains("avatar") {
         let avatarPayload = try await ensService.updateRecordPayload(
           name: normalizedName,
           key: "avatar",
           value: avatar
         )
-        allCalls.append(avatarPayload)
+        postCommitCalls.append(avatarPayload)
         preparedPayloads += 1
       }
 
-      let description = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-      if description != initialBio {
+      if description != initialBio, !embeddedRecordKeys.contains("description") {
         let bioPayload = try await ensService.updateRecordPayload(
           name: normalizedName,
           key: "description",
           value: description
         )
-        allCalls.append(bioPayload)
+        postCommitCalls.append(bioPayload)
         preparedPayloads += 1
       }
 
-      guard !allCalls.isEmpty else {
+      guard commitCall != nil || !postCommitCalls.isEmpty else {
         showSuccess(String(localized: "profile_no_changes_to_save"))
         return
       }
 
       let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
-      _ = try await aaExecutionService.executeCalls(
-        accountService: accountService,
-        account: sessionAccount,
-        chainId: 1,
-        calls: allCalls
-      )
+      if let commitCall {
+        _ = try await aaExecutionService.executeCalls(
+          accountService: accountService,
+          account: sessionAccount,
+          chainId: ensService.chainID,
+          calls: [commitCall]
+        )
+        showSuccess("Commit submitted. Finalizing ENS registration...")
+        try await Task.sleep(for: .seconds(Double(minCommitmentAgeSeconds)))
+      }
+
+      if !postCommitCalls.isEmpty {
+        _ = try await aaExecutionService.executeCalls(
+          accountService: accountService,
+          account: sessionAccount,
+          chainId: ensService.chainID,
+          calls: postCommitCalls
+        )
+      }
+
+      if commitCall != nil {
+        isNameLocked = true
+      }
 
       initialAvatarURL = avatarURL
       initialBio = bio
@@ -706,15 +730,15 @@ struct ProfileView: View {
 }
 
 private actor ENSQuoteWorker {
-  private let client = ENSClient()
+  private let client: ENSClient
 
-  func quote(
-    registrarControllerAddress: String,
-    name: String
-  ) async throws -> ENSNameQuote {
+  init(configuration: ENSConfiguration) {
+    client = ENSClient(configuration: configuration)
+  }
+
+  func quote(name: String) async throws -> ENSNameQuote {
     let quote = try await client.quoteRegistration(
       RegisterNameRequest(
-        registrarControllerAddress: registrarControllerAddress,
         name: name,
         ownerAddress: "0x0000000000000000000000000000000000000000",
         duration: 31_536_000

@@ -2,7 +2,6 @@ import Foundation
 import ENS
 import Transactions
 
-
 enum ENSServiceError: Error {
   case actionFailed(Error)
 }
@@ -11,6 +10,21 @@ struct ENSNameQuote {
   let normalizedName: String
   let available: Bool
   let rentPriceWei: String
+}
+
+struct ENSRecordDraft {
+  let key: String
+  let value: String
+}
+
+struct ENSRegistrationPayloads {
+  let commitCall: Call
+  let registerCall: Call
+  let minCommitmentAgeSeconds: UInt64
+
+  var calls: [Call] {
+    [commitCall, registerCall]
+  }
 }
 
 extension ENSServiceError: LocalizedError {
@@ -25,9 +39,18 @@ extension ENSServiceError: LocalizedError {
 @MainActor
 final class ENSService {
   private let client: ENSClient
+  let configuration: ENSConfiguration
 
-  init(client: ENSClient = ENSClient()) {
-    self.client = client
+  var chainID: UInt64 {
+    configuration.chainID
+  }
+
+  init(
+    configuration: ENSConfiguration = .sepolia,
+    client: ENSClient? = nil
+  ) {
+    self.configuration = configuration
+    self.client = client ?? ENSClient(configuration: configuration)
   }
 
   func resolveName(name: String) async throws -> String {
@@ -51,35 +74,37 @@ final class ENSService {
   }
 
   func registerNamePayloads(
-    registrarControllerAddress: String,
     name: String,
     ownerAddress: String,
+    initialRecords: [ENSRecordDraft] = [],
     duration: UInt = 31_536_000
-  ) async throws -> [Call] {
+  ) async throws -> ENSRegistrationPayloads {
     do {
       let result = try await client.registerName(
         RegisterNameRequest(
-          registrarControllerAddress: registrarControllerAddress,
           name: name,
           ownerAddress: ownerAddress,
-          duration: duration
+          duration: duration,
+          initialTextRecords: initialRecords.map { InitialTextRecord(key: $0.key, value: $0.value) }
         )
       )
-      return result.calls
+      return ENSRegistrationPayloads(
+        commitCall: result.commitCall,
+        registerCall: result.registerCall,
+        minCommitmentAgeSeconds: result.minCommitmentAgeSeconds
+      )
     } catch {
       throw ENSServiceError.actionFailed(error)
     }
   }
 
   func quoteName(
-    registrarControllerAddress: String,
     name: String,
     duration: UInt = 31_536_000
   ) async throws -> ENSNameQuote {
     do {
       let quote = try await client.quoteRegistration(
         RegisterNameRequest(
-          registrarControllerAddress: registrarControllerAddress,
           name: name,
           ownerAddress: "0x0000000000000000000000000000000000000000",
           duration: duration

@@ -6,7 +6,6 @@ public enum ENSError: Error {
   case invalidName
   case ensUnavailable
   case nameUnavailable(String)
-  case unsupportedResolver
   case missingResult(String)
 }
 
@@ -23,8 +22,6 @@ extension ENSError: LocalizedError {
       return "ENS is unavailable for the configured chain/provider."
     case .nameUnavailable(let label):
       return "ENS name is not available: \(label)."
-    case .unsupportedResolver:
-      return "Resolver does not support the requested ENS record type."
     case .missingResult(let key):
       return "Expected result key is missing: \(key)."
     }

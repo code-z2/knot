@@ -1,37 +1,69 @@
 import Foundation
 import Transactions
 
+public struct InitialTextRecord: Sendable {
+  public let key: String
+  public let value: String
+
+  public init(key: String, value: String) {
+    self.key = key
+    self.value = value
+  }
+}
+
 public struct RegisterNameRequest: Sendable {
-  public let registrarControllerAddress: String
   public let name: String
   public let ownerAddress: String
   public let duration: UInt
+  public let resolverAddress: String?
+  public let setReverseRecord: Bool
+  public let ownerControlledFuses: UInt16
+  public let initialTextRecords: [InitialTextRecord]
   public let secretHex: String?
   public let rentPriceWeiOverride: String?
 
   public init(
-    registrarControllerAddress: String,
     name: String,
     ownerAddress: String,
     duration: UInt,
+    resolverAddress: String? = nil,
+    setReverseRecord: Bool = false,
+    ownerControlledFuses: UInt16 = 0,
+    initialTextRecords: [InitialTextRecord] = [],
     secretHex: String? = nil,
     rentPriceWeiOverride: String? = nil
   ) {
-    self.registrarControllerAddress = registrarControllerAddress
     self.name = name
     self.ownerAddress = ownerAddress
     self.duration = duration
+    self.resolverAddress = resolverAddress
+    self.setReverseRecord = setReverseRecord
+    self.ownerControlledFuses = ownerControlledFuses
+    self.initialTextRecords = initialTextRecords
     self.secretHex = secretHex
     self.rentPriceWeiOverride = rentPriceWeiOverride
   }
 }
 
 public struct RegisterNameResult: Sendable {
-  public let calls: [Call]
+  public let commitCall: Call
+  public let registerCall: Call
+  public let minCommitmentAgeSeconds: UInt64
   public let secretHex: String
 
-  public init(calls: [Call], secretHex: String) {
-    self.calls = calls
+  public var calls: [Call] {
+    [commitCall, registerCall]
+  }
+
+  public init(
+    commitCall: Call,
+    registerCall: Call,
+    minCommitmentAgeSeconds: UInt64,
+    secretHex: String
+  ) {
+    self.commitCall = commitCall
+    self.registerCall = registerCall
+    self.minCommitmentAgeSeconds = minCommitmentAgeSeconds
     self.secretHex = secretHex
   }
 }
