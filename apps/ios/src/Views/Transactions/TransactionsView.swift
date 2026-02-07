@@ -1,9 +1,25 @@
 import SwiftUI
 
 struct TransactionsView: View {
+  let preferencesStore: PreferencesStore
+  let currencyRateStore: CurrencyRateStore
   var onHomeTap: () -> Void = {}
   var onTransactionsTap: () -> Void = {}
   var onSessionKeyTap: () -> Void = {}
+
+  init(
+    preferencesStore: PreferencesStore,
+    currencyRateStore: CurrencyRateStore,
+    onHomeTap: @escaping () -> Void = {},
+    onTransactionsTap: @escaping () -> Void = {},
+    onSessionKeyTap: @escaping () -> Void = {}
+  ) {
+    self.preferencesStore = preferencesStore
+    self.currencyRateStore = currencyRateStore
+    self.onHomeTap = onHomeTap
+    self.onTransactionsTap = onTransactionsTap
+    self.onSessionKeyTap = onSessionKeyTap
+  }
 
   @State private var isBalanceHidden = false
   @State private var selectedTransaction: MockTransaction?
@@ -14,7 +30,12 @@ struct TransactionsView: View {
 
       ScrollView(showsIndicators: false) {
         VStack(alignment: .leading, spacing: 0) {
-          AccountTransactionsList(sections: MockTransactionData.sections) { transaction in
+          AccountTransactionsList(
+            sections: MockTransactionData.sections,
+            displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+            displayLocale: preferencesStore.locale,
+            usdToSelectedRate: currencyRateStore.rateFromUSD(to: preferencesStore.selectedCurrencyCode)
+          ) { transaction in
             presentReceipt(for: transaction)
           }
           .padding(.horizontal, 20)
@@ -25,7 +46,11 @@ struct TransactionsView: View {
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       TransactionsAppHeader(
-        balanceText: MockTransactionData.quickBalance,
+        balanceText: currencyRateStore.formatUSD(
+          MockTransactionData.quickBalanceUSD,
+          currencyCode: preferencesStore.selectedCurrencyCode,
+          locale: preferencesStore.locale
+        ),
         isBalanceHidden: $isBalanceHidden
       )
     }
@@ -53,9 +78,7 @@ struct TransactionsView: View {
   }
 
   private func presentReceipt(for transaction: MockTransaction) {
-    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
-      selectedTransaction = transaction
-    }
+    selectedTransaction = transaction
   }
 
   private func dismissReceipt() {
@@ -86,6 +109,9 @@ private struct TransactionsAppHeader: View {
 }
 
 #Preview {
-  TransactionsView()
+  TransactionsView(
+    preferencesStore: PreferencesStore(),
+    currencyRateStore: CurrencyRateStore()
+  )
     .preferredColorScheme(.dark)
 }

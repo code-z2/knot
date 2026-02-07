@@ -2,7 +2,7 @@ import SwiftUI
 
 struct BackNavigationButton: View {
   private let hitSize: CGFloat = 44
-  private let visualSize: CGFloat = 38
+  private let visualSize: CGFloat = 44
   let tint: Color
   let action: () -> Void
 
@@ -39,4 +39,3 @@ struct BackNavigationButton: View {
     BackNavigationButton(tint: AppThemeColor.labelSecondary) {}
   }
 }
-

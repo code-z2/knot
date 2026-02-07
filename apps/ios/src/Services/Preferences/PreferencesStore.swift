@@ -42,6 +42,7 @@ struct LanguageOption: Identifiable, Equatable, Sendable {
 final class PreferencesStore {
     private enum Key {
         static let selectedCurrencyCode = "prefs.selectedCurrencyCode"
+        static let hasExplicitCurrencySelection = "prefs.hasExplicitCurrencySelection"
         static let hapticsEnabled = "prefs.hapticsEnabled"
         static let languageCode = "prefs.languageCode"
         static let appearance = "prefs.appearance"
@@ -49,8 +50,13 @@ final class PreferencesStore {
 
     @ObservationIgnored
     private let defaults: UserDefaults
+    @ObservationIgnored
+    private var suppressCurrencyTracking = false
     private(set) var supportedCurrencies: [CurrencyOption]
     private(set) var supportedLanguages: [LanguageOption]
+    private(set) var hasExplicitCurrencySelection: Bool {
+        didSet { defaults.set(hasExplicitCurrencySelection, forKey: Key.hasExplicitCurrencySelection) }
+    }
 
     var selectedCurrencyCode: String {
         didSet {
@@ -60,6 +66,9 @@ final class PreferencesStore {
                 return
             }
             defaults.set(normalized, forKey: Key.selectedCurrencyCode)
+            if !suppressCurrencyTracking {
+                hasExplicitCurrencySelection = true
+            }
         }
     }
 
@@ -75,6 +84,7 @@ final class PreferencesStore {
                 return
             }
             defaults.set(normalized, forKey: Key.languageCode)
+            autoApplyCurrencyFromLanguageIfNeeded()
         }
     }
 
@@ -98,8 +108,27 @@ final class PreferencesStore {
         self.supportedCurrencies = supportedCurrencies
         self.supportedLanguages = supportedLanguages
 
+        let storedLanguage = defaults.string(forKey: Key.languageCode)
+        let resolvedLanguage = PreferencesStore.resolveLanguageCode(
+            stored: storedLanguage,
+            supported: supportedLanguages,
+            fallback: PreferencesStore.defaultLanguageCode
+        )
+
         let storedCurrency = defaults.string(forKey: Key.selectedCurrencyCode)
-        self.selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(storedCurrency ?? "USD", supported: supportedCurrencies)
+        if defaults.object(forKey: Key.hasExplicitCurrencySelection) == nil {
+            self.hasExplicitCurrencySelection = storedCurrency != nil
+        } else {
+            self.hasExplicitCurrencySelection = defaults.bool(forKey: Key.hasExplicitCurrencySelection)
+        }
+        if let storedCurrency {
+            self.selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(storedCurrency, supported: supportedCurrencies)
+        } else {
+            self.selectedCurrencyCode = PreferencesStore.suggestedCurrencyCode(
+                forLanguageCode: resolvedLanguage,
+                supported: supportedCurrencies
+            )
+        }
 
         if defaults.object(forKey: Key.hapticsEnabled) == nil {
             self.hapticsEnabled = true
@@ -107,12 +136,7 @@ final class PreferencesStore {
             self.hapticsEnabled = defaults.bool(forKey: Key.hapticsEnabled)
         }
 
-        let storedLanguage = defaults.string(forKey: Key.languageCode)
-        self.languageCode = PreferencesStore.resolveLanguageCode(
-            stored: storedLanguage,
-            supported: supportedLanguages,
-            fallback: PreferencesStore.defaultLanguageCode
-        )
+        self.languageCode = resolvedLanguage
 
         let storedAppearance = defaults.string(forKey: Key.appearance)
         self.appearance = PreferencesStore.resolveAppearance(storedAppearance)
@@ -120,9 +144,21 @@ final class PreferencesStore {
 
     func updateSupportedCurrencies(_ currencies: [CurrencyOption]) {
         supportedCurrencies = currencies
-        let normalized = PreferencesStore.normalizeCurrencyCode(selectedCurrencyCode, supported: currencies)
-        if selectedCurrencyCode != normalized {
-            selectedCurrencyCode = normalized
+        if hasExplicitCurrencySelection {
+            let normalized = PreferencesStore.normalizeCurrencyCode(selectedCurrencyCode, supported: currencies)
+            if selectedCurrencyCode != normalized {
+                selectedCurrencyCode = normalized
+            }
+        } else {
+            let suggested = PreferencesStore.suggestedCurrencyCode(
+                forLanguageCode: languageCode,
+                supported: currencies
+            )
+            if selectedCurrencyCode != suggested {
+                suppressCurrencyTracking = true
+                selectedCurrencyCode = suggested
+                suppressCurrencyTracking = false
+            }
         }
     }
 
@@ -147,7 +183,7 @@ final class PreferencesStore {
     }
 
     private static func normalizeCurrencyCode(_ code: String, supported: [CurrencyOption]) -> String {
-        let normalized = code.uppercased()
+        let normalized = normalizeLegacyCurrencyCode(code.uppercased())
         if supported.map(\.code).contains(normalized) { return normalized }
         return supported.first?.code ?? "USD"
     }
@@ -191,16 +227,73 @@ final class PreferencesStore {
         return supportedCodes.contains(fallback) ? fallback : (supportedCodes.first ?? "en")
     }
 
+    private static func suggestedCurrencyCode(
+        forLanguageCode languageCode: String,
+        supported: [CurrencyOption]
+    ) -> String {
+        let normalizedLanguage = languageCode.lowercased()
+        let suggestedByLanguage: [String: String] = [
+            "ar": "USD",
+            "bn": "USD",
+            "de": "EUR",
+            "en": "USD",
+            "es": "EUR",
+            "fr": "EUR",
+            "hi": "INR",
+            "it": "EUR",
+            "ja": "JPY",
+            "jv": "USD",
+            "ko": "USD",
+            "mr": "INR",
+            "pt": "EUR",
+            "ru": "RUB",
+            "sw": "USD",
+            "ta": "INR",
+            "te": "INR",
+            "tr": "USD",
+            "ur": "INR",
+        ]
+
+        if let mapped = suggestedByLanguage[normalizedLanguage] {
+            return normalizeCurrencyCode(mapped, supported: supported)
+        }
+        return normalizeCurrencyCode("USD", supported: supported)
+    }
+
+    private static func normalizeLegacyCurrencyCode(_ code: String) -> String {
+        switch code {
+        case "YEN":
+            return "JPY"
+        case "SUR":
+            return "RUB"
+        default:
+            return code
+        }
+    }
+
+    private func autoApplyCurrencyFromLanguageIfNeeded() {
+        guard !hasExplicitCurrencySelection else { return }
+        let suggested = PreferencesStore.suggestedCurrencyCode(
+            forLanguageCode: languageCode,
+            supported: supportedCurrencies
+        )
+        guard selectedCurrencyCode != suggested else { return }
+        suppressCurrencyTracking = true
+        selectedCurrencyCode = suggested
+        suppressCurrencyTracking = false
+    }
+
     nonisolated static let defaultLanguageCode = "en"
 
     nonisolated static let defaultCurrencies: [CurrencyOption] = [
         .init(code: "ETH", name: "ethereum", iconAssetName: "Icons/currency_ethereum_circle"),
         .init(code: "EUR", name: "european euro", iconAssetName: "Icons/currency_euro_circle"),
         .init(code: "GBP", name: "british pounds", iconAssetName: "Icons/currency_pound_circle"),
+        .init(code: "NGN", name: "nigerian naira", iconAssetName: "Icons/currency_dollar_circle"),
         .init(code: "USD", name: "united states dollar", iconAssetName: "Icons/currency_dollar_circle"),
-        .init(code: "YEN", name: "chinese yen", iconAssetName: "Icons/currency_yen_circle"),
+        .init(code: "JPY", name: "japanese yen", iconAssetName: "Icons/currency_yen_circle"),
         .init(code: "INR", name: "indian rupee", iconAssetName: "Icons/currency_rupee_circle"),
-        .init(code: "SUR", name: "soviet rubble", iconAssetName: "Icons/currency_ruble_circle"),
+        .init(code: "RUB", name: "russian ruble", iconAssetName: "Icons/currency_ruble_circle"),
     ]
 
     nonisolated static let defaultLanguages: [LanguageOption] = [

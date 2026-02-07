@@ -273,18 +273,31 @@ public actor SmartAccountClient {
   ) async throws -> ExecuteChainCallsBuildResult {
     guard !chainCalls.isEmpty else { throw SmartAccountError.emptyCalls }
 
+    let rebuiltBundles = try await withThrowingTaskGroup(of: ChainCalls.self) { group in
+      for bundle in chainCalls {
+        group.addTask {
+          try await self.buildBundleWithPrelude(
+            account: account,
+            bundle: bundle,
+            destinationChainId: destinationChainId,
+            jobId: jobId,
+            passkeyPublicKey: passkeyPublicKey
+          )
+        }
+      }
+
+      var output: [ChainCalls] = []
+      output.reserveCapacity(chainCalls.count)
+      for try await bundle in group {
+        output.append(bundle)
+      }
+      return output
+    }
+
     var destination: ChainCalls?
     var others: [ChainCalls] = []
 
-    for bundle in chainCalls {
-      let rebuilt = try await buildBundleWithPrelude(
-        account: account,
-        bundle: bundle,
-        destinationChainId: destinationChainId,
-        jobId: jobId,
-        passkeyPublicKey: passkeyPublicKey
-      )
-
+    for rebuilt in rebuiltBundles {
       if rebuilt.chainId == destinationChainId {
         destination = rebuilt
       } else {
@@ -359,8 +372,10 @@ public actor SmartAccountClient {
     passkeyPublicKey: PasskeyPublicKey
   ) async throws -> ChainCalls {
     var prelude: [Call] = []
+    let isDestinationChain = bundle.chainId == destinationChainId
+    async let accountDeployedTask = isDeployed(account: account, chainId: bundle.chainId)
 
-    if try await !isDeployed(account: account, chainId: bundle.chainId) {
+    if try await !accountDeployedTask {
       // initialize must remain the first prelude call whenever included.
       prelude.insert(
         try SmartAccount.Initialize.asCall(account: account, passkeyPublicKey: passkeyPublicKey),
@@ -368,12 +383,16 @@ public actor SmartAccountClient {
       )
     }
 
-    if bundle.chainId == destinationChainId {
+    if isDestinationChain {
       let accumulatorFactory = try AAConstants.accumulatorFactoryAddress(chainId: bundle.chainId)
       let messenger = try AAConstants.messengerAddress(chainId: bundle.chainId)
       let accumulatorAddress = try await computeAccumulatorAddress(account: account, chainId: bundle.chainId)
+      async let accumulatorDeployedTask = isDeployed(
+        account: accumulatorAddress,
+        chainId: bundle.chainId
+      )
 
-      if try await !isDeployed(account: accumulatorAddress, chainId: bundle.chainId) {
+      if try await !accumulatorDeployedTask {
         prelude.append(
           try SmartAccount.AccumulatorFactory.deployCall(
             factory: accumulatorFactory,

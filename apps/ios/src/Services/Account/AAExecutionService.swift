@@ -2,6 +2,7 @@ import AA
 import Foundation
 import Transactions
 import AccountSetup
+import RPC
 internal import CryptoSwift
 internal import SignHandler
 internal import BigInt
@@ -30,13 +31,16 @@ extension AAExecutionServiceError: LocalizedError {
 final class AAExecutionService {
   private let smartAccountClient: SmartAccountClient
   private let aaClient: AAClient
+  private let rpcClient: RPCClient
 
   init(
     smartAccountClient: SmartAccountClient = SmartAccountClient(),
-    aaClient: AAClient = AAClient()
+    aaClient: AAClient = AAClient(),
+    rpcClient: RPCClient = RPCClient()
   ) {
     self.smartAccountClient = smartAccountClient
     self.aaClient = aaClient
+    self.rpcClient = rpcClient
   }
 
   func executeCalls(
@@ -60,8 +64,7 @@ final class AAExecutionService {
         chainId: chainId,
         payload: execute.payload
       )
-      return try await sendUserOperation(userOp, useSyncSend: false
-)
+      return try await sendUserOperation(userOp, useSyncSend: false)
     } catch {
       throw AAExecutionServiceError.executionFailed(error)
     }
@@ -108,7 +111,7 @@ final class AAExecutionService {
       }
 
       // 3. Sign Once
-        let hash = try hashUserOperation(representativeOp, .chainCalls)
+      let hash = try hashUserOperation(representativeOp, .chainCalls)
       let signature = try await accountService.signPayloadWithStoredPasskey(
         account: context.account,
         payload: hash
@@ -177,7 +180,7 @@ final class AAExecutionService {
     return userOp
   }
 
-  private func hashUserOperation(_ userOp: UserOperation,_ route: UserOperation.HashRoute) throws -> Data {
+  private func hashUserOperation(_ userOp: UserOperation, _ route: UserOperation.HashRoute) throws -> Data {
     do {
       return try userOp.hash(route: route)
     } catch {
@@ -227,14 +230,14 @@ final class AAExecutionService {
     accountService: AccountSetupService,
     context: ExecutionContext,
     chainId: UInt64,
-    payload: Data,
+    payload: Data
   ) async throws -> UserOperation {
-     let userOp = try await buildUserOperation(
+    let userOp = try await buildUserOperation(
       context: context,
       chainId: chainId,
       payload: payload
     )
-      let hash = try hashUserOperation(userOp, .normal)
+    let hash = try hashUserOperation(userOp, .normal)
     let signature = try await accountService.signPayloadWithStoredPasskey(
       account: context.account,
       payload: hash
@@ -242,9 +245,71 @@ final class AAExecutionService {
     let signed = try updateUserOperationSignature(userOp, signature: signature)
     return signed
   }
+
+  func waitForUserOperationInclusion(
+    chainId: UInt64,
+    userOperationHash: String,
+    timeout: TimeInterval = 180,
+    pollInterval: TimeInterval = 2
+  ) async throws -> Date {
+    let startedAt = Date()
+    let normalizedHash = userOperationHash.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    while Date().timeIntervalSince(startedAt) < timeout {
+      do {
+        let receiptEnvelope: BundlerUserOperationReceiptEnvelope = try await rpcClient.makeBundlerRpcCall(
+          chainId: chainId,
+          method: "eth_getUserOperationReceipt",
+          params: [AnyCodable(normalizedHash)],
+          responseType: BundlerUserOperationReceiptEnvelope.self
+        )
+
+        let blockEnvelope: BlockTimestampEnvelope = try await rpcClient.makeRpcCall(
+          chainId: chainId,
+          method: "eth_getBlockByNumber",
+          params: [AnyCodable(receiptEnvelope.receipt.blockNumber), AnyCodable(false)],
+          responseType: BlockTimestampEnvelope.self
+        )
+
+        let timestampHex = blockEnvelope.timestamp.replacingOccurrences(of: "0x", with: "")
+        guard let timestamp = UInt64(timestampHex, radix: 16) else {
+          throw AAExecutionServiceError.userOperationFailed(
+            RPCError.rpcError(code: -1, message: "Invalid block timestamp")
+          )
+        }
+        return Date(timeIntervalSince1970: TimeInterval(timestamp))
+      } catch let rpcError as RPCError {
+        switch rpcError {
+        case .missingResult:
+          break
+        default:
+          throw AAExecutionServiceError.userOperationFailed(rpcError)
+        }
+      } catch {
+        throw AAExecutionServiceError.userOperationFailed(error)
+      }
+
+      try? await Task.sleep(for: .seconds(pollInterval))
+    }
+
+    throw AAExecutionServiceError.userOperationFailed(
+      RPCError.rpcError(code: -1, message: "Timed out waiting for user operation receipt")
+    )
+  }
 }
 
 private struct ExecutionContext {
   let account: AccountIdentity
   let auth: EIP7702Auth
+}
+
+private struct BundlerUserOperationReceiptEnvelope: Decodable {
+  struct Receipt: Decodable {
+    let blockNumber: String
+  }
+  let receipt: Receipt
+}
+
+private struct BlockTimestampEnvelope: Decodable {
+  let timestamp: String
 }

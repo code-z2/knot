@@ -26,7 +26,7 @@ struct MockAsset: Identifiable, Hashable {
   let symbol: String
   let name: String
   let amountText: String
-  let valueText: String
+  let valueUSD: Decimal
   let iconAssetName: String
   let section: Section
   let variant: ItemVariant
@@ -36,45 +36,45 @@ struct MockAsset: Identifiable, Hashable {
 enum MockAssetData {
   static let portfolio: [MockAsset] = [
     .init(
-      id: "usdc", symbol: "USDC", name: "USD Coin", amountText: "36.42", valueText: "$36.21",
+      id: "usdc", symbol: "USDC", name: "USD Coin", amountText: "36.42", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .standard,
       keywords: ["stablecoin", "usd"]
     ),
     .init(
-      id: "eth", symbol: "ETH", name: "Ethereum", amountText: "0.0234", valueText: "$84.93",
+      id: "eth", symbol: "ETH", name: "Ethereum", amountText: "0.0234", valueUSD: 84.93,
       iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .valueOnly,
       keywords: ["ethereum", "gas"]
     ),
     .init(
-      id: "bnb", symbol: "BNB", name: "BNB", amountText: "1.28", valueText: "$36.21",
+      id: "bnb", symbol: "BNB", name: "BNB", amountText: "1.28", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .standard,
       keywords: ["binance"]
     ),
     .init(
-      id: "zsh", symbol: "ZSH", name: "Zcash", amountText: "36.42", valueText: "$36.21",
+      id: "zsh", symbol: "ZSH", name: "Zcash", amountText: "36.42", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
       keywords: ["privacy"]
     ),
     .init(
       id: "bat", symbol: "BAT", name: "Basic Attention Token", amountText: "124.10",
-      valueText: "$36.21",
+      valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .all,
       variant: .withChange(.init(direction: .down, percentageText: "3.24%")),
       keywords: ["attention", "browser"]
     ),
     .init(
-      id: "btc", symbol: "BTC", name: "Bitcoin", amountText: "0.0005", valueText: "$36.21",
+      id: "btc", symbol: "BTC", name: "Bitcoin", amountText: "0.0005", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .all,
       variant: .withChange(.init(direction: .up, percentageText: "1.18%")),
       keywords: ["bitcoin", "satoshi"]
     ),
     .init(
-      id: "usdt", symbol: "USDT", name: "Tether", amountText: "36.42", valueText: "$36.21",
+      id: "usdt", symbol: "USDT", name: "Tether", amountText: "36.42", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
       keywords: ["stablecoin", "tether"]
     ),
     .init(
-      id: "doge", symbol: "DOGE", name: "Dogecoin", amountText: "36.42", valueText: "$36.21",
+      id: "doge", symbol: "DOGE", name: "Dogecoin", amountText: "36.42", valueUSD: 36.21,
       iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
       keywords: ["meme", "doge"]
     ),
@@ -89,6 +89,9 @@ enum AssetListState: Equatable {
 struct AssetList: View {
   let query: String
   let state: AssetListState
+  var displayCurrencyCode: String = "USD"
+  var displayLocale: Locale = .current
+  var usdToSelectedRate: Decimal = 1
   var showSectionLabels = true
   var onSelect: ((MockAsset) -> Void)? = nil
 
@@ -102,6 +105,9 @@ struct AssetList: View {
         AssetListContent(
           query: query,
           assets: assets,
+          displayCurrencyCode: displayCurrencyCode,
+          displayLocale: displayLocale,
+          usdToSelectedRate: usdToSelectedRate,
           showSectionLabels: showSectionLabels,
           onSelect: onSelect
         )
@@ -120,6 +126,9 @@ struct AssetList: View {
 private struct AssetListContent: View {
   let query: String
   let assets: [MockAsset]
+  let displayCurrencyCode: String
+  let displayLocale: Locale
+  let usdToSelectedRate: Decimal
   let showSectionLabels: Bool
   let onSelect: ((MockAsset) -> Void)?
 
@@ -131,7 +140,11 @@ private struct AssetListContent: View {
         SearchDocument(
           id: $0.id,
           title: $0.symbol,
-          keywords: [$0.name, $0.valueText, $0.amountText] + $0.keywords
+          keywords: [
+            $0.name,
+            formatValueText(for: $0),
+            $0.amountText,
+          ] + $0.keywords
         )
       },
       itemID: { $0.id }
@@ -149,15 +162,15 @@ private struct AssetListContent: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       if !suggestedAssets.isEmpty {
-        section(title: "SUGGESTED", assets: suggestedAssets)
+        section(title: "asset_list_section_suggested", assets: suggestedAssets)
       }
 
       if !allAssets.isEmpty {
-        section(title: "ALL", assets: allAssets)
+        section(title: "asset_list_section_all", assets: allAssets)
       }
 
       if filteredAssets.isEmpty {
-        Text("No assets found")
+        Text("asset_list_empty")
           .font(.custom("RobotoMono-Medium", size: 12))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .padding(.horizontal, 8)
@@ -165,7 +178,7 @@ private struct AssetListContent: View {
     }
   }
 
-  private func section(title: String, assets: [MockAsset]) -> some View {
+  private func section(title: LocalizedStringKey, assets: [MockAsset]) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       if showSectionLabels {
         Text(title)
@@ -175,18 +188,29 @@ private struct AssetListContent: View {
 
       VStack(alignment: .leading, spacing: 8) {
         ForEach(assets) { asset in
+          let formattedValueText = formatValueText(for: asset)
           AssetItem(
             asset: asset,
+            valueText: formattedValueText,
             onTap: onSelect == nil ? nil : { onSelect?(asset) }
           )
         }
       }
     }
   }
+
+  private func formatValueText(for asset: MockAsset) -> String {
+    CurrencyDisplayFormatter.format(
+      amount: asset.valueUSD * usdToSelectedRate,
+      currencyCode: displayCurrencyCode,
+      locale: displayLocale
+    )
+  }
 }
 
 private struct AssetItem: View {
   let asset: MockAsset
+  let valueText: String
   var onTap: (() -> Void)? = nil
 
   var body: some View {
@@ -226,7 +250,7 @@ private struct AssetItem: View {
       Spacer(minLength: 8)
 
       VStack(alignment: .trailing, spacing: 2) {
-        Text(asset.valueText)
+        Text(valueText)
           .font(.custom("Inter-Regular_Medium", size: 12))
           .foregroundStyle(AppThemeColor.labelVibrantPrimary)
 

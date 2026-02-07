@@ -20,31 +20,34 @@ extension ENSClient {
     }
 
     let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
-    let availabilityResult = try await makeReadResult(
+    async let availabilityResult = makeReadResult(
       web3: web3,
       abi: Self.ethRegistrarControllerV2ABI,
       to: controllerAddress,
       method: "available",
       parameters: [label]
     )
-    guard let available = availabilityResult["0"] as? Bool else {
-      throw ENSError.missingResult("available")
-    }
+
     let rentPriceWei: BigUInt
     if let override = request.rentPriceWeiOverride {
       rentPriceWei = try parseWeiOverride(override)
     } else {
-      let quoteResult = try await makeReadResult(
+      async let quoteResultTask = makeReadResult(
         web3: web3,
         abi: Self.ethRegistrarControllerV2ABI,
         to: controllerAddress,
         method: "rentPrice",
         parameters: [label, request.duration]
       )
+      let quoteResult = try await quoteResultTask
       guard let quote = quoteResult["0"] as? BigUInt else {
         throw ENSError.missingResult("rentPrice")
       }
       rentPriceWei = quote
+    }
+    let resolvedAvailabilityResult = try await availabilityResult
+    guard let available = resolvedAvailabilityResult["0"] as? Bool else {
+      throw ENSError.missingResult("available")
     }
 
     return NameAvailabilityQuote(
@@ -78,13 +81,26 @@ extension ENSClient {
     }
 
     let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
-    let availabilityResult = try await makeReadResult(
+    async let minCommitmentAgeTask = minimumCommitmentAgeSeconds(
+      web3: web3,
+      controllerAddress: controllerAddress
+    )
+    async let availabilityResultTask = makeReadResult(
       web3: web3,
       abi: Self.ethRegistrarControllerV2ABI,
       to: controllerAddress,
       method: "available",
       parameters: [label]
     )
+    async let quoteResultTask = makeReadResult(
+      web3: web3,
+      abi: Self.ethRegistrarControllerV2ABI,
+      to: controllerAddress,
+      method: "rentPrice",
+      parameters: [label, request.duration]
+    )
+
+    let availabilityResult = try await availabilityResultTask
     guard let available = availabilityResult["0"] as? Bool else {
       throw ENSError.missingResult("available")
     }
@@ -133,20 +149,11 @@ extension ENSClient {
       throw ENSError.missingResult("commitment")
     }
 
-    let quoteResult = try await makeReadResult(
-      web3: web3,
-      abi: Self.ethRegistrarControllerV2ABI,
-      to: controllerAddress,
-      method: "rentPrice",
-      parameters: [label, request.duration]
-    )
+    let quoteResult = try await quoteResultTask
     guard let rentPriceWei = quoteResult["0"] as? BigUInt else {
       throw ENSError.missingResult("rentPrice")
     }
-    let minCommitmentAgeSeconds = await minimumCommitmentAgeSeconds(
-      web3: web3,
-      controllerAddress: controllerAddress
-    )
+    let minCommitmentAgeSeconds = await minCommitmentAgeTask
     let commitPayload = try makeWritePayload(
       web3: web3,
       abi: Self.ethRegistrarControllerV2ABI,

@@ -1,10 +1,17 @@
 import SwiftUI
 import UIKit
+import RPC
 
 private enum SendMoneyField: Hashable {
   case address
   case chain
   case asset
+}
+
+private enum SendMoneyStep: Hashable {
+  case recipient
+  case amount
+  case success
 }
 
 struct SendMoneyDraft: Sendable {
@@ -18,8 +25,27 @@ struct SendMoneyDraft: Sendable {
 struct SendMoneyView: View {
   let eoaAddress: String
   let store: BeneficiaryStore
+  let preferencesStore: PreferencesStore
+  let currencyRateStore: CurrencyRateStore
   var onBack: () -> Void = {}
   var onContinue: (SendMoneyDraft) -> Void = { _ in }
+  @Environment(\.openURL) private var openURL
+
+  init(
+    eoaAddress: String,
+    store: BeneficiaryStore,
+    preferencesStore: PreferencesStore,
+    currencyRateStore: CurrencyRateStore,
+    onBack: @escaping () -> Void = {},
+    onContinue: @escaping (SendMoneyDraft) -> Void = { _ in }
+  ) {
+    self.eoaAddress = eoaAddress
+    self.store = store
+    self.preferencesStore = preferencesStore
+    self.currencyRateStore = currencyRateStore
+    self.onBack = onBack
+    self.onContinue = onContinue
+  }
 
   @State private var beneficiaries: [Beneficiary] = []
   @State private var errorMessage: String?
@@ -39,34 +65,27 @@ struct SendMoneyView: View {
   @State private var isAssetInputFocused = false
   @State private var addressDetectionTask: Task<Void, Never>?
   @State private var isShowingScanner = false
+  @State private var step: SendMoneyStep = .recipient
 
-  private enum AddressDetectionResult: Sendable {
-    case evmAddress(String)
-    case ensName(String)
-    case invalid
-  }
+  @State private var amountInput = ""
+  @State private var isAmountDisplayInverted = false
+  @State private var selectedSpendAsset: MockAsset?
+  @State private var isShowingSpendAssetPicker = false
+  @State private var spendAssetQuery = ""
+  @State private var amountButtonState: AppButtonVisualState = .normal
+  @State private var amountActionTask: Task<Void, Never>?
 
   var body: some View {
     ZStack {
       AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
-      VStack(spacing: 0) {
-        addressInputField
-          .zIndex(activeField == .address ? 30 : 1)
-
-        chainInputField
-          .zIndex(activeField == .chain ? 20 : 1)
-
-        assetInputField
-          .zIndex(activeField == .asset ? 10 : 1)
-
-        Spacer()
+      if step == .recipient {
+        recipientStepContent
+      } else if step == .amount {
+        amountStepContent
+      } else {
+        successStepContent
       }
-      .padding(.top, AppHeaderMetrics.contentTopPadding)
-
-      continueButton
-        .padding(.bottom, 96)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
       if let errorMessage {
         toast(message: errorMessage)
@@ -77,15 +96,18 @@ struct SendMoneyView: View {
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
-        title: "Send Money",
+        title: headerTitle,
         titleFont: .custom("Inter-Regular_Bold", size: 22),
         titleColor: AppThemeColor.labelSecondary,
-        onBack: onBack
+        onBack: handleHeaderBack
       )
     }
     .task {
       await reload()
-      focusFirstIncompleteField()
+      selectedSpendAsset = selectedAsset
+      if step == .recipient {
+        focusFirstIncompleteField()
+      }
     }
     .onChange(of: addressQuery) { _, newValue in
       handleAddressQueryDidChange(newValue)
@@ -102,8 +124,14 @@ struct SendMoneyView: View {
         self.selectedAsset = nil
       }
     }
+    .onChange(of: selectedAsset?.id) { _, _ in
+      if step == .recipient {
+        selectedSpendAsset = selectedAsset
+      }
+    }
     .onDisappear {
       addressDetectionTask?.cancel()
+      amountActionTask?.cancel()
     }
     .fullScreenCover(isPresented: $isShowingScanner) {
       SendMoneyScanView(
@@ -113,14 +141,151 @@ struct SendMoneyView: View {
         onCodeScanned: handleScannedCode
       )
     }
+    .overlay(alignment: .bottom) {
+      SlideModal(
+        isPresented: isShowingSpendAssetPicker,
+        kind: .fullHeight(topInset: 12),
+        onDismiss: { isShowingSpendAssetPicker = false }
+      ) {
+        spendAssetModal
+      }
+    }
+  }
+
+  private var recipientStepContent: some View {
+    VStack(spacing: 0) {
+      addressInputField
+        .zIndex(activeField == .address ? 30 : 1)
+
+      chainInputField
+        .zIndex(activeField == .chain ? 20 : 1)
+
+      assetInputField
+        .zIndex(activeField == .asset ? 10 : 1)
+
+      Spacer()
+    }
+    .padding(.top, AppHeaderMetrics.contentTopPadding)
+    .overlay(alignment: .bottom) {
+      continueButton
+        .padding(.bottom, 96)
+    }
+  }
+
+  private var headerTitle: LocalizedStringKey {
+    switch step {
+    case .recipient:
+      return "send_money_title"
+    case .amount:
+      return "send_money_enter_amount_title"
+    case .success:
+      return ""
+    }
+  }
+
+  private var amountStepContent: some View {
+    GeometryReader { proxy in
+      let isCompactHeight = proxy.size.height < 760
+
+      VStack(spacing: 0) {
+        SendMoneyAmountDisplay(
+          primaryAmountText: primaryAmountText,
+          primarySymbolText: primarySymbolText,
+          secondaryAmountText: secondaryAmountText,
+          secondarySymbolText: secondarySymbolText,
+          onSwapTap: {
+            withAnimation(.easeInOut(duration: 0.18)) {
+              isAmountDisplayInverted.toggle()
+            }
+          }
+        )
+        .padding(.top, isCompactHeight ? 8 : 16)
+
+        if let helperMessage = amountHelperMessage {
+          Text(helperMessage.text)
+            .font(.custom("Roboto-Regular", size: 14))
+            .foregroundStyle(helperMessage.color)
+            .padding(.top, isCompactHeight ? 18 : 26)
+            .padding(.bottom, 10)
+        } else {
+          Spacer()
+            .frame(height: isCompactHeight ? 38 : 50)
+        }
+
+        if let spendAsset = currentSpendAsset {
+          SendMoneyBalanceWidget(
+            asset: spendAsset,
+            balanceText: spendAssetBalanceText,
+            onSwitchTap: {
+              spendAssetQuery = ""
+              isShowingSpendAssetPicker = true
+            }
+          )
+        }
+
+        SendMoneyNumericKeypad(
+          height: isCompactHeight ? 296 : 332,
+          rowSpacing: isCompactHeight ? 28 : 36
+        ) { key in
+          handleKeypadTap(key)
+        }
+        .padding(.top, isCompactHeight ? 18 : 28)
+
+        Spacer(minLength: isCompactHeight ? 14 : 24)
+
+        amountActionButton
+          .padding(.bottom, isCompactHeight ? 20 : 32)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .padding(.horizontal, 48)
+    }
+  }
+
+  private var successStepContent: some View {
+    VStack(spacing: 0) {
+      Spacer(minLength: 120)
+
+      VStack(spacing: 56) {
+        VStack(spacing: 48) {
+          MetuSuccessCheckmark()
+            .frame(width: 127, height: 123)
+
+          VStack(spacing: 24) {
+            Text("send_money_success_title")
+              .font(.custom("Roboto-Medium", size: 34))
+              .foregroundStyle(AppThemeColor.labelPrimary)
+              .multilineTextAlignment(.center)
+
+            Text("send_money_success_subtitle")
+              .font(.custom("Roboto-Regular", size: 20))
+              .foregroundStyle(AppThemeColor.labelPrimary)
+              .multilineTextAlignment(.center)
+          }
+        }
+
+        HStack(spacing: 12) {
+          AppButton(label: "send_money_repeat_transfer", variant: .outline) {
+            repeatTransfer()
+          }
+
+          AppButton(label: "send_money_view_tx", variant: .outline) {
+            openSuccessExplorerURL()
+          }
+        }
+      }
+
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .padding(.horizontal, 38)
   }
 
   private var addressInputField: some View {
     DropdownInputField(
       variant: .address,
       properties: .init(
-        label: "To",
-        placeholder: "Address or ENS name",
+        label: String(localized: "send_money_to_label"),
+        placeholder: String(localized: "send_money_address_placeholder"),
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -142,8 +307,8 @@ struct SendMoneyView: View {
     DropdownInputField(
       variant: .chain,
       properties: .init(
-        label: "Chain",
-        placeholder: "Select network",
+        label: String(localized: "send_money_chain_label"),
+        placeholder: String(localized: "send_money_chain_placeholder"),
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -164,8 +329,8 @@ struct SendMoneyView: View {
     DropdownInputField(
       variant: .asset,
       properties: .init(
-        label: "Asset",
-        placeholder: "Select asset",
+        label: String(localized: "send_money_asset_label"),
+        placeholder: String(localized: "send_money_asset_placeholder"),
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -183,18 +348,68 @@ struct SendMoneyView: View {
   }
 
   private var continueButton: some View {
-    AppButton(label: "Continue", variant: .default) {
-      submit()
+    AppButton(label: "send_money_continue", variant: .default) {
+      proceedToAmountStep()
     }
     .disabled(!canContinue)
     .opacity(canContinue ? 1 : 0)
     .animation(.easeInOut(duration: 0.18), value: canContinue)
   }
 
+  private var amountActionButton: some View {
+    AppButton(
+      label: amountButtonLabel,
+      variant: amountButtonVariant,
+      visualState: amountButtonState,
+      showIcon: amountButtonShowsIcon,
+      iconName: amountButtonIconName,
+      iconSize: 16
+    ) {
+      confirmAmount()
+    }
+    .disabled(!canAttemptAmountAction)
+    .opacity(amountActionButtonOpacity)
+    .animation(.easeInOut(duration: 0.18), value: canAttemptAmountAction)
+    .animation(.easeInOut(duration: 0.18), value: amountButtonState)
+  }
+
+  private var spendAssetModal: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      SearchInput(text: $spendAssetQuery, placeholderKey: "search_placeholder", width: nil)
+        .padding(.horizontal, 20)
+        .padding(.top, 13)
+        .padding(.bottom, 21)
+
+      Rectangle()
+        .fill(AppThemeColor.separatorOpaque)
+        .frame(height: 4)
+
+      ScrollView(showsIndicators: false) {
+        AssetList(
+          query: spendAssetQuery,
+          state: .loaded(MockAssetData.portfolio),
+          displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+          displayLocale: preferencesStore.locale,
+          usdToSelectedRate: selectedFiatRateFromUSD,
+          showSectionLabels: true
+        ) { asset in
+          selectedSpendAsset = asset
+          spendAssetQuery = ""
+          isShowingSpendAssetPicker = false
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 28)
+      }
+      .padding(.horizontal, 20)
+      .padding(.top, 24)
+      .padding(.bottom, 24)
+    }
+  }
+
   private var addressDropdown: some View {
     Group {
       if filteredBeneficiaries.isEmpty {
-        Text("No beneficiaries found")
+        Text("send_money_no_beneficiaries_found")
           .font(.custom("Roboto-Regular", size: 13))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .frame(maxWidth: .infinity, alignment: .center)
@@ -227,7 +442,14 @@ struct SendMoneyView: View {
 
   private var assetDropdown: some View {
     ScrollView(showsIndicators: false) {
-      AssetList(query: assetQuery, state: .loaded(MockAssetData.portfolio), showSectionLabels: true) {
+      AssetList(
+        query: assetQuery,
+        state: .loaded(MockAssetData.portfolio),
+        displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+        displayLocale: preferencesStore.locale,
+        usdToSelectedRate: selectedFiatRateFromUSD,
+        showSectionLabels: true
+      ) {
         asset in
         selectedAsset = asset
         assetQuery = ""
@@ -295,6 +517,190 @@ struct SendMoneyView: View {
     guard let resolvedAddress, !resolvedAddress.isEmpty else { return false }
     guard selectedChain != nil else { return false }
     return selectedAsset != nil
+  }
+
+  private var currentSpendAsset: MockAsset? {
+    selectedSpendAsset ?? selectedAsset
+  }
+
+  private var amountButtonLabel: LocalizedStringKey {
+    switch amountButtonState {
+    case .normal:
+      return "send_money_confirm"
+    case .loading:
+      return "send_money_sending"
+    case .error:
+      return "send_money_failed"
+    }
+  }
+
+  private var amountButtonVariant: AppButtonVariant {
+    switch amountButtonState {
+    case .normal:
+      return .default
+    case .loading:
+      return .neutral
+    case .error:
+      return .destructive
+    }
+  }
+
+  private var amountButtonShowsIcon: Bool {
+    amountButtonState != .normal
+  }
+
+  private var amountButtonIconName: String? {
+    switch amountButtonState {
+    case .normal:
+      return nil
+    case .loading:
+      return nil
+    case .error:
+      return "Icons/x_close"
+    }
+  }
+
+  private var canAttemptAmountAction: Bool {
+    enteredMainAmount > 0 && amountButtonState == .normal
+  }
+
+  private var amountActionButtonOpacity: Double {
+    if amountButtonState != .normal {
+      return 1
+    }
+    return enteredMainAmount > 0 ? 1 : 0.45
+  }
+
+  private var selectedFiatCode: String {
+    preferencesStore.selectedCurrencyCode
+  }
+
+  private var selectedFiatRateFromUSD: Decimal {
+    currencyRateStore.rateFromUSD(to: selectedFiatCode)
+  }
+
+  private var assetUSDPrice: Decimal {
+    guard let assetID = currentSpendAsset?.id else { return 1 }
+    switch assetID {
+    case "usdc", "usdt":
+      return 1
+    case "eth":
+      return 3200
+    case "bnb":
+      return 600
+    case "btc":
+      return 64000
+    default:
+      return 1
+    }
+  }
+
+  private var enteredMainAmount: Decimal {
+    decimal(from: amountInput) ?? 0
+  }
+
+  private var usdAmount: Decimal {
+    if isAmountDisplayInverted {
+      return enteredMainAmount * assetUSDPrice
+    }
+    guard selectedFiatRateFromUSD > 0 else {
+      return enteredMainAmount
+    }
+    return currencyRateStore.convertSelectedToUSD(
+      enteredMainAmount,
+      currencyCode: selectedFiatCode
+    )
+  }
+
+  private var assetAmount: Decimal {
+    if isAmountDisplayInverted {
+      return enteredMainAmount
+    }
+    guard assetUSDPrice > 0 else { return 0 }
+    return usdAmount / assetUSDPrice
+  }
+
+  private var displayFiatAmount: Decimal {
+    currencyRateStore.convertUSDToSelected(
+      usdAmount,
+      currencyCode: selectedFiatCode
+    )
+  }
+
+  private var availableAssetBalance: Decimal {
+    guard let amountText = currentSpendAsset?.amountText else { return 0 }
+    return decimal(from: amountText) ?? 0
+  }
+
+  private var isInsufficientBalance: Bool {
+    assetAmount > availableAssetBalance && enteredMainAmount > 0
+  }
+
+  private var primaryAmountText: String {
+    let value = isAmountDisplayInverted ? assetAmount : displayFiatAmount
+    return format(value, minFractionDigits: 1, maxFractionDigits: 2)
+  }
+
+  private var primarySymbolText: String {
+    if isAmountDisplayInverted {
+      return currentSpendAsset?.symbol ?? "USDC"
+    }
+    return currencyRateStore.symbol(
+      for: selectedFiatCode,
+      locale: preferencesStore.locale
+    )
+  }
+
+  private var secondaryAmountText: String {
+    let value = isAmountDisplayInverted ? displayFiatAmount : assetAmount
+    return format(value, minFractionDigits: 1, maxFractionDigits: 4)
+  }
+
+  private var secondarySymbolText: String {
+    if isAmountDisplayInverted {
+      return currencyRateStore.symbol(
+        for: selectedFiatCode,
+        locale: preferencesStore.locale
+      )
+    }
+    return currentSpendAsset?.symbol ?? "USDC"
+  }
+
+  private var spendAssetBalanceText: String {
+    guard let spendAsset = currentSpendAsset else { return "0" }
+    let assetBalance = decimal(from: spendAsset.amountText) ?? 0
+    let balanceUSD = assetBalance * usdRate(for: spendAsset)
+    return currencyRateStore.formatUSD(
+      balanceUSD,
+      currencyCode: selectedFiatCode,
+      locale: preferencesStore.locale
+    )
+  }
+
+  private var amountHelperMessage: (text: String, color: Color)? {
+    if isInsufficientBalance {
+      return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
+    }
+
+    guard enteredMainAmount > 0 else { return nil }
+    guard
+      let selectedAsset,
+      let spendAsset = currentSpendAsset,
+      selectedAsset.id != spendAsset.id
+    else {
+      return nil
+    }
+
+    let recipientRate = usdRate(for: selectedAsset)
+    guard recipientRate > 0 else { return nil }
+    let recipientAmount = usdAmount / recipientRate
+    let amountText = format(recipientAmount, minFractionDigits: 1, maxFractionDigits: 2)
+    let summary = String.localizedStringWithFormat(
+      NSLocalizedString("send_money_swap_summary_format", comment: ""),
+      amountText,
+      selectedAsset.symbol
+    )
+    return (summary, AppThemeColor.accentBrown)
   }
 
   private func expandedBinding(for field: SendMoneyField) -> Binding<Bool> {
@@ -400,7 +806,7 @@ struct SendMoneyView: View {
     let snapshot = trimmed
     addressDetectionTask = Task(priority: .userInitiated) {
       let detection = await Task.detached(priority: .userInitiated) {
-        SendMoneyView.detectAddressCandidate(snapshot)
+        AddressInputParser.detectCandidate(snapshot)
       }.value
 
       guard !Task.isCancelled else { return }
@@ -449,65 +855,14 @@ struct SendMoneyView: View {
   }
 
   private func isAddressInputValid(_ input: String) -> Bool {
-    SendMoneyView.isLikelyEVMAddress(input) || SendMoneyView.isLikelyENSName(input)
+    AddressInputParser.isLikelyEVMAddress(input) || AddressInputParser.isLikelyENSName(input)
   }
 
   private func displayAddressOrENS(_ value: String) -> String {
-    if SendMoneyView.isLikelyEVMAddress(value) {
+    if AddressInputParser.isLikelyEVMAddress(value) {
       return AddressShortener.shortened(value)
     }
     return value
-  }
-
-  nonisolated private static func detectAddressCandidate(_ input: String) -> AddressDetectionResult {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !normalized.isEmpty else { return .invalid }
-
-    if isLikelyEVMAddress(normalized) {
-      return .evmAddress(normalized)
-    }
-    if isLikelyENSName(normalized) {
-      return .ensName(normalized.lowercased())
-    }
-    return .invalid
-  }
-
-  nonisolated private static func isLikelyEVMAddress(_ input: String) -> Bool {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
-    let pattern = #"^0x[a-fA-F0-9]{40}$"#
-    return normalized.range(of: pattern, options: .regularExpression) != nil
-  }
-
-  nonisolated private static func isLikelyENSName(_ input: String) -> Bool {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    let pattern =
-      #"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.eth$"#
-    return normalized.range(of: pattern, options: .regularExpression) != nil
-  }
-
-  nonisolated private static func extractAddressCandidate(from rawCode: String) -> String? {
-    let normalized = rawCode.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !normalized.isEmpty else { return nil }
-
-    if isLikelyEVMAddress(normalized) {
-      return normalized
-    }
-    if isLikelyENSName(normalized) {
-      return normalized.lowercased()
-    }
-
-    let separators = CharacterSet(charactersIn: " \n\t\r/?&=:#@")
-    let tokens = normalized.components(separatedBy: separators).filter { !$0.isEmpty }
-    for token in tokens {
-      if isLikelyEVMAddress(token) {
-        return token
-      }
-      if isLikelyENSName(token) {
-        return token.lowercased()
-      }
-    }
-
-    return nil
   }
 
   @MainActor
@@ -535,9 +890,30 @@ struct SendMoneyView: View {
     isShowingScanner = true
   }
 
+  private func handleHeaderBack() {
+    if isShowingSpendAssetPicker {
+      isShowingSpendAssetPicker = false
+      return
+    }
+
+    if step == .success {
+      onBack()
+      return
+    }
+
+    if step == .amount {
+      withAnimation(.easeInOut(duration: 0.18)) {
+        step = .recipient
+      }
+      return
+    }
+
+    onBack()
+  }
+
   @MainActor
   private func handleScannedCode(_ rawCode: String) -> Bool {
-    guard let candidate = SendMoneyView.extractAddressCandidate(from: rawCode) else {
+    guard let candidate = AddressInputParser.extractCandidate(from: rawCode) else {
       return false
     }
 
@@ -548,7 +924,7 @@ struct SendMoneyView: View {
     return true
   }
 
-  private func submit() {
+  private func proceedToAmountStep() {
     guard canContinue else { return }
     finalizeAddressIfNeeded()
     guard
@@ -566,6 +942,134 @@ struct SendMoneyView: View {
         assetSymbol: selectedAsset.symbol
       )
     )
+
+    selectedSpendAsset = selectedAsset
+    amountInput = ""
+    isAmountDisplayInverted = false
+    amountButtonState = .normal
+    withAnimation(.easeInOut(duration: 0.18)) {
+      step = .amount
+    }
+  }
+
+  private func confirmAmount() {
+    guard canAttemptAmountAction else { return }
+    amountActionTask?.cancel()
+
+    if isInsufficientBalance {
+      amountButtonState = .error
+      amountActionTask = Task { @MainActor in
+        try? await Task.sleep(for: .milliseconds(1100))
+        amountButtonState = .normal
+      }
+      return
+    }
+
+    amountButtonState = .loading
+    amountActionTask = Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(1200))
+      amountButtonState = .normal
+      withAnimation(.easeInOut(duration: 0.20)) {
+        step = .success
+      }
+    }
+  }
+
+  private func repeatTransfer() {
+    withAnimation(.easeInOut(duration: 0.18)) {
+      step = .recipient
+    }
+  }
+
+  private func openSuccessExplorerURL() {
+    guard
+      let chainId = selectedChainExplorerChainId,
+      let address = resolvedAddress,
+      let url = BlockExplorer.addressURL(chainId: chainId, address: address)
+    else {
+      return
+    }
+    openURL(url, prefersInApp: false)
+  }
+
+  private var selectedChainExplorerChainId: UInt64? {
+    guard let chainId = selectedChain?.id else { return nil }
+    switch chainId {
+    case "ethereum":
+      return 1
+    case "sepolia":
+      return 11155111
+    case "base":
+      return 8453
+    case "base-sepolia":
+      return 84532
+    case "arbitrum":
+      return 42161
+    case "optimism":
+      return 10
+    case "polygon":
+      return 137
+    case "bnb-smart-chain":
+      return 56
+    default:
+      return nil
+    }
+  }
+
+  private func handleKeypadTap(_ key: SendMoneyKeypadKey) {
+    guard amountButtonState == .normal else { return }
+    switch key {
+    case .digit(let digit):
+      if amountInput == "0" {
+        amountInput = digit
+      } else {
+        amountInput.append(digit)
+      }
+    case .decimal:
+      if amountInput.isEmpty {
+        amountInput = "0."
+      } else if !amountInput.contains(".") {
+        amountInput.append(".")
+      }
+    case .backspace:
+      guard !amountInput.isEmpty else { return }
+      amountInput.removeLast()
+    }
+  }
+
+  private func decimal(from input: String) -> Decimal? {
+    let sanitized = input.trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: ",", with: "")
+    guard !sanitized.isEmpty else { return 0 }
+    return Decimal(string: sanitized)
+  }
+
+  private func format(
+    _ value: Decimal,
+    minFractionDigits: Int,
+    maxFractionDigits: Int
+  ) -> String {
+    let formatter = NumberFormatter()
+    formatter.locale = Locale.current
+    formatter.numberStyle = .decimal
+    formatter.minimumFractionDigits = minFractionDigits
+    formatter.maximumFractionDigits = maxFractionDigits
+    return formatter.string(from: value as NSDecimalNumber) ?? "0.0"
+  }
+
+  private func usdRate(for asset: MockAsset) -> Decimal {
+    switch asset.id {
+    case "usdc", "usdt":
+      return 1
+    case "eth":
+      return 3200
+    case "bnb":
+      return 600
+    case "btc":
+      return 64000
+    default:
+      return 1
+    }
   }
 
   private func toast(message: String) -> some View {
@@ -578,6 +1082,30 @@ struct SendMoneyView: View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
       )
+  }
+}
+
+private struct MetuSuccessCheckmark: View {
+  var body: some View {
+    GeometryReader { proxy in
+      Image("LogoMark")
+        .renderingMode(.template)
+        .resizable()
+        .aspectRatio(127.0 / 123.0, contentMode: .fit)
+        .foregroundStyle(AppThemeColor.accentGreen)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .mask(alignment: .bottomTrailing) {
+          Rectangle()
+            .frame(
+              width: proxy.size.width * 0.76,
+              height: proxy.size.height * 0.62
+            )
+            .offset(
+              x: proxy.size.width * 0.04,
+              y: proxy.size.height * 0.07
+            )
+        }
+    }
   }
 }
 
@@ -655,7 +1183,7 @@ private struct SendMoneyScanView: View {
       .frame(width: 48, height: 48)
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("Toggle flashlight")
+    .accessibilityLabel(Text("send_money_scanner_toggle_flashlight"))
   }
 
   @ViewBuilder
@@ -671,9 +1199,9 @@ private struct SendMoneyScanView: View {
         .multilineTextAlignment(.center)
 
       if error == .permissionDenied {
-        Button("Open Settings") {
+        Button("send_money_open_settings") {
           guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-          openURL(url)
+          openURL(url, prefersInApp: false)
         }
         .font(.custom("Roboto-Bold", size: 13))
         .foregroundStyle(AppThemeColor.labelPrimary)
@@ -696,22 +1224,22 @@ private struct SendMoneyScanView: View {
   private func errorTitle(_ error: QRScannerError) -> String {
     switch error {
     case .permissionDenied:
-      return "Camera access needed"
+      return String(localized: "send_money_scanner_camera_access_needed")
     case .unavailable:
-      return "Camera unavailable"
+      return String(localized: "send_money_scanner_camera_unavailable")
     case .configurationFailed:
-      return "Scanner unavailable"
+      return String(localized: "send_money_scanner_unavailable")
     }
   }
 
   private func errorSubtitle(_ error: QRScannerError) -> String {
     switch error {
     case .permissionDenied:
-      return "Allow camera access in Settings to scan wallet QR codes."
+      return String(localized: "send_money_scanner_permission_subtitle")
     case .unavailable:
-      return "No compatible camera device is available."
+      return String(localized: "send_money_scanner_unavailable_subtitle")
     case .configurationFailed:
-      return "Unable to configure camera scanner."
+      return String(localized: "send_money_scanner_config_subtitle")
     }
   }
 
@@ -773,6 +1301,8 @@ private struct RoundedCornerArc: Shape {
 #Preview {
   SendMoneyView(
     eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
-    store: BeneficiaryStore()
+    store: BeneficiaryStore(),
+    preferencesStore: PreferencesStore(),
+    currencyRateStore: CurrencyRateStore()
   )
 }
