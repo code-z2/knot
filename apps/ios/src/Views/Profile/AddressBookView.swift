@@ -269,7 +269,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .address,
       properties: .init(
-        placeholder: String(localized: "address_book_placeholder_address_or_ens"),
+        placeholder: "address_book_placeholder_address_or_ens",
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -290,7 +290,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .chain,
       properties: .init(
-        placeholder: String(localized: "address_book_placeholder_chain"),
+        placeholder: "address_book_placeholder_chain",
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelSecondary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -311,7 +311,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .noDropdown,
       properties: .init(
-        placeholder: String(localized: "address_book_placeholder_alias"),
+        placeholder: "address_book_placeholder_alias",
         trailingIconAssetName: nil,
         textFont: .custom("Inter-Regular_Medium", size: 14),
         textColor: AppThemeColor.labelPrimary,

@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "ধরণ";
 "transaction_view_tx" = "Tx দেখুন";
 "wallet_backup_tap_to_reveal" = "প্রকাশ করতে ট্যাপ করুন";
+
+"transaction_status_success" = "সফল";
+"transaction_status_failed" = "ব্যর্থ";
+"transaction_row_received_usdc" = "USDC গ্রহণ করা হয়েছে";
+"transaction_row_sent_usdc" = "USDC পাঠানো হয়েছে";
+"transaction_row_received_eth" = "ETH গ্রহণ করা হয়েছে";
+"transaction_row_contract_interaction" = "কন্ট্রাক্ট ইন্টারঅ্যাকশন";
+"transaction_row_multichain_transfer" = "মাল্টি-চেইন ট্রান্সফার";
+"transaction_row_subtitle_on_base" = "Base-এ";
+"transaction_row_subtitle_from_ethereum" = "Ethereum থেকে";
+"transaction_row_subtitle_on_uniswap" = "Uniswap-এ";
+"transaction_label_from" = "প্রেরক";
+"transaction_label_to" = "প্রাপক";
+"transaction_label_contract" = "কন্ট্রাক্ট";
+"transaction_type_receive" = "গ্রহণ";
+"transaction_type_send" = "পাঠান";
+"transaction_type_contract_interaction" = "কন্ট্রাক্ট ইন্টারঅ্যাকশন";
+"transaction_type_multichain_transfer" = "মাল্টি-চেইন ট্রান্সফার";
+"transaction_receipt_subtitle_gas_fee" = "গ্যাস ফি";
+"transaction_row_prefix_on" = "এ";
+"transaction_row_prefix_from" = "থেকে";
+"transaction_row_action_sent" = "পাঠানো হয়েছে";
+"transaction_row_action_received" = "গ্রহণ করা হয়েছে";

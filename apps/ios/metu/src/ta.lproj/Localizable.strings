@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "வகை";
 "transaction_view_tx" = "Tx ஐப் பார்";
 "wallet_backup_tap_to_reveal" = "வெளிப்படுத்த தட்டவும்";
+
+"transaction_status_success" = "வெற்றி";
+"transaction_status_failed" = "தோல்வி";
+"transaction_row_received_usdc" = "USDC பெறப்பட்டது";
+"transaction_row_sent_usdc" = "USDC அனுப்பப்பட்டது";
+"transaction_row_received_eth" = "ETH பெறப்பட்டது";
+"transaction_row_contract_interaction" = "ஒப்பந்த தொடர்பு";
+"transaction_row_multichain_transfer" = "பல-சங்கிலி பரிமாற்றம்";
+"transaction_row_subtitle_on_base" = "Base இல்";
+"transaction_row_subtitle_from_ethereum" = "Ethereum இலிருந்து";
+"transaction_row_subtitle_on_uniswap" = "Uniswap இல்";
+"transaction_label_from" = "இருந்து";
+"transaction_label_to" = "க்கு";
+"transaction_label_contract" = "ஒப்பந்தம்";
+"transaction_type_receive" = "பெறு";
+"transaction_type_send" = "அனுப்பு";
+"transaction_type_contract_interaction" = "ஒப்பந்த தொடர்பு";
+"transaction_type_multichain_transfer" = "பல-சங்கிலி பரிமாற்றம்";
+"transaction_receipt_subtitle_gas_fee" = "எரிவாயு கட்டணம்";
+"transaction_row_prefix_on" = "இல்";
+"transaction_row_prefix_from" = "இருந்து";
+"transaction_row_action_sent" = "அனுப்பப்பட்டது";
+"transaction_row_action_received" = "பெறப்பட்டது";

@@ -130,7 +130,9 @@ struct HomeView: View {
           Text("home_add_money")
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.backgroundPrimary)
-            .frame(width: 120, height: 52)
+            .frame(minWidth: 120)
+            .frame(height: 52)
+            .padding(.horizontal, 8)
             .background(
               RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(AppThemeColor.accentBrown)
@@ -144,7 +146,9 @@ struct HomeView: View {
           Text("home_send_money")
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.backgroundPrimary)
-            .frame(width: 120, height: 52)
+            .frame(minWidth: 120)
+            .frame(height: 52)
+            .padding(.horizontal, 8)
             .background(
               RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(AppThemeColor.accentBrown)

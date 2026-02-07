@@ -1,6 +1,6 @@
+import RPC
 import SwiftUI
 import UIKit
-import RPC
 
 private enum SendMoneyField: Hashable {
   case address
@@ -185,7 +185,6 @@ struct SendMoneyView: View {
 
   private var amountStepContent: some View {
     GeometryReader { proxy in
-      let isCompactHeight = proxy.size.height < 760
 
       VStack(spacing: 0) {
         SendMoneyAmountDisplay(
@@ -199,17 +198,18 @@ struct SendMoneyView: View {
             }
           }
         )
-        .padding(.top, isCompactHeight ? 8 : 16)
+        .padding(.top, 42)
+        .padding(.bottom, 16)
 
         if let helperMessage = amountHelperMessage {
           Text(helperMessage.text)
             .font(.custom("Roboto-Regular", size: 14))
             .foregroundStyle(helperMessage.color)
-            .padding(.top, isCompactHeight ? 18 : 26)
+            .padding(.top, 36)
             .padding(.bottom, 10)
         } else {
           Spacer()
-            .frame(height: isCompactHeight ? 38 : 50)
+            .frame(height: 46)
         }
 
         if let spendAsset = currentSpendAsset {
@@ -224,17 +224,15 @@ struct SendMoneyView: View {
         }
 
         SendMoneyNumericKeypad(
-          height: isCompactHeight ? 296 : 332,
-          rowSpacing: isCompactHeight ? 28 : 36
+          height: 332,
+          rowSpacing: 36
         ) { key in
           handleKeypadTap(key)
         }
-        .padding(.top, isCompactHeight ? 18 : 28)
-
-        Spacer(minLength: isCompactHeight ? 14 : 24)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
 
         amountActionButton
-          .padding(.bottom, isCompactHeight ? 20 : 32)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
       .padding(.horizontal, 48)
@@ -284,8 +282,8 @@ struct SendMoneyView: View {
     DropdownInputField(
       variant: .address,
       properties: .init(
-        label: String(localized: "send_money_to_label"),
-        placeholder: String(localized: "send_money_address_placeholder"),
+        label: "send_money_to_label",
+        placeholder: "send_money_address_placeholder",
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -307,8 +305,8 @@ struct SendMoneyView: View {
     DropdownInputField(
       variant: .chain,
       properties: .init(
-        label: String(localized: "send_money_chain_label"),
-        placeholder: String(localized: "send_money_chain_placeholder"),
+        label: "send_money_chain_label",
+        placeholder: "send_money_chain_placeholder",
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -329,8 +327,8 @@ struct SendMoneyView: View {
     DropdownInputField(
       variant: .asset,
       properties: .init(
-        label: String(localized: "send_money_asset_label"),
-        placeholder: String(localized: "send_money_asset_placeholder"),
+        label: "send_money_asset_label",
+        placeholder: "send_money_asset_placeholder",
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -695,11 +693,7 @@ struct SendMoneyView: View {
     guard recipientRate > 0 else { return nil }
     let recipientAmount = usdAmount / recipientRate
     let amountText = format(recipientAmount, minFractionDigits: 1, maxFractionDigits: 2)
-    let summary = String.localizedStringWithFormat(
-      NSLocalizedString("send_money_swap_summary_format", comment: ""),
-      amountText,
-      selectedAsset.symbol
-    )
+    let summary = "Will swap on LiFi. recipient gets \(amountText) \(selectedAsset.symbol)"
     return (summary, AppThemeColor.accentBrown)
   }
 
@@ -989,7 +983,7 @@ struct SendMoneyView: View {
     else {
       return
     }
-    openURL(url, prefersInApp: false)
+    openURL(url, prefersInApp: true)
   }
 
   private var selectedChainExplorerChainId: UInt64? {
@@ -998,7 +992,7 @@ struct SendMoneyView: View {
     case "ethereum":
       return 1
     case "sepolia":
-      return 11155111
+      return 11_155_111
     case "base":
       return 8453
     case "base-sepolia":
@@ -1201,7 +1195,7 @@ private struct SendMoneyScanView: View {
       if error == .permissionDenied {
         Button("send_money_open_settings") {
           guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-          openURL(url, prefersInApp: false)
+          openURL(url, prefersInApp: true)
         }
         .font(.custom("Roboto-Bold", size: 13))
         .foregroundStyle(AppThemeColor.labelPrimary)

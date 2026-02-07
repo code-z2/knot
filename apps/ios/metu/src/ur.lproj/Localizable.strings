@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "قسم";
 "transaction_view_tx" = "Tx دیکھیں";
 "wallet_backup_tap_to_reveal" = "ظاہر کرنے کے لیے تھپتھپائیں";
+
+"transaction_status_success" = "کامیاب";
+"transaction_status_failed" = "ناکام";
+"transaction_row_received_usdc" = "USDC وصول ہوا";
+"transaction_row_sent_usdc" = "USDC بھیجا گیا";
+"transaction_row_received_eth" = "ETH وصول ہوا";
+"transaction_row_contract_interaction" = "کنٹریکٹ تعامل";
+"transaction_row_multichain_transfer" = "ملٹی چین ٹرانسفر";
+"transaction_row_subtitle_on_base" = "Base پر";
+"transaction_row_subtitle_from_ethereum" = "Ethereum سے";
+"transaction_row_subtitle_on_uniswap" = "Uniswap پر";
+"transaction_label_from" = "سے";
+"transaction_label_to" = "کو";
+"transaction_label_contract" = "کنٹریکٹ";
+"transaction_type_receive" = "وصول";
+"transaction_type_send" = "بھیجیں";
+"transaction_type_contract_interaction" = "کنٹریکٹ تعامل";
+"transaction_type_multichain_transfer" = "ملٹی چین ٹرانسفر";
+"transaction_receipt_subtitle_gas_fee" = "گیس فیس";
+"transaction_row_prefix_on" = "پر";
+"transaction_row_prefix_from" = "سے";
+"transaction_row_action_sent" = "بھیجا گیا";
+"transaction_row_action_received" = "وصول ہوا";

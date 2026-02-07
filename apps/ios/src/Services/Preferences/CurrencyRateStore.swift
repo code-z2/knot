@@ -4,6 +4,17 @@ import Observation
 @MainActor
 @Observable
 final class CurrencyRateStore {
+  private static let fallbackUSDRates: [String: Decimal] = [
+    "USD": 1,
+    "ETH": 0.00033,
+    "EUR": 0.92,
+    "GBP": 0.79,
+    "JPY": 151.0,
+    "INR": 83.0,
+    "RUB": 92.0,
+    "NGN": 1550.0,
+  ]
+
   private enum CacheKey {
     static let payload = "currency.rates.usd.cache.v1"
   }
@@ -23,10 +34,10 @@ final class CurrencyRateStore {
   private(set) var isRefreshing: Bool = false
 
   init(
-    converter: CurrencyConverter = CurrencyConverter(),
+    converter: CurrencyConverter? = nil,
     defaults: UserDefaults = .standard
   ) {
-    self.converter = converter
+    self.converter = converter ?? CurrencyConverter()
     self.defaults = defaults
 
     if
@@ -78,7 +89,7 @@ final class CurrencyRateStore {
 
   func rateFromUSD(to currencyCode: String) -> Decimal {
     let normalized = normalizeCode(currencyCode)
-    return usdRates[normalized] ?? 1
+    return usdRates[normalized] ?? Self.fallbackUSDRates[normalized] ?? 1
   }
 
   func convertUSDToSelected(_ amountUSD: Decimal, currencyCode: String) -> Decimal {
@@ -133,9 +144,10 @@ final class CurrencyRateStore {
   }
 
   private func persistCache() {
+    let persistedRates = usdRates.merging(Self.fallbackUSDRates) { current, _ in current }
     let payload = RatesCachePayload(
       updatedAt: updatedAt ?? Date(),
-      rates: usdRates.mapValues { NSDecimalNumber(decimal: $0).stringValue }
+      rates: persistedRates.mapValues { NSDecimalNumber(decimal: $0).stringValue }
     )
     if let encoded = try? JSONEncoder().encode(payload) {
       defaults.set(encoded, forKey: CacheKey.payload)

@@ -25,8 +25,8 @@ struct DropdownBadgeValue: Equatable {
 }
 
 struct DropdownInputProperties {
-  var label: String
-  var placeholder: String
+  var label: LocalizedStringKey?
+  var placeholder: LocalizedStringKey
   var leadingIconAssetName: String?
   var trailingIconAssetName: String?
   var rowHeight: CGFloat
@@ -36,8 +36,8 @@ struct DropdownInputProperties {
   var placeholderColor: Color?
 
   init(
-    label: String = "",
-    placeholder: String,
+    label: LocalizedStringKey? = nil,
+    placeholder: LocalizedStringKey,
     leadingIconAssetName: String? = nil,
     trailingIconAssetName: String? = nil,
     rowHeight: CGFloat = 56,
@@ -128,8 +128,8 @@ struct DropdownInputField<DropdownContent: View>: View {
           .foregroundStyle(properties.textColor)
       }
 
-      if !properties.label.isEmpty {
-        Text(properties.label)
+      if let label = properties.label {
+        Text(label)
           .font(.custom("Roboto-Medium", size: 15))
           .foregroundStyle(AppThemeColor.labelPrimary)
       }
@@ -317,7 +317,7 @@ private struct DropdownInputRowFramePreferenceKey: PreferenceKey {
       DropdownInputField(
         variant: .address,
         properties: .init(
-          placeholder: "Address or ENS name",
+          placeholder: "address_book_placeholder_address_or_ens",
           trailingIconAssetName: nil,
           textColor: AppThemeColor.labelSecondary,
           placeholderColor: AppThemeColor.labelSecondary
@@ -340,7 +340,7 @@ private struct DropdownInputRowFramePreferenceKey: PreferenceKey {
       DropdownInputField(
         variant: .chain,
         properties: .init(
-          placeholder: "Chain",
+          placeholder: "address_book_placeholder_chain",
           trailingIconAssetName: nil,
           textColor: AppThemeColor.labelSecondary,
           placeholderColor: AppThemeColor.labelSecondary
@@ -363,7 +363,7 @@ private struct DropdownInputRowFramePreferenceKey: PreferenceKey {
       DropdownInputField(
         variant: .noDropdown,
         properties: .init(
-          placeholder: "Name or Alias",
+          placeholder: "address_book_placeholder_alias",
           textFont: .custom("Inter-Regular_Medium", size: 14),
           textColor: AppThemeColor.labelPrimary,
           placeholderColor: AppThemeColor.labelPrimary

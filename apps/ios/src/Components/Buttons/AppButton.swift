@@ -187,9 +187,9 @@ public struct AppButton: View {
 #Preview {
   VStack(spacing: 20) {
     AppButton(label: "button_label_default", variant: .default, showIcon: true) {}
-    AppButton(label: "Sending", variant: .neutral, visualState: .loading, showIcon: true) {}
+    AppButton(label: "send_money_sending", variant: .neutral, visualState: .loading, showIcon: true) {}
     AppButton(
-      label: "Failed",
+      label: "send_money_failed",
       variant: .destructive,
       visualState: .error,
       showIcon: true,

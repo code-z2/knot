@@ -129,3 +129,26 @@
 "transaction_receipt_type" = "Jinis";
 "transaction_view_tx" = "Deleng Tx";
 "wallet_backup_tap_to_reveal" = "Tutul kanggo mbukak";
+
+"transaction_status_success" = "sukses";
+"transaction_status_failed" = "gagal";
+"transaction_row_received_usdc" = "nampa USDC";
+"transaction_row_sent_usdc" = "ngirim USDC";
+"transaction_row_received_eth" = "nampa ETH";
+"transaction_row_contract_interaction" = "interaksi kontrak";
+"transaction_row_multichain_transfer" = "transfer multi-chain";
+"transaction_row_subtitle_on_base" = "ing Base";
+"transaction_row_subtitle_from_ethereum" = "saka Ethereum";
+"transaction_row_subtitle_on_uniswap" = "ing Uniswap";
+"transaction_label_from" = "Saka";
+"transaction_label_to" = "Menyang";
+"transaction_label_contract" = "Kontrak";
+"transaction_type_receive" = "Nampa";
+"transaction_type_send" = "Kirim";
+"transaction_type_contract_interaction" = "Interaksi kontrak";
+"transaction_type_multichain_transfer" = "Transfer multi-chain";
+"transaction_receipt_subtitle_gas_fee" = "biaya gas";
+"transaction_row_prefix_on" = "ing";
+"transaction_row_prefix_from" = "saka";
+"transaction_row_action_sent" = "ngirim";
+"transaction_row_action_received" = "nampa";
