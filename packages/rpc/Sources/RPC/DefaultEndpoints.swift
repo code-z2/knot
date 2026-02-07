@@ -1,55 +1,66 @@
 import Foundation
 
 public enum RPCSecrets {
-  public static let gelatoKeyInfoPlistKey = "GELATO_API_KEY"
-  public static let pimlicoKeyInfoPlistKey = "PIMLICO_API_KEY"
-  public static let gelatoKeyEnv = "GELATO_API_KEY"
-  public static let pimlicoKeyEnv = "PIMLICO_API_KEY"
+  public static let jsonRPCKeyInfoPlistKey = "JSONRPC_API_KEY"
+  public static let bundlerKeyInfoPlistKey = "BUNDLER_API_KEY"
+  public static let paymasterKeyInfoPlistKey = "PAYMASTER_API_KEY"
+  public static let walletAPIKeyInfoPlistKey = "WALLET_API_KEY"
+  public static let transactionsAPIKeyInfoPlistKey = "TRANSACTIONS_API_KEY"
+
+  // Hardcoded URL templates: edit here to swap providers globally.
+  public static let jsonRPCURLTemplate = "https://{slug}.g.alchemy.com/v2/{apiKey}"
+  public static let bundlerURLTemplate = "https://api.gelato.cloud/rpc/{chainId}?apiKey={apiKey}"
+  public static let paymasterURLTemplate = "https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}"
+  public static let walletAPIURLTemplate =
+    "https://api.covalenthq.com/v1/allchains/address/{walletAddress}/balances/"
+  public static let transactionsAPIURLTemplate =
+    "https://api.covalenthq.com/v1/address/{walletAddress}/activity/"
 }
 
-public func makeRPCDefaultEndpoints(gelatoAPIKey: String, pimlicoAPIKey: String) -> [UInt64: ChainEndpoints] {
-  return [
-    1: ChainEndpoints(
-      rpcURL: "https://eth.llamarpc.com",
-      bundlerURL: "",
-      paymasterURL: ""
-    ),
-    10: ChainEndpoints(
-      rpcURL: "https://optimism.llamarpc.com",
-      bundlerURL: "",
-      paymasterURL: ""
-    ),
-    137: ChainEndpoints(
-      rpcURL: "https://polygon.llamarpc.com",
-      bundlerURL: "",
-      paymasterURL: ""
-    ),
-    8453: ChainEndpoints(
-      rpcURL: "https://base.llamarpc.com",
-      bundlerURL: makeGelatoURL(chainId: 8453, apiKey: gelatoAPIKey),
-      paymasterURL: makePimlicoURL(chainId: 8453, apiKey: pimlicoAPIKey)
-    ),
-    84532: ChainEndpoints(
-      rpcURL: "https://sepolia.base.org",
-      bundlerURL: makeGelatoURL(chainId: 84532, apiKey: gelatoAPIKey),
-      paymasterURL: makePimlicoURL(chainId: 84532, apiKey: pimlicoAPIKey)
-    ),
-    11155111: ChainEndpoints(
-      rpcURL: "https://ethereum-sepolia-rpc.publicnode.com",
-      bundlerURL: makeGelatoURL(chainId: 11155111, apiKey: gelatoAPIKey),
-      paymasterURL: makePimlicoURL(chainId: 11155111, apiKey: pimlicoAPIKey)
-    ),
-  ]
+public struct RPCEndpointBuilderConfig: Sendable, Equatable {
+  public let jsonRPCAPIKey: String
+  public let bundlerAPIKey: String
+  public let paymasterAPIKey: String
+  public let walletAPIKey: String
+  public let transactionsAPIKey: String
+  public let jsonRPCURLTemplate: String
+  public let bundlerURLTemplate: String
+  public let paymasterURLTemplate: String
+  public let walletAPIURLTemplate: String
+  public let transactionsAPIURLTemplate: String
+
+  public init(
+    jsonRPCAPIKey: String,
+    bundlerAPIKey: String,
+    paymasterAPIKey: String,
+    walletAPIKey: String,
+    transactionsAPIKey: String,
+    jsonRPCURLTemplate: String,
+    bundlerURLTemplate: String,
+    paymasterURLTemplate: String,
+    walletAPIURLTemplate: String,
+    transactionsAPIURLTemplate: String
+  ) {
+    self.jsonRPCAPIKey = jsonRPCAPIKey
+    self.bundlerAPIKey = bundlerAPIKey
+    self.paymasterAPIKey = paymasterAPIKey
+    self.walletAPIKey = walletAPIKey
+    self.transactionsAPIKey = transactionsAPIKey
+    self.jsonRPCURLTemplate = jsonRPCURLTemplate
+    self.bundlerURLTemplate = bundlerURLTemplate
+    self.paymasterURLTemplate = paymasterURLTemplate
+    self.walletAPIURLTemplate = walletAPIURLTemplate
+    self.transactionsAPIURLTemplate = transactionsAPIURLTemplate
+  }
 }
 
-private func makeGelatoURL(chainId: UInt64, apiKey: String) -> String {
-  let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-  guard !key.isEmpty else { return "" }
-  return "https://api.gelato.cloud/rpc/\(chainId)?apiKey=\(key)"
-}
-
-private func makePimlicoURL(chainId: UInt64, apiKey: String) -> String {
-  let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-  guard !key.isEmpty else { return "" }
-  return "https://api.pimlico.io/v2/\(chainId)/rpc?apikey=\(key)"
+public func makeRPCDefaultEndpoints(config: RPCEndpointBuilderConfig) -> [UInt64: ChainEndpoints] {
+  var endpointsByChain: [UInt64: ChainEndpoints] = [:]
+  for definition in ChainRegistry.known {
+    guard let endpoints = definition.makeEndpoints(config: config) else {
+      continue
+    }
+    endpointsByChain[definition.chainID] = endpoints
+  }
+  return endpointsByChain
 }

@@ -930,7 +930,7 @@ struct SendMoneyView: View {
     onContinue(
       .init(
         toAddressOrENS: toAddressOrENS,
-        chainID: selectedChain.id,
+        chainID: String(selectedChain.rpcChainID),
         chainName: selectedChain.name,
         assetID: selectedAsset.id,
         assetSymbol: selectedAsset.symbol
@@ -987,27 +987,7 @@ struct SendMoneyView: View {
   }
 
   private var selectedChainExplorerChainId: UInt64? {
-    guard let chainId = selectedChain?.id else { return nil }
-    switch chainId {
-    case "ethereum":
-      return 1
-    case "sepolia":
-      return 11_155_111
-    case "base":
-      return 8453
-    case "base-sepolia":
-      return 84532
-    case "arbitrum":
-      return 42161
-    case "optimism":
-      return 10
-    case "polygon":
-      return 137
-    case "bnb-smart-chain":
-      return 56
-    default:
-      return nil
-    }
+    selectedChain?.rpcChainID
   }
 
   private func handleKeypadTap(_ key: SendMoneyKeypadKey) {

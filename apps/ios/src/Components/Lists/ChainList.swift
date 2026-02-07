@@ -1,40 +1,44 @@
+import RPC
 import SwiftUI
 
 struct ChainOption: Identifiable, Hashable {
   let id: String
   let name: String
   let assetName: String
+  let rpcChainID: UInt64
   let keywords: [String]
 }
 
 enum ChainCatalog {
-  static let all: [ChainOption] = [
-    .init(id: "ethereum", name: "Ethereum", assetName: "ethereum", keywords: ["eth", "mainnet"]),
-    .init(id: "base", name: "Base", assetName: "base", keywords: ["coinbase"]),
-    .init(id: "arbitrum", name: "Arbitrum", assetName: "arbitrum", keywords: ["arb"]),
-    .init(id: "optimism", name: "Optimism", assetName: "optimism", keywords: ["op"]),
-    .init(id: "polygon", name: "Polygon", assetName: "polygon", keywords: ["matic", "pol"]),
-    .init(id: "bnb-smart-chain", name: "BNB Smart Chain", assetName: "bnb-smart-chain", keywords: ["bnb", "bsc", "binance"]),
-    .init(id: "blast", name: "Blast", assetName: "blast", keywords: []),
-    .init(id: "linea", name: "Linea", assetName: "linea", keywords: []),
-    .init(id: "lisk", name: "Lisk", assetName: "lisk", keywords: []),
-    .init(id: "mode", name: "Mode", assetName: "mode", keywords: []),
-    .init(id: "monad", name: "Monad", assetName: "monad", keywords: []),
-    .init(id: "plasma", name: "Plasma", assetName: "plasma", keywords: []),
-    .init(id: "scroll", name: "Scroll", assetName: "scroll", keywords: []),
-    .init(id: "soneium", name: "Soneium", assetName: "soneium", keywords: []),
-    .init(id: "unichain", name: "Unichain", assetName: "unichain", keywords: []),
-    .init(id: "world-chain", name: "World Chain", assetName: "world-chain", keywords: ["world"]),
-    .init(id: "zksync", name: "zkSync", assetName: "zksync", keywords: ["zk"]),
-    .init(id: "zora", name: "Zora", assetName: "zora", keywords: []),
-    .init(id: "hyperevm", name: "HyperEVM", assetName: "hyperevm", keywords: ["hyper"]),
-    .init(id: "ink", name: "Ink", assetName: "ink", keywords: [])
-  ]
+  private static let mainnetPopularIDs: Set<String> = ["ethereum", "base", "arbitrum"]
+  private static let testnetPopularIDs: Set<String> = ["sepolia", "base-sepolia", "arbitrum-sepolia"]
 
-  static let popularIDs: Set<String> = ["ethereum", "base", "arbitrum"]
+  static var configured: [ChainOption] {
+    ChainRegistry.getChains().map { descriptor in
+      ChainOption(
+        id: descriptor.slug,
+        name: descriptor.name,
+        assetName: descriptor.assetName,
+        rpcChainID: descriptor.chainID,
+        keywords: descriptor.keywords
+      )
+    }
+  }
 
-  static let suggested: [ChainOption] = all.filter { popularIDs.contains($0.id) }
-  static let remaining: [ChainOption] = all.filter { !popularIDs.contains($0.id) }
+  static var suggested: [ChainOption] {
+    let source = configured
+    guard !source.isEmpty else { return [] }
+    let popularIDs =
+      ChainSupportRuntime.resolveMode() == .limitedTestnet ? testnetPopularIDs : mainnetPopularIDs
+    let result = source.filter { popularIDs.contains($0.id) }
+    if !result.isEmpty { return result }
+    return Array(source.prefix(3))
+  }
+
+  static var remaining: [ChainOption] {
+    let suggestedIDs = Set(suggested.map(\.id))
+    return configured.filter { !suggestedIDs.contains($0.id) }
+  }
 }
 
 struct ChainList: View {
@@ -49,7 +53,7 @@ struct ChainList: View {
         SearchDocument(
           id: $0.id,
           title: $0.name,
-          keywords: [$0.id] + $0.keywords
+          keywords: [$0.id, String($0.rpcChainID)] + $0.keywords
         )
       },
       itemID: { $0.id }
@@ -64,7 +68,7 @@ struct ChainList: View {
         SearchDocument(
           id: $0.id,
           title: $0.name,
-          keywords: [$0.id] + $0.keywords
+          keywords: [$0.id, String($0.rpcChainID)] + $0.keywords
         )
       },
       itemID: { $0.id }
