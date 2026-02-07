@@ -22,6 +22,7 @@ enum JobStatus {
 struct JobState {
     uint256 received;
     bool approved;
+    bool initialized;
     JobStatus status;
     address inputToken;
     uint256[] sourceChains;

@@ -3,6 +3,7 @@ pragma solidity 0.8.33;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
 import {Call, JobState, JobStatus} from "./types/Structs.sol";
@@ -32,6 +33,9 @@ import {Exec} from "./utils/Exec.sol";
 /// - Swap failure: refund and mark `Refunded`.
 contract Accumulator is Ownable {
     using SafeERC20 for IERC20;
+
+    /// @dev Sentinel address representing native ETH in token fields.
+    address private constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address private immutable TREASURY;
     address private immutable MESSENGER;
@@ -83,8 +87,9 @@ contract Accumulator is Ownable {
 
         if (job.status == JobStatus.Executed || job.status == JobStatus.Refunded) return;
 
-        if (job.inputToken == address(0)) {
+        if (!job.initialized) {
             job.inputToken = inputToken;
+            job.initialized = true;
         } else if (job.inputToken != inputToken) {
             return;
         }
@@ -145,10 +150,10 @@ contract Accumulator is Ownable {
             return;
         }
 
-        uint256 amountOut = IERC20(outputToken).balanceOf(address(this));
+        uint256 amountOut = _balanceOf(outputToken);
         if (amountOut > minOutput) amountOut = minOutput;
 
-        IERC20(outputToken).safeTransfer(recipientOut, amountOut);
+        _transferToken(outputToken, recipientOut, amountOut);
 
         emit MultiChainIntentExecuted(intentHash, owner(), recipientOut, inputToken, minInput, job.sourceChains);
     }
@@ -168,16 +173,35 @@ contract Accumulator is Ownable {
     /// @notice Manually sweep leftover balance of a token to treasury.
     /// @dev This is intentionally explicit so fees are collected only when desired.
     function sweep(address token) external onlyOwner {
-        uint256 bal = IERC20(token).balanceOf(address(this));
+        uint256 bal = _balanceOf(token);
         if (bal > 0) {
-            IERC20(token).safeTransfer(TREASURY, bal);
+            _transferToken(token, TREASURY, bal);
         }
     }
 
     /// @dev Refund input token back to the account owner.
     /// Used when swap fails or when approval arrives after accumulation.
     function _refundInput(uint256 amount, address inputToken) internal {
-        IERC20(inputToken).safeTransfer(owner(), amount);
+        _transferToken(inputToken, owner(), amount);
+    }
+
+    /// @dev Returns true if the token address represents native ETH.
+    function _isNative(address token) internal pure returns (bool) {
+        return token == NATIVE;
+    }
+
+    /// @dev Returns the contract's balance of the given token (native or ERC20).
+    function _balanceOf(address token) internal view returns (uint256) {
+        return _isNative(token) ? address(this).balance : IERC20(token).balanceOf(address(this));
+    }
+
+    /// @dev Transfers a token (native or ERC20) to a recipient.
+    function _transferToken(address token, address to, uint256 amount) internal {
+        if (_isNative(token)) {
+            Address.sendValue(payable(to), amount);
+        } else {
+            IERC20(token).safeTransfer(to, amount);
+        }
     }
 
     /// @dev Decodes the job payload encoded off-chain.
