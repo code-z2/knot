@@ -50,6 +50,10 @@ struct CurrencyConverter {
     self.provider = provider
   }
 
+  func latestRates(base: String) async throws -> [String: Decimal] {
+    try await provider.latestRates(base: base)
+  }
+
   func convert(amount: Decimal, from: String, to: String) async throws -> Decimal {
     let source = from.uppercased()
     let target = to.uppercased()

@@ -11,6 +11,7 @@ struct ProfileView: View {
   let ensService: ENSService
   let aaExecutionService: AAExecutionService
   let imageStorageService: ProfileImageStorageService
+  let commitRevealStore: ENSCommitRevealStore
   var onBack: () -> Void = {}
 
   @State private var ensName = ""
@@ -44,6 +45,7 @@ struct ProfileView: View {
     ensService: ENSService,
     aaExecutionService: AAExecutionService,
     imageStorageService: ProfileImageStorageService = ProfileImageStorageService(),
+    commitRevealStore: ENSCommitRevealStore = ENSCommitRevealStore(),
     onBack: @escaping () -> Void = {}
   ) {
     self.eoaAddress = eoaAddress
@@ -51,6 +53,7 @@ struct ProfileView: View {
     self.ensService = ensService
     self.aaExecutionService = aaExecutionService
     self.imageStorageService = imageStorageService
+    self.commitRevealStore = commitRevealStore
     self.quoteWorker = ENSQuoteWorker(configuration: ensService.configuration)
     self.onBack = onBack
   }
@@ -103,6 +106,7 @@ struct ProfileView: View {
     }
     .task {
       await loadProfile()
+      await resumePendingCommitRevealIfNeeded()
     }
     .onChange(of: ensName) { _, newValue in
       guard !isNameLocked else { return }
@@ -113,16 +117,16 @@ struct ProfileView: View {
       Task { await importPhotoItem(newItem) }
     }
     .confirmationDialog(
-      "Change Profile Photo",
+      String(localized: "profile_change_photo_title"),
       isPresented: $showPhotoSourceDialog,
       titleVisibility: .visible
     ) {
-      Button("Photo Library") { showPhotoPicker = true }
-      Button("Files") { showFileImporter = true }
+      Button(String(localized: "profile_photo_library")) { showPhotoPicker = true }
+      Button(String(localized: "profile_files")) { showFileImporter = true }
       if localAvatarImage != nil || !avatarURL.isEmpty {
-        Button("Remove Photo", role: .destructive) { clearAvatarSelection() }
+        Button(String(localized: "profile_remove_photo"), role: .destructive) { clearAvatarSelection() }
       }
-      Button("Cancel", role: .cancel) {}
+      Button(String(localized: "profile_cancel"), role: .cancel) {}
     }
     .photosPicker(
       isPresented: $showPhotoPicker,
@@ -225,7 +229,7 @@ struct ProfileView: View {
         TextField(
           "",
           text: $ensName,
-          prompt: Text("Enter a name")
+          prompt: Text(String(localized: "profile_enter_name_placeholder"))
             .font(.custom("Roboto-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelSecondary)
         )
@@ -421,7 +425,11 @@ struct ProfileView: View {
 
         if quote.available {
           let eth = TokenFormatters.weiToEthString(quote.rentPriceWei)
-          self.nameInfoText = "\(quote.normalizedName) is available for \(eth) ETH"
+          self.nameInfoText = String.localizedStringWithFormat(
+            NSLocalizedString("profile_name_available_for_price", comment: ""),
+            quote.normalizedName,
+            eth
+          )
           self.nameInfoTone = .success
         } else {
           self.nameInfoText = String(localized: "profile_name_unavailable")
@@ -528,14 +536,42 @@ struct ProfileView: View {
 
       let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
       if let commitCall {
-        _ = try await aaExecutionService.executeCalls(
+        let commitSubmissionHash = try await aaExecutionService.executeCalls(
           accountService: accountService,
           account: sessionAccount,
           chainId: ensService.chainID,
           calls: [commitCall]
         )
-        showSuccess("Commit submitted. Finalizing ENS registration...")
-        try await Task.sleep(for: .seconds(Double(minCommitmentAgeSeconds)))
+        var pendingJob = PendingENSRevealJob(
+          eoaAddress: eoaAddress,
+          name: normalizedName,
+          chainId: ensService.chainID,
+          submissionHash: commitSubmissionHash,
+          minCommitmentAgeSeconds: minCommitmentAgeSeconds,
+          revealNotBeforeUnix: 0,
+          postCommitCalls: postCommitCalls,
+          preparedPayloadCount: preparedPayloads
+        )
+        commitRevealStore.saveJob(pendingJob)
+        showSuccess(String(localized: "profile_commit_submitted_progress"))
+
+        let revealNotBefore = try await waitForRevealWindowStart(for: pendingJob)
+        pendingJob = PendingENSRevealJob(
+          eoaAddress: pendingJob.eoaAddress,
+          name: pendingJob.name,
+          chainId: pendingJob.chainId,
+          submissionHash: pendingJob.submissionHash,
+          minCommitmentAgeSeconds: pendingJob.minCommitmentAgeSeconds,
+          revealNotBeforeUnix: revealNotBefore.timeIntervalSince1970,
+          postCommitCalls: pendingJob.postCommitCalls,
+          preparedPayloadCount: pendingJob.preparedPayloadCount
+        )
+        commitRevealStore.saveJob(pendingJob)
+
+        let delay = max(0, revealNotBefore.timeIntervalSinceNow)
+        if delay > 0 {
+          try await Task.sleep(for: .seconds(delay))
+        }
       }
 
       if !postCommitCalls.isEmpty {
@@ -549,6 +585,7 @@ struct ProfileView: View {
 
       if commitCall != nil {
         isNameLocked = true
+        commitRevealStore.clearJob(for: eoaAddress)
       }
 
       initialAvatarURL = avatarURL
@@ -714,6 +751,68 @@ struct ProfileView: View {
       try? await Task.sleep(for: .seconds(2.0))
       if successMessage == message { successMessage = nil }
     }
+  }
+
+  @MainActor
+  private func resumePendingCommitRevealIfNeeded() async {
+    guard let pendingJob = commitRevealStore.loadJob(for: eoaAddress) else { return }
+
+    do {
+      showSuccess(String(localized: "profile_commit_submitted_progress"))
+
+      var effectiveJob = pendingJob
+      let revealNotBefore: Date
+      if pendingJob.revealNotBeforeUnix > 0 {
+        revealNotBefore = Date(timeIntervalSince1970: pendingJob.revealNotBeforeUnix)
+      } else {
+        let computed = try await waitForRevealWindowStart(for: pendingJob)
+        revealNotBefore = computed
+        effectiveJob = PendingENSRevealJob(
+          eoaAddress: pendingJob.eoaAddress,
+          name: pendingJob.name,
+          chainId: pendingJob.chainId,
+          submissionHash: pendingJob.submissionHash,
+          minCommitmentAgeSeconds: pendingJob.minCommitmentAgeSeconds,
+          revealNotBeforeUnix: computed.timeIntervalSince1970,
+          postCommitCalls: pendingJob.postCommitCalls,
+          preparedPayloadCount: pendingJob.preparedPayloadCount
+        )
+        commitRevealStore.saveJob(effectiveJob)
+      }
+
+      let delay = max(0, revealNotBefore.timeIntervalSinceNow)
+      if delay > 0 {
+        try await Task.sleep(for: .seconds(delay))
+      }
+
+      let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
+      if !effectiveJob.postCommitCalls.isEmpty {
+        _ = try await aaExecutionService.executeCalls(
+          accountService: accountService,
+          account: sessionAccount,
+          chainId: effectiveJob.chainId,
+          calls: effectiveJob.postCommitCalls
+        )
+      }
+
+      isNameLocked = true
+      commitRevealStore.clearJob(for: eoaAddress)
+      let message = String.localizedStringWithFormat(
+        NSLocalizedString("profile_saved_changes", comment: ""),
+        effectiveJob.preparedPayloadCount
+      )
+      showSuccess(message)
+    } catch {
+      showError(error)
+    }
+  }
+
+  private func waitForRevealWindowStart(for job: PendingENSRevealJob) async throws -> Date {
+    let commitIncludedAt = try await aaExecutionService.waitForUserOperationInclusion(
+      chainId: job.chainId,
+      userOperationHash: job.submissionHash
+    )
+    return commitIncludedAt.addingTimeInterval(TimeInterval(job.minCommitmentAgeSeconds))
   }
 
   private func toast(message: String, isError: Bool) -> some View {

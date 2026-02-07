@@ -29,14 +29,17 @@ struct SlideModal<Content: View>: View {
       if isPresented {
         Color.black.opacity(0.35)
           .ignoresSafeArea()
+          .transition(.opacity)
           .contentShape(Rectangle())
           .onTapGesture {
             onDismiss()
           }
 
         panel
+          .transition(.move(edge: .bottom))
       }
     }
+    .animation(.default, value: isPresented)
     .onChange(of: isPresented) { _, presented in
       if !presented {
         dragOffset = 0
@@ -79,7 +82,9 @@ struct SlideModal<Content: View>: View {
           dragOffset = 0
           onDismiss()
         } else {
-          dragOffset = 0
+          withAnimation(.default) {
+            dragOffset = 0
+          }
         }
       }
   }

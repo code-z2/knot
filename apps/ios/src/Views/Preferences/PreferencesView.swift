@@ -117,9 +117,7 @@ struct PreferencesView: View {
   }
 
   private func present(_ modal: PreferencesModal) {
-    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
-      activeModal = modal
-    }
+    activeModal = modal
   }
 
   private func dismissModal() {
@@ -127,9 +125,7 @@ struct PreferencesView: View {
   }
 
   private func dismissModalAnimated() {
-    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
-      activeModal = nil
-    }
+    activeModal = nil
   }
 }
 

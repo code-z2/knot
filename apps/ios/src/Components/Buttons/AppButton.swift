@@ -12,14 +12,22 @@ public enum AppButtonSize {
   case compact
 }
 
+public enum AppButtonVisualState {
+  case normal
+  case loading
+  case error
+}
+
 public struct AppButton: View {
   let fullWidth: Bool
   let label: LocalizedStringKey
   let variant: AppButtonVariant
+  let visualState: AppButtonVisualState
   let size: AppButtonSize
   let showLabel: Bool
   let showIcon: Bool
   let iconName: String?
+  let iconSize: CGFloat
   let underlinedLabel: Bool
   let foregroundColorOverride: Color?
   let backgroundColorOverride: Color?
@@ -29,10 +37,12 @@ public struct AppButton: View {
     fullWidth: Bool = false,
     label: LocalizedStringKey = "button_label_default",
     variant: AppButtonVariant = .default,
+    visualState: AppButtonVisualState = .normal,
     size: AppButtonSize = .regular,
     showLabel: Bool = true,
     showIcon: Bool = false,
     iconName: String? = nil,
+    iconSize: CGFloat = 24,
     underlinedLabel: Bool = false,
     foregroundColorOverride: Color? = nil,
     backgroundColorOverride: Color? = nil,
@@ -41,10 +51,12 @@ public struct AppButton: View {
     self.fullWidth = fullWidth
     self.label = label
     self.variant = variant
+    self.visualState = visualState
     self.size = size
     self.showLabel = showLabel
     self.showIcon = showIcon
     self.iconName = iconName
+    self.iconSize = iconSize
     self.underlinedLabel = underlinedLabel
     self.foregroundColorOverride = foregroundColorOverride
     self.backgroundColorOverride = backgroundColorOverride
@@ -72,33 +84,49 @@ public struct AppButton: View {
       .background(background)
       .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
+    .disabled(isInteractionDisabled)
     .buttonStyle(.plain)
   }
 
   @ViewBuilder
   private var icon: some View {
-    if let iconName {
+    if visualState == .loading {
+      ProgressView()
+        .tint(foregroundColor)
+        .frame(width: iconSize, height: iconSize)
+    } else if let iconName {
       Image(iconName)
         .renderingMode(.template)
         .resizable()
         .aspectRatio(contentMode: .fit)
-        .frame(width: 24, height: 24)
+        .frame(width: iconSize, height: iconSize)
         .foregroundStyle(foregroundColor)
     } else {
       Image("Icons/home_02")
         .renderingMode(.template)
         .resizable()
         .aspectRatio(contentMode: .fit)
-        .frame(width: 24, height: 24)
+        .frame(width: iconSize, height: iconSize)
         .foregroundStyle(foregroundColor)
     }
+  }
+
+  private var isInteractionDisabled: Bool {
+    visualState == .loading
+  }
+
+  private var resolvedVariant: AppButtonVariant {
+    if visualState == .error {
+      return .destructive
+    }
+    return variant
   }
 
   private var foregroundColor: Color {
     if let foregroundColorOverride {
       return foregroundColorOverride
     }
-    switch variant {
+    switch resolvedVariant {
     case .default:
       return AppThemeColor.backgroundPrimary
     case .outline:
@@ -142,7 +170,7 @@ public struct AppButton: View {
     if let backgroundColorOverride {
       backgroundColorOverride
     } else {
-      switch variant {
+      switch resolvedVariant {
       case .default:
         AppThemeColor.accentBrown
       case .outline:
@@ -159,9 +187,15 @@ public struct AppButton: View {
 #Preview {
   VStack(spacing: 20) {
     AppButton(label: "button_label_default", variant: .default, showIcon: true) {}
-    AppButton(label: "button_label_default", variant: .outline, showIcon: true) {}
-    AppButton(label: "button_label_default", variant: .destructive, showIcon: true) {}
-    AppButton(label: "button_label_default", variant: .neutral, showIcon: true) {}
+    AppButton(label: "Sending", variant: .neutral, visualState: .loading, showIcon: true) {}
+    AppButton(
+      label: "Failed",
+      variant: .destructive,
+      visualState: .error,
+      showIcon: true,
+      iconName: "Icons/x_close",
+      iconSize: 16
+    ) {}
   }
   .padding(20)
   .background(AppThemeColor.fixedDarkSurface)

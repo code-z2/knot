@@ -50,7 +50,7 @@ struct WalletBackupView: View {
                         isMnemonicRevealed = true
                       }
                     } label: {
-                      Text("Tap to reveal")
+                      Text("wallet_backup_tap_to_reveal")
                         .font(.custom("Roboto-Medium", size: 14))
                         .foregroundStyle(AppThemeColor.labelSecondary)
                         .padding(.horizontal, 14)

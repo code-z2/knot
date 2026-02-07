@@ -16,7 +16,7 @@ struct BottomNavigation: View {
     HStack {
       tabItem(
         iconName: "Icons/home_02",
-        title: "Home",
+        title: "bottom_nav_home",
         titleWidth: 70,
         isActive: activeTab == .home,
         action: onHomeTap
@@ -26,7 +26,7 @@ struct BottomNavigation: View {
 
       tabItem(
         iconName: "Icons/receipt",
-        title: "Transactions",
+        title: "bottom_nav_transactions",
         titleWidth: 70,
         isActive: activeTab == .transactions,
         action: onTransactionsTap
@@ -36,7 +36,7 @@ struct BottomNavigation: View {
 
       tabItem(
         iconName: "Icons/key_01",
-        title: "Session Key",
+        title: "bottom_nav_session_key",
         titleWidth: 70,
         isActive: activeTab == .sessionKey,
         action: onSessionKeyTap
@@ -52,7 +52,7 @@ struct BottomNavigation: View {
 
   private func tabItem(
     iconName: String,
-    title: String,
+    title: LocalizedStringKey,
     titleWidth: CGFloat,
     isActive: Bool,
     action: @escaping () -> Void
@@ -68,7 +68,7 @@ struct BottomNavigation: View {
           .padding(.top, 2)
 
         Text(title)
-          .font(.custom("Roboto-Medium", size: 11))
+          .font(.custom("Roboto-Medium", size: 12))
           .foregroundStyle(isActive ? AppThemeColor.accentBrown : AppThemeColor.labelSecondary)
           .tracking(0.5)
           .frame(width: titleWidth)

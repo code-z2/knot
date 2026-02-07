@@ -5,6 +5,8 @@ private enum HomeModal {
 }
 
 struct HomeView: View {
+  let preferencesStore: PreferencesStore
+  let currencyRateStore: CurrencyRateStore
   let onSignOut: () -> Void
   let onAddMoney: () -> Void
   let onSendMoney: () -> Void
@@ -18,6 +20,8 @@ struct HomeView: View {
   let showWalletBackup: Bool
 
   init(
+    preferencesStore: PreferencesStore,
+    currencyRateStore: CurrencyRateStore,
     onSignOut: @escaping () -> Void,
     onAddMoney: @escaping () -> Void = {},
     onSendMoney: @escaping () -> Void = {},
@@ -30,6 +34,8 @@ struct HomeView: View {
     onAddressBookTap: @escaping () -> Void = {},
     showWalletBackup: Bool = true
   ) {
+    self.preferencesStore = preferencesStore
+    self.currencyRateStore = currencyRateStore
     self.onSignOut = onSignOut
     self.onAddMoney = onAddMoney
     self.onSendMoney = onSendMoney
@@ -94,7 +100,15 @@ struct HomeView: View {
   @State private var activeModal: HomeModal?
   @State private var assetSearchText = ""
   @State private var assetListState: AssetListState = .loading
-  let accountBalance = "$12,450.88"
+  private let accountBalanceUSD = Decimal(string: "12450.88") ?? 0
+
+  private var accountBalanceDisplay: String {
+    currencyRateStore.formatUSD(
+      accountBalanceUSD,
+      currencyCode: preferencesStore.selectedCurrencyCode,
+      locale: preferencesStore.locale
+    )
+  }
 
   private var balanceSection: some View {
     VStack(spacing: 44) {
@@ -104,7 +118,7 @@ struct HomeView: View {
           .foregroundStyle(AppThemeColor.labelSecondary)
 
         HideableText(
-          text: accountBalance,
+          text: accountBalanceDisplay,
           isHidden: $isBalanceHidden,
           font: .custom("RobotoMono-Bold", size: 24)
         )
@@ -319,7 +333,10 @@ struct HomeView: View {
     if activeModal == .assets {
       AssetsListModal(
         query: $assetSearchText,
-        state: assetListState
+        state: assetListState,
+        displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+        displayLocale: preferencesStore.locale,
+        usdToSelectedRate: currencyRateStore.rateFromUSD(to: preferencesStore.selectedCurrencyCode)
       )
     } else {
       EmptyView()
@@ -327,9 +344,7 @@ struct HomeView: View {
   }
 
   private func presentAssetsModal() {
-    withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
-      activeModal = .assets
-    }
+    activeModal = .assets
   }
 
   private func dismissModal() {
@@ -393,6 +408,9 @@ private struct MenuRow<Leading: View>: View {
 private struct AssetsListModal: View {
   @Binding var query: String
   let state: AssetListState
+  let displayCurrencyCode: String
+  let displayLocale: Locale
+  let usdToSelectedRate: Decimal
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -406,7 +424,13 @@ private struct AssetsListModal: View {
         .frame(height: 4)
 
       ScrollView(showsIndicators: false) {
-        AssetList(query: query, state: state)
+        AssetList(
+          query: query,
+          state: state,
+          displayCurrencyCode: displayCurrencyCode,
+          displayLocale: displayLocale,
+          usdToSelectedRate: usdToSelectedRate
+        )
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.bottom, 28)
       }
@@ -418,6 +442,10 @@ private struct AssetsListModal: View {
 }
 
 #Preview {
-  HomeView(onSignOut: {})
+  HomeView(
+    preferencesStore: PreferencesStore(),
+    currencyRateStore: CurrencyRateStore(),
+    onSignOut: {}
+  )
     .preferredColorScheme(.dark)
 }

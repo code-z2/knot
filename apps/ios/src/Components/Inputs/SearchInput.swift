@@ -8,15 +8,21 @@ struct SearchInput: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 11, weight: .regular))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(AppThemeColor.labelSecondary)
-                .frame(width: 11, height: 11)
+                .frame(width: 13, height: 13)
 
-            TextField(placeholderKey, text: $text)
+            TextField(
+                "",
+                text: $text,
+                prompt: Text(placeholderKey)
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundStyle(AppThemeColor.labelSecondary)
+            )
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .font(.custom("Inter-Regular", size: 14))
-                .foregroundStyle(AppThemeColor.labelSecondary)
+                .foregroundStyle(AppThemeColor.labelPrimary)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 9)

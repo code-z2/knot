@@ -56,7 +56,7 @@ struct TransactionAssetChange: Hashable {
   }
 
   let direction: Direction
-  let fiatText: String
+  let fiatUSD: Decimal
   let assetText: String
 
   var accentColor: Color {
@@ -69,7 +69,6 @@ struct TransactionAssetChange: Hashable {
 
 struct MockTransaction: Identifiable, Hashable {
   let id: String
-  let dateLabel: String
   let status: TransactionStatus
   let variant: TransactionVariant
   let rowTitle: String
@@ -86,7 +85,6 @@ struct MockTransaction: Identifiable, Hashable {
   let networkName: String
   let networkAssetName: String
   let accumulatedFromNetworkAssetNames: [String]
-  let showsRepeatAction: Bool
 }
 
 struct TransactionSection: Identifiable, Hashable {
@@ -96,7 +94,7 @@ struct TransactionSection: Identifiable, Hashable {
 }
 
 enum MockTransactionData {
-  static let quickBalance = "$305,234.66"
+  static let quickBalanceUSD = Decimal(string: "305234.66") ?? 0
 
   static let sections: [TransactionSection] = [
     .init(
@@ -105,12 +103,11 @@ enum MockTransactionData {
       transactions: [
         .init(
           id: "mon_received_usdc",
-          dateLabel: "Mon, 19 Jan",
           status: .success,
           variant: .received,
-          rowTitle: "recieved USDC",
+          rowTitle: "received USDC",
           rowSubtitle: "on base",
-          assetChange: .init(direction: .up, fiatText: "+$300.56", assetText: "299.90"),
+          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "299.90"),
           receiptAmountText: "+$1,000.00",
           receiptAmountSubtitle: "1,000.00 USDC",
           counterpartyLabel: "From",
@@ -121,17 +118,15 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: false
+          accumulatedFromNetworkAssetNames: []
         ),
         .init(
           id: "mon_sent_usdc",
-          dateLabel: "Mon, 19 Jan",
           status: .success,
           variant: .sent,
           rowTitle: "sent USDC",
           rowSubtitle: "from ethereum",
-          assetChange: .init(direction: .down, fiatText: "-$300.56", assetText: "299.90"),
+          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "299.90"),
           receiptAmountText: "-$1,000.00",
           receiptAmountSubtitle: "1,000.00 USDC",
           counterpartyLabel: "To",
@@ -142,17 +137,15 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: true
+          accumulatedFromNetworkAssetNames: []
         ),
         .init(
           id: "mon_received_eth",
-          dateLabel: "Mon, 19 Jan",
           status: .success,
           variant: .received,
-          rowTitle: "recieved ETH",
+          rowTitle: "received ETH",
           rowSubtitle: "on base",
-          assetChange: .init(direction: .up, fiatText: "+$300.56", assetText: "0.025.46"),
+          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "0.025.46"),
           receiptAmountText: "+$1,000.00",
           receiptAmountSubtitle: "1,000.00 USDC",
           counterpartyLabel: "From",
@@ -163,8 +156,7 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: false
+          accumulatedFromNetworkAssetNames: []
         ),
       ]
     ),
@@ -174,12 +166,11 @@ enum MockTransactionData {
       transactions: [
         .init(
           id: "sun_contract_with_change",
-          dateLabel: "sun, 18 Jan",
           status: .success,
           variant: .contract,
           rowTitle: "contract interaction",
           rowSubtitle: "on unswap",
-          assetChange: .init(direction: .down, fiatText: "-$300.56", assetText: "0.025.46"),
+          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "0.025.46"),
           receiptAmountText: "-$1,000.00",
           receiptAmountSubtitle: "1,000.00 USDC",
           counterpartyLabel: "contract",
@@ -190,12 +181,10 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: false
+          accumulatedFromNetworkAssetNames: []
         ),
         .init(
           id: "sun_contract_no_change",
-          dateLabel: "sun, 18 Jan",
           status: .success,
           variant: .contract,
           rowTitle: "contract interaction",
@@ -211,17 +200,15 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: false
+          accumulatedFromNetworkAssetNames: []
         ),
         .init(
           id: "sun_sent_failed",
-          dateLabel: "sun, 18 Jan",
           status: .failed,
           variant: .sent,
           rowTitle: "sent USDC",
           rowSubtitle: "from ethereum",
-          assetChange: .init(direction: .down, fiatText: "-$300.56", assetText: "0.025.46"),
+          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "0.025.46"),
           receiptAmountText: "-<$0.0001",
           receiptAmountSubtitle: "gas fee",
           counterpartyLabel: "To",
@@ -232,8 +219,7 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: [],
-          showsRepeatAction: true
+          accumulatedFromNetworkAssetNames: []
         ),
       ]
     ),
@@ -243,12 +229,11 @@ enum MockTransactionData {
       transactions: [
         .init(
           id: "sat_multichain",
-          dateLabel: "sat, 17 Jan",
           status: .success,
           variant: .multichain,
           rowTitle: "multi-chain transfer",
           rowSubtitle: nil,
-          assetChange: .init(direction: .up, fiatText: "+$300.56", assetText: "0.025.46"),
+          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "0.025.46"),
           receiptAmountText: "-$1,000.00",
           receiptAmountSubtitle: "1,000.00 USDC",
           counterpartyLabel: "To",
@@ -259,8 +244,7 @@ enum MockTransactionData {
           feeText: "<$0.01",
           networkName: "Ethereum",
           networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: ["ethereum", "unichain", "bnb-smart-chain", "base"],
-          showsRepeatAction: true
+          accumulatedFromNetworkAssetNames: ["ethereum", "unichain", "bnb-smart-chain", "base"]
         ),
       ]
     ),
@@ -273,7 +257,7 @@ struct TransactionBalanceSummary: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("Balance")
+      Text("transaction_balance_label")
         .font(.custom("Roboto-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
 
@@ -289,6 +273,9 @@ struct TransactionBalanceSummary: View {
 
 struct AccountTransactionsList: View {
   let sections: [TransactionSection]
+  let displayCurrencyCode: String
+  let displayLocale: Locale
+  let usdToSelectedRate: Decimal
   let onSelect: (MockTransaction) -> Void
 
   var body: some View {
@@ -303,6 +290,9 @@ struct AccountTransactionsList: View {
             ForEach(section.transactions) { transaction in
               TransactionRow(
                 transaction: transaction,
+                displayCurrencyCode: displayCurrencyCode,
+                displayLocale: displayLocale,
+                usdToSelectedRate: usdToSelectedRate,
                 onTap: { onSelect(transaction) }
               )
             }
@@ -316,6 +306,9 @@ struct AccountTransactionsList: View {
 
 struct TransactionRow: View {
   let transaction: MockTransaction
+  let displayCurrencyCode: String
+  let displayLocale: Locale
+  let usdToSelectedRate: Decimal
   let onTap: () -> Void
 
   var body: some View {
@@ -352,13 +345,13 @@ struct TransactionRow: View {
 
         if let change = transaction.assetChange {
           VStack(alignment: .trailing, spacing: 4) {
-            Text(change.fiatText)
+            Text(formattedFiatText(change))
               .font(.custom("RobotoMono-Medium", size: 12))
               .foregroundStyle(change.accentColor)
               .tracking(0.06)
 
             Text(change.assetText)
-              .font(.custom("Roboto-Regular", size: 10))
+              .font(.custom("Roboto-Regular", size: 12))
               .foregroundStyle(AppThemeColor.labelSecondary)
               .tracking(0.05)
           }
@@ -368,6 +361,22 @@ struct TransactionRow: View {
       .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
     }
     .buttonStyle(.plain)
+  }
+
+  private func formattedFiatText(_ change: TransactionAssetChange) -> String {
+    let converted = change.fiatUSD * usdToSelectedRate
+    let formatted = CurrencyDisplayFormatter.format(
+      amount: converted,
+      currencyCode: displayCurrencyCode,
+      locale: displayLocale
+    )
+
+    switch change.direction {
+    case .up:
+      return "+\(formatted)"
+    case .down:
+      return "-\(formatted)"
+    }
   }
 }
 
@@ -440,25 +449,25 @@ struct TransactionReceiptModal: View {
           )
         }
 
-        receiptField(label: "Time") {
+        receiptField(label: String(localized: "transaction_receipt_time")) {
           Text(transaction.timestampText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
-        receiptField(label: "Type") {
+        receiptField(label: String(localized: "transaction_receipt_type")) {
           Text(transaction.typeText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
-        receiptField(label: "Fee") {
+        receiptField(label: String(localized: "transaction_receipt_fee")) {
           Text(transaction.feeText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
-        receiptField(label: "Network") {
+        receiptField(label: String(localized: "transaction_receipt_network")) {
           AppIconTextBadge(
             text: transaction.networkName,
             icon: .network(transaction.networkAssetName)
@@ -466,7 +475,7 @@ struct TransactionReceiptModal: View {
         }
 
         if !transaction.accumulatedFromNetworkAssetNames.isEmpty {
-          receiptField(label: "Accumulated from") {
+          receiptField(label: String(localized: "transaction_receipt_accumulated_from")) {
             MultiChainIconGroup(networkAssetNames: transaction.accumulatedFromNetworkAssetNames)
           }
         }
@@ -485,37 +494,15 @@ struct TransactionReceiptModal: View {
 
   @ViewBuilder
   private var actionRow: some View {
-    if transaction.showsRepeatAction {
-      HStack(spacing: 12) {
-        AppButton(
-          label: "Repeat transfer",
-          variant: .outline,
-          showIcon: false,
-          action: {}
-        )
-        .frame(width: 147)
-
-        AppButton(
-          label: "View Tx",
-          variant: .outline,
-          showIcon: true,
-          iconName: "Icons/link_external_01",
-          action: {}
-        )
-        .frame(width: 129)
-      }
-      .frame(maxWidth: .infinity)
-    } else {
-      AppButton(
-        label: "View Tx",
-        variant: .outline,
-        showIcon: true,
-        iconName: "Icons/link_external_01",
-        action: {}
-      )
-      .frame(width: 129)
-      .frame(maxWidth: .infinity)
-    }
+    AppButton(
+      label: "transaction_view_tx",
+      variant: .outline,
+      showIcon: true,
+      iconName: "Icons/link_external_01",
+      action: {}
+    )
+    .frame(width: 129)
+    .frame(maxWidth: .infinity)
   }
 
   private func receiptField<Content: View>(
@@ -536,8 +523,13 @@ struct TransactionReceiptModal: View {
   ZStack {
     AppThemeColor.fixedDarkSurface.ignoresSafeArea()
     VStack(spacing: 24) {
-      TransactionBalanceSummary(balanceText: MockTransactionData.quickBalance, isBalanceHidden: .constant(false))
-      AccountTransactionsList(sections: MockTransactionData.sections) { _ in }
+      TransactionBalanceSummary(balanceText: "$305,234.66", isBalanceHidden: .constant(false))
+      AccountTransactionsList(
+        sections: MockTransactionData.sections,
+        displayCurrencyCode: "USD",
+        displayLocale: .current,
+        usdToSelectedRate: 1
+      ) { _ in }
     }
     .padding(20)
   }

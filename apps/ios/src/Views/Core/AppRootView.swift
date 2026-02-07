@@ -3,12 +3,14 @@ import AccountSetup
 
 @MainActor
 struct AppRootView: View {
+  @Environment(\.scenePhase) private var scenePhase
   @State private var route: Route = .splash
   @State private var currentEOA: String?
   @State private var isWorking = false
   @State private var hasLocalWalletMaterial = false
   @State private var walletBackupMnemonic = ""
   @State private var preferencesStore = PreferencesStore()
+  @State private var currencyRateStore = CurrencyRateStore()
   private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
   private let ensService = ENSService()
@@ -65,6 +67,8 @@ struct AppRootView: View {
         .disabled(isWorking)
       case .home:
         HomeView(
+          preferencesStore: preferencesStore,
+          currencyRateStore: currencyRateStore,
           onSignOut: {
             sessionStore.clearActiveSession()
             currentEOA = nil
@@ -84,6 +88,8 @@ struct AppRootView: View {
         )
       case .transactions:
         TransactionsView(
+          preferencesStore: preferencesStore,
+          currencyRateStore: currencyRateStore,
           onHomeTap: { route = .home },
           onTransactionsTap: { route = .transactions },
           onSessionKeyTap: { route = .sessionKey }
@@ -116,6 +122,8 @@ struct AppRootView: View {
         SendMoneyView(
           eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
           store: beneficiaryStore,
+          preferencesStore: preferencesStore,
+          currencyRateStore: currencyRateStore,
           onBack: { route = .home }
         )
       case .sessionKey:
@@ -136,6 +144,21 @@ struct AppRootView: View {
     .preferredColorScheme(preferredColorScheme)
     .environment(\.locale, preferencesStore.locale)
     .environment(\.layoutDirection, layoutDirection)
+    .task {
+      await currencyRateStore.refreshIfNeeded()
+      await currencyRateStore.ensureRate(for: preferencesStore.selectedCurrencyCode)
+    }
+    .onChange(of: scenePhase) { _, newPhase in
+      guard newPhase == .active else { return }
+      Task {
+        await currencyRateStore.refreshIfNeeded()
+      }
+    }
+    .onChange(of: preferencesStore.selectedCurrencyCode) { _, newCode in
+      Task {
+        await currencyRateStore.ensureRate(for: newCode)
+      }
+    }
   }
 
   private var shouldAnimateRoute: Bool {

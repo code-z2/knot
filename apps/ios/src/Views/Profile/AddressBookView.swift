@@ -73,25 +73,26 @@ struct AddressBookView: View {
   }
 
   private var listState: some View {
-    ScrollView(showsIndicators: false) {
-      LazyVStack(spacing: 6) {
-        ForEach(visibleBeneficiaries) { beneficiary in
-          BeneficiaryRow(beneficiary: beneficiary)
-            .padding(.horizontal, 25)
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+    List {
+      ForEach(visibleBeneficiaries) { beneficiary in
+        BeneficiaryRow(beneficiary: beneficiary)
+          .listRowInsets(EdgeInsets(top: 0, leading: 25, bottom: 6, trailing: 25))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+          .swipeActions(edge: .trailing, allowsFullSwipe: true) {
               Button(role: .destructive) {
-                Task { await deleteBeneficiary(beneficiary.id) }
-              } label: {
-                Image("Icons/trash_03")
-                  .renderingMode(.template)
-              }
-              .tint(AppThemeColor.accentRed)
+              Task { await deleteBeneficiary(beneficiary.id) }
+            } label: {
+              Image("Icons/trash_03")
+                .renderingMode(.template)
             }
-        }
+          }
       }
-      .padding(.top, 0)
-      .padding(.bottom, 36)
     }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .background(AppThemeColor.backgroundPrimary)
+    .padding(.bottom, 30)
   }
 
   private var emptyState: some View {
@@ -206,12 +207,6 @@ private struct AddAddressView: View {
   @State private var isChainInputFocused = false
   @State private var isAliasInputFocused = false
 
-  private enum AddressDetectionResult: Sendable {
-    case evmAddress(String)
-    case ensName(String)
-    case invalid
-  }
-
   init(
     beneficiaries: [Beneficiary],
     addressValidationMode: DropdownInputValidationMode = .strictAddressOrENS,
@@ -245,7 +240,7 @@ private struct AddAddressView: View {
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
-        title: "New Address",
+        title: "address_book_new_address_title",
         titleFont: .custom("Roboto-Bold", size: 22),
         titleColor: AppThemeColor.labelSecondary,
         onBack: {
@@ -274,7 +269,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .address,
       properties: .init(
-        placeholder: "Address or ENS name",
+        placeholder: String(localized: "address_book_placeholder_address_or_ens"),
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelPrimary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -295,7 +290,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .chain,
       properties: .init(
-        placeholder: "Chain",
+        placeholder: String(localized: "address_book_placeholder_chain"),
         trailingIconAssetName: nil,
         textColor: AppThemeColor.labelSecondary,
         placeholderColor: AppThemeColor.labelSecondary
@@ -316,7 +311,7 @@ private struct AddAddressView: View {
     DropdownInputField(
       variant: .noDropdown,
       properties: .init(
-        placeholder: "Name or Alias",
+        placeholder: String(localized: "address_book_placeholder_alias"),
         trailingIconAssetName: nil,
         textFont: .custom("Inter-Regular_Medium", size: 14),
         textColor: AppThemeColor.labelPrimary,
@@ -338,7 +333,7 @@ private struct AddAddressView: View {
         await save()
       }
     } label: {
-      Text("Add")
+      Text("address_book_add")
         .font(.custom("Roboto-Bold", size: 15))
         .foregroundStyle(AppThemeColor.backgroundPrimary)
         .padding(.horizontal, 17)
@@ -357,7 +352,7 @@ private struct AddAddressView: View {
   private var addressDropdown: some View {
     Group {
       if filteredBeneficiaries.isEmpty {
-        Text("No beneficiaries found")
+        Text("address_book_no_beneficiaries_found")
           .font(.custom("Roboto-Regular", size: 13))
           .foregroundStyle(AppThemeColor.labelSecondary)
           .frame(maxWidth: .infinity, alignment: .center)
@@ -538,7 +533,7 @@ private struct AddAddressView: View {
 
     addressDetectionTask = Task(priority: .userInitiated) {
       let detection = await Task.detached(priority: .userInitiated) {
-        AddAddressView.detectAddressCandidate(snapshot, mode: mode)
+        AddressInputParser.detectCandidate(snapshot, mode: mode)
       }.value
 
       guard !Task.isCancelled else { return }
@@ -593,50 +588,12 @@ private struct AddAddressView: View {
     case .flexible:
       return !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     case .strictAddressOrENS:
-      return AddAddressView.isLikelyEVMAddress(input) || AddAddressView.isLikelyENSName(input)
+      return AddressInputParser.isLikelyEVMAddress(input) || AddressInputParser.isLikelyENSName(input)
     }
-  }
-
-  nonisolated private static func detectAddressCandidate(
-    _ input: String,
-    mode: DropdownInputValidationMode
-  ) -> AddressDetectionResult {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !normalized.isEmpty else { return .invalid }
-
-    switch mode {
-    case .strictAddressOrENS:
-      if isLikelyEVMAddress(normalized) {
-        return .evmAddress(normalized)
-      }
-      if isLikelyENSName(normalized) {
-        return .ensName(normalized.lowercased())
-      }
-      return .invalid
-    case .flexible:
-      return .ensName(normalized)
-    }
-  }
-
-  nonisolated private static func isLikelyEVMAddress(_ input: String) -> Bool {
-    let normalized = input.trimmingCharacters(in: .whitespacesAndNewlines)
-    let pattern = #"^0x[a-fA-F0-9]{40}$"#
-    return normalized.range(of: pattern, options: .regularExpression) != nil
-  }
-
-  nonisolated private static func isLikelyENSName(_ input: String) -> Bool {
-    let normalized =
-      input
-      .trimmingCharacters(in: .whitespacesAndNewlines)
-      .lowercased()
-
-    let pattern =
-      #"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.eth$"#
-    return normalized.range(of: pattern, options: .regularExpression) != nil
   }
 
   private func displayAddressOrENS(_ value: String) -> String {
-    if AddAddressView.isLikelyEVMAddress(value) {
+    if AddressInputParser.isLikelyEVMAddress(value) {
       return AddressShortener.shortened(value)
     }
     return value
