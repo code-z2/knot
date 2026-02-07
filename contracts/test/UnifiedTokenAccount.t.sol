@@ -87,7 +87,7 @@ contract UnifiedTokenAccountTest is Test {
         bundles[1] = ChainCalls({chainId: block.chainid, calls: calls});
 
         vm.prank(entryPoint);
-        account.executeChainCalls(abi.encode(bundles));
+        account.executeChainCalls(abi.encodeWithSelector(account.executeChainCalls.selector, bundles));
 
         assertEq(target.last(), 77);
     }
