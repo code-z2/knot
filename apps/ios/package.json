@@ -2,7 +2,7 @@
   "name": "ios",
   "private": true,
   "scripts": {
-    "build": "echo 'Build iOS app with Xcode'",
-    "dev": "echo 'Run iOS app with Xcode'"
+    "build": "xcodebuild -project metu.xcodeproj -scheme metu -configuration Debug -sdk iphonesimulator build",
+    "dev": "xcodebuild -project metu.xcodeproj -scheme metu -configuration Debug -sdk iphonesimulator build"
   }
 }

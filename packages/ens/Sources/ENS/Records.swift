@@ -20,14 +20,20 @@ extension ENSClient {
   }
 
   public func textRecord(_ request: TextRecordRequest) async throws -> String {
-    let (normalizedName, _, resolver) = try await resolvedTextCapableResolver(
-      forName: request.name
+    let context = try await universalResolverContext(forName: request.name)
+    let encodedCall = try makeCallData(
+      web3: context.web3,
+      abi: Web3.Utils.resolverABI,
+      method: "text",
+      parameters: [context.nodeHash, request.recordKey]
     )
-
-    return try await resolver.getTextData(
-      forNode: normalizedName,
-      key: request.recordKey
+    let resolved = try await universalResolve(
+      web3: context.web3,
+      normalizedName: context.normalizedName,
+      callData: encodedCall
     )
+    guard let text = Self.abiDecodeString(from: resolved) else { throw ENSError.ensUnavailable }
+    return text
   }
 
   private func setTextRecord(
@@ -35,36 +41,14 @@ extension ENSClient {
     recordKey: String,
     recordValue: String
   ) async throws -> Call {
-    let (normalizedName, web3, resolver) = try await resolvedTextCapableResolver(forName: name)
-
-    guard let nodeHash = NameHash.nameHash(normalizedName) else {
-      throw ENSError.invalidName
-    }
+    let context = try await universalResolverContext(forName: name)
 
     return try makeWritePayload(
-      web3: web3,
+      web3: context.web3,
       abi: Web3.Utils.resolverABI,
-      to: resolver.resolverContractAddress,
+      to: context.resolverAddress,
       method: "setText",
-      parameters: [nodeHash, recordKey, recordValue]
+      parameters: [context.nodeHash, recordKey, recordValue]
     )
-  }
-
-  private func resolvedTextCapableResolver(
-    forName name: String
-  ) async throws -> (normalizedName: String, web3: Web3, resolver: web3swift.ENS.Resolver) {
-    let normalizedName = Self.normalizedENSName(name)
-    guard !normalizedName.isEmpty else { throw ENSError.invalidName }
-
-    let web3 = try await rpcClient.getWeb3Client(chainId: 1)
-    guard let ens = web3swift.ENS(web3: web3) else {
-      throw ENSError.ensUnavailable
-    }
-
-    let resolver = try await ens.registry.getResolver(forDomain: normalizedName)
-    let supportsText = try await resolver.supportsInterface(interfaceID: .text)
-    guard supportsText else { throw ENSError.unsupportedResolver }
-
-    return (normalizedName, web3, resolver)
   }
 }
