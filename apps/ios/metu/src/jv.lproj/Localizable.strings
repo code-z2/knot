@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "saka";
 "transaction_row_action_sent" = "ngirim";
 "transaction_row_action_received" = "nampa";
+
+"transaction_empty_title" = "Ora ana aktivitas anyar";
+"transaction_empty_subtitle" = "Transaksi sampeyan bakal katon ing kene sawise sampeyan ngirim utawa nampa dana.";

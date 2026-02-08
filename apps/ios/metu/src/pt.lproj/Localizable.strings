@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "de";
 "transaction_row_action_sent" = "enviado";
 "transaction_row_action_received" = "recebido";
+
+"transaction_empty_title" = "Nenhuma atividade recente";
+"transaction_empty_subtitle" = "Suas transações aparecerão aqui depois que você enviar ou receber fundos.";

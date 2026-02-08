@@ -48,6 +48,8 @@ struct TransactionsView: View {
           Text("transaction_empty_subtitle")
             .font(.custom("Roboto-Regular", size: 13))
             .foregroundStyle(AppThemeColor.labelSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 250)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
@@ -57,7 +59,8 @@ struct TransactionsView: View {
               sections: transactionStore.sections,
               displayCurrencyCode: preferencesStore.selectedCurrencyCode,
               displayLocale: preferencesStore.locale,
-              usdToSelectedRate: currencyRateStore.rateFromUSD(to: preferencesStore.selectedCurrencyCode)
+              usdToSelectedRate: currencyRateStore.rateFromUSD(
+                to: preferencesStore.selectedCurrencyCode)
             ) { transaction in
               presentReceipt(for: transaction)
             }
@@ -149,5 +152,5 @@ private struct TransactionsAppHeader: View {
     preferencesStore: PreferencesStore(),
     currencyRateStore: CurrencyRateStore()
   )
-    .preferredColorScheme(.dark)
+  .preferredColorScheme(.dark)
 }

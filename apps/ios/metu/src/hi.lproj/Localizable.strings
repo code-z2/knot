@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "से";
 "transaction_row_action_sent" = "भेजा गया";
 "transaction_row_action_received" = "प्राप्त हुआ";
+
+"transaction_empty_title" = "कोई हालिया गतिविधि नहीं";
+"transaction_empty_subtitle" = "पैसे भेजने या प्राप्त करने के बाद आपके लेनदेन यहां दिखाई देंगे।";

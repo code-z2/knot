@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "سے";
 "transaction_row_action_sent" = "بھیجا گیا";
 "transaction_row_action_received" = "وصول ہوا";
+
+"transaction_empty_title" = "کوئی حالیہ سرگرمی نہیں";
+"transaction_empty_subtitle" = "رقم بھیجنے یا وصول کرنے کے بعد آپ کے لین دین یہاں ظاہر ہوں گے۔";

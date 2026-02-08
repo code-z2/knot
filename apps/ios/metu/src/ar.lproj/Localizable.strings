@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "من";
 "transaction_row_action_sent" = "تم الإرسال";
 "transaction_row_action_received" = "تم الاستلام";
+
+"transaction_empty_title" = "لا يوجد نشاط حديث";
+"transaction_empty_subtitle" = "ستظهر معاملاتك هنا بعد إرسال أو استلام الأموال.";

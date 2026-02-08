@@ -1,4 +1,4 @@
--include .env.local
+-include .env
 
 # Helper to verify deployment
 # usage: make verify-contract CHAIN_ID=11155111 ADDRESS=0x... ARGS="0x..."

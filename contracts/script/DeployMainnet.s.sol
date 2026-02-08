@@ -4,6 +4,11 @@ pragma solidity 0.8.33;
 import {Script, console} from "forge-std/Script.sol";
 import {AccumulatorFactory} from "../src/AccumulatorFactory.sol";
 
+interface ICreateX {
+    function deployCreate2(bytes32 salt, bytes memory initCode) external payable returns (address);
+    function computeCreate2Address(bytes32 salt, bytes32 initCodeHash) external view returns (address);
+}
+
 /// @title DeployMainnet
 /// @notice Deploys AccumulatorFactory on LIMITED_MAINNET chains:
 ///         Arbitrum (42161), Base (8453), Polygon (137).
@@ -11,17 +16,20 @@ import {AccumulatorFactory} from "../src/AccumulatorFactory.sol";
 ///   forge script script/DeployMainnet.s.sol:DeployMainnet \
 ///     --rpc-url $ARBITRUM_RPC --broadcast --verify
 contract DeployMainnet is Script {
+    ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
+    bytes32 constant SALT = keccak256("Accumulator_v1");
+
     function run() external {
         address treasury = vm.envAddress("TREASURY_ADDRESS");
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-
         console.log("Deploying to chain ID:", block.chainid);
-        console.log("Treasury:", treasury);
 
-        vm.startBroadcast(deployerPrivateKey);
-        AccumulatorFactory factory = new AccumulatorFactory(treasury);
+        bytes memory initCode = abi.encodePacked(type(AccumulatorFactory).creationCode, abi.encode(treasury));
+
+        vm.startBroadcast();
+
+        address deployed = CREATEX.deployCreate2(SALT, initCode);
+        console.log("Deployed at:", deployed);
+
         vm.stopBroadcast();
-
-        console.log("AccumulatorFactory deployed at:", address(factory));
     }
 }

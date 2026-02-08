@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "থেকে";
 "transaction_row_action_sent" = "পাঠানো হয়েছে";
 "transaction_row_action_received" = "গ্রহণ করা হয়েছে";
+
+"transaction_empty_title" = "কোন সাম্প্রতিক ক্রিয়াকলাপ নেই";
+"transaction_empty_subtitle" = "আপনার লেনদেনগুলি এখানে প্রদর্শিত হবে আপনি টাকা পাঠানোর বা গ্রহণ করার পরে।";

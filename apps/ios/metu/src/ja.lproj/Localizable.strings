@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "from";
 "transaction_row_action_sent" = "送信";
 "transaction_row_action_received" = "受信";
+
+"transaction_empty_title" = "最近のアクティビティはありません";
+"transaction_empty_subtitle" = "送金または受け取り後、取引はここに表示されます。";

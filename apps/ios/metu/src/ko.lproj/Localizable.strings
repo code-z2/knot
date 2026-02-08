@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "from";
 "transaction_row_action_sent" = "전송";
 "transaction_row_action_received" = "수신";
+
+"transaction_empty_title" = "최근 활동 없음";
+"transaction_empty_subtitle" = "자금을 보내거나 받으면 거래가 여기에 표시됩니다.";
