@@ -168,6 +168,7 @@
 				D0EEE9C22F3145FD001771BB /* AccountSetup */,
 				D0EAD1452F338A17003B1EE1 /* AA */,
 				D0EAD1482F338A51003B1EE1 /* ENS */,
+				D0BAL0012F3A0001001771BB /* Balance */,
 			);
 			productName = metu;
 			productReference = D0EEE96A2F312A96001771BB /* metu.app */;
@@ -273,6 +274,7 @@
 				D0EAD1412F338079003B1EE1 /* XCLocalSwiftPackageReference "../../packages/transactions" */,
 				D0EAD1442F338A17003B1EE1 /* XCLocalSwiftPackageReference "../../packages/aa" */,
 				D0EAD1472F338A51003B1EE1 /* XCLocalSwiftPackageReference "../../packages/ens" */,
+				D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -725,6 +727,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../packages/account-setup";
 		};
+		D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/balance;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -739,6 +745,10 @@
 		D0EEE9C22F3145FD001771BB /* AccountSetup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AccountSetup;
+		};
+		D0BAL0012F3A0001001771BB /* Balance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Balance;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

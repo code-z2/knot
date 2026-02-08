@@ -1,3 +1,4 @@
+import Balance
 import RPC
 import SwiftUI
 import UIKit
@@ -25,6 +26,7 @@ struct SendMoneyDraft: Sendable {
 struct SendMoneyView: View {
   let eoaAddress: String
   let store: BeneficiaryStore
+  let balanceStore: BalanceStore
   let preferencesStore: PreferencesStore
   let currencyRateStore: CurrencyRateStore
   var onBack: () -> Void = {}
@@ -34,6 +36,7 @@ struct SendMoneyView: View {
   init(
     eoaAddress: String,
     store: BeneficiaryStore,
+    balanceStore: BalanceStore,
     preferencesStore: PreferencesStore,
     currencyRateStore: CurrencyRateStore,
     onBack: @escaping () -> Void = {},
@@ -41,6 +44,7 @@ struct SendMoneyView: View {
   ) {
     self.eoaAddress = eoaAddress
     self.store = store
+    self.balanceStore = balanceStore
     self.preferencesStore = preferencesStore
     self.currencyRateStore = currencyRateStore
     self.onBack = onBack
@@ -57,7 +61,7 @@ struct SendMoneyView: View {
 
   @State private var selectedBeneficiary: Beneficiary?
   @State private var selectedChain: ChainOption?
-  @State private var selectedAsset: MockAsset?
+  @State private var selectedAsset: TokenBalance?
   @State private var finalizedAddressValue: String?
 
   @State private var isAddressInputFocused = false
@@ -69,7 +73,7 @@ struct SendMoneyView: View {
 
   @State private var amountInput = ""
   @State private var isAmountDisplayInverted = false
-  @State private var selectedSpendAsset: MockAsset?
+  @State private var selectedSpendAsset: TokenBalance?
   @State private var isShowingSpendAssetPicker = false
   @State private var spendAssetQuery = ""
   @State private var amountButtonState: AppButtonVisualState = .normal
@@ -385,7 +389,7 @@ struct SendMoneyView: View {
       ScrollView(showsIndicators: false) {
         AssetList(
           query: spendAssetQuery,
-          state: .loaded(MockAssetData.portfolio),
+          state: .loaded(balanceStore.balances),
           displayCurrencyCode: preferencesStore.selectedCurrencyCode,
           displayLocale: preferencesStore.locale,
           usdToSelectedRate: selectedFiatRateFromUSD,
@@ -442,7 +446,7 @@ struct SendMoneyView: View {
     ScrollView(showsIndicators: false) {
       AssetList(
         query: assetQuery,
-        state: .loaded(MockAssetData.portfolio),
+        state: .loaded(balanceStore.balances),
         displayCurrencyCode: preferencesStore.selectedCurrencyCode,
         displayLocale: preferencesStore.locale,
         usdToSelectedRate: selectedFiatRateFromUSD,
@@ -491,7 +495,7 @@ struct SendMoneyView: View {
     guard let selectedAsset else { return nil }
     return DropdownBadgeValue(
       text: selectedAsset.symbol,
-      iconAssetName: selectedAsset.iconAssetName,
+      iconURL: selectedAsset.logoURL,
       iconStyle: .network
     )
   }
@@ -517,7 +521,7 @@ struct SendMoneyView: View {
     return selectedAsset != nil
   }
 
-  private var currentSpendAsset: MockAsset? {
+  private var currentSpendAsset: TokenBalance? {
     selectedSpendAsset ?? selectedAsset
   }
 
@@ -578,19 +582,7 @@ struct SendMoneyView: View {
   }
 
   private var assetUSDPrice: Decimal {
-    guard let assetID = currentSpendAsset?.id else { return 1 }
-    switch assetID {
-    case "usdc", "usdt":
-      return 1
-    case "eth":
-      return 3200
-    case "bnb":
-      return 600
-    case "btc":
-      return 64000
-    default:
-      return 1
-    }
+    currentSpendAsset?.quoteRate ?? 1
   }
 
   private var enteredMainAmount: Decimal {
@@ -626,8 +618,7 @@ struct SendMoneyView: View {
   }
 
   private var availableAssetBalance: Decimal {
-    guard let amountText = currentSpendAsset?.amountText else { return 0 }
-    return decimal(from: amountText) ?? 0
+    currentSpendAsset?.totalBalance ?? 0
   }
 
   private var isInsufficientBalance: Bool {
@@ -666,10 +657,8 @@ struct SendMoneyView: View {
 
   private var spendAssetBalanceText: String {
     guard let spendAsset = currentSpendAsset else { return "0" }
-    let assetBalance = decimal(from: spendAsset.amountText) ?? 0
-    let balanceUSD = assetBalance * usdRate(for: spendAsset)
     return currencyRateStore.formatUSD(
-      balanceUSD,
+      spendAsset.totalValueUSD,
       currencyCode: selectedFiatCode,
       locale: preferencesStore.locale
     )
@@ -689,7 +678,7 @@ struct SendMoneyView: View {
       return nil
     }
 
-    let recipientRate = usdRate(for: selectedAsset)
+    let recipientRate = selectedAsset.quoteRate
     guard recipientRate > 0 else { return nil }
     let recipientAmount = usdAmount / recipientRate
     let amountText = format(recipientAmount, minFractionDigits: 1, maxFractionDigits: 2)
@@ -1031,19 +1020,8 @@ struct SendMoneyView: View {
     return formatter.string(from: value as NSDecimalNumber) ?? "0.0"
   }
 
-  private func usdRate(for asset: MockAsset) -> Decimal {
-    switch asset.id {
-    case "usdc", "usdt":
-      return 1
-    case "eth":
-      return 3200
-    case "bnb":
-      return 600
-    case "btc":
-      return 64000
-    default:
-      return 1
-    }
+  private func usdRate(for asset: TokenBalance) -> Decimal {
+    asset.quoteRate > 0 ? asset.quoteRate : 1
   }
 
   private func toast(message: String) -> some View {
@@ -1276,6 +1254,7 @@ private struct RoundedCornerArc: Shape {
   SendMoneyView(
     eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
     store: BeneficiaryStore(),
+    balanceStore: BalanceStore(),
     preferencesStore: PreferencesStore(),
     currencyRateStore: CurrencyRateStore()
   )

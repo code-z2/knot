@@ -1,6 +1,7 @@
-import SwiftUI
 import AccountSetup
+import Balance
 import RPC
+import SwiftUI
 
 @MainActor
 struct AppRootView: View {
@@ -12,6 +13,7 @@ struct AppRootView: View {
   @State private var walletBackupMnemonic = ""
   @State private var preferencesStore = PreferencesStore()
   @State private var currencyRateStore = CurrencyRateStore()
+  @State private var balanceStore = BalanceStore()
   private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
   private let ensService = ENSService()
@@ -53,6 +55,7 @@ struct AppRootView: View {
                 currentEOA = restored.eoaAddress
                 route = .home
               }
+              await balanceStore.refresh(walletAddress: restored.eoaAddress)
             } else {
               sessionStore.clearActiveSession()
               hasLocalWalletMaterial = false
@@ -69,6 +72,7 @@ struct AppRootView: View {
         .disabled(isWorking)
       case .home:
         HomeView(
+          balanceStore: balanceStore,
           preferencesStore: preferencesStore,
           currencyRateStore: currencyRateStore,
           onSignOut: {
@@ -90,6 +94,7 @@ struct AppRootView: View {
         )
       case .transactions:
         TransactionsView(
+          balanceStore: balanceStore,
           preferencesStore: preferencesStore,
           currencyRateStore: currencyRateStore,
           onHomeTap: { route = .home },
@@ -124,6 +129,7 @@ struct AppRootView: View {
         SendMoneyView(
           eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
           store: beneficiaryStore,
+          balanceStore: balanceStore,
           preferencesStore: preferencesStore,
           currencyRateStore: currencyRateStore,
           onBack: { route = .home }
@@ -149,11 +155,17 @@ struct AppRootView: View {
     .task {
       await currencyRateStore.refreshIfNeeded()
       await currencyRateStore.ensureRate(for: preferencesStore.selectedCurrencyCode)
+      if let eoa = currentEOA {
+        await balanceStore.refresh(walletAddress: eoa)
+      }
     }
     .onChange(of: scenePhase) { _, newPhase in
       guard newPhase == .active else { return }
       Task {
         await currencyRateStore.refreshIfNeeded()
+        if let eoa = currentEOA {
+          await balanceStore.refresh(walletAddress: eoa)
+        }
       }
     }
     .onChange(of: preferencesStore.selectedCurrencyCode) { _, newCode in
@@ -192,6 +204,8 @@ struct AppRootView: View {
           await faucet.fundAccount(eoaAddress: address)
         }
       }
+
+      await balanceStore.refresh(walletAddress: restored.eoaAddress)
     }
   }
 
@@ -206,6 +220,7 @@ struct AppRootView: View {
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
       hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
       route = .home
+      await balanceStore.refresh(walletAddress: restored.eoaAddress)
     }
   }
 

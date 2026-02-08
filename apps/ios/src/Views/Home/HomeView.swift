@@ -1,10 +1,13 @@
+import Balance
 import SwiftUI
+import UIKit
 
 private enum HomeModal {
   case assets
 }
 
 struct HomeView: View {
+  let balanceStore: BalanceStore
   let preferencesStore: PreferencesStore
   let currencyRateStore: CurrencyRateStore
   let onSignOut: () -> Void
@@ -20,6 +23,7 @@ struct HomeView: View {
   let showWalletBackup: Bool
 
   init(
+    balanceStore: BalanceStore,
     preferencesStore: PreferencesStore,
     currencyRateStore: CurrencyRateStore,
     onSignOut: @escaping () -> Void,
@@ -34,6 +38,7 @@ struct HomeView: View {
     onAddressBookTap: @escaping () -> Void = {},
     showWalletBackup: Bool = true
   ) {
+    self.balanceStore = balanceStore
     self.preferencesStore = preferencesStore
     self.currencyRateStore = currencyRateStore
     self.onSignOut = onSignOut
@@ -57,7 +62,17 @@ struct HomeView: View {
         VStack(spacing: 0) {
           ScrollView(showsIndicators: false) {
             contentSection
+              .background(
+                GeometryReader { proxy in
+                  let offset = proxy.frame(in: .named("homeScroll")).minY
+                  Color.clear
+                    .onChange(of: offset) { _, newOffset in
+                      handleOverscroll(offset: newOffset)
+                    }
+                }
+              )
           }
+          .coordinateSpace(name: "homeScroll")
           // .padding(.top, AppHeaderMetrics.contentTopPadding) override for home screen
           .padding(.top, 12)
         }
@@ -78,13 +93,7 @@ struct HomeView: View {
         onSessionKeyTap: onSessionKeyTap
       )
     }
-    .task {
-      guard case .loading = assetListState else { return }
-      try? await Task.sleep(for: .milliseconds(520))
-      withAnimation(.easeInOut(duration: 0.22)) {
-        assetListState = .loaded(MockAssetData.portfolio)
-      }
-    }
+    .task {}
     .overlay(alignment: .bottom) {
       SlideModal(
         isPresented: activeModal != nil,
@@ -99,12 +108,15 @@ struct HomeView: View {
   @State private var isBalanceHidden: Bool = false
   @State private var activeModal: HomeModal?
   @State private var assetSearchText = ""
-  @State private var assetListState: AssetListState = .loading
-  private let accountBalanceUSD = Decimal(string: "12450.88") ?? 0
+  @State private var hasTriggeredPullRefresh = false
+
+  private var assetListState: AssetListState {
+    balanceStore.isLoading ? .loading : .loaded(balanceStore.balances)
+  }
 
   private var accountBalanceDisplay: String {
     currencyRateStore.formatUSD(
-      accountBalanceUSD,
+      balanceStore.totalValueUSD,
       currencyCode: preferencesStore.selectedCurrencyCode,
       locale: preferencesStore.locale
     )
@@ -355,6 +367,30 @@ struct HomeView: View {
     activeModal = nil
   }
 
+  // MARK: - Pull-to-refresh
+
+  /// Threshold (points) the user must overscroll before a refresh fires.
+  private let pullRefreshThreshold: CGFloat = 60
+
+  private func handleOverscroll(offset: CGFloat) {
+    if offset > pullRefreshThreshold && !hasTriggeredPullRefresh {
+      hasTriggeredPullRefresh = true
+
+      if preferencesStore.hapticsEnabled {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+      }
+
+      Task {
+        await balanceStore.silentRefresh()
+      }
+    }
+
+    // Reset once the user scrolls back to resting position.
+    if offset <= 0 && hasTriggeredPullRefresh {
+      hasTriggeredPullRefresh = false
+    }
+  }
+
 }
 
 private struct MenuRow<Leading: View>: View {
@@ -447,6 +483,7 @@ private struct AssetsListModal: View {
 
 #Preview {
   HomeView(
+    balanceStore: BalanceStore(),
     preferencesStore: PreferencesStore(),
     currencyRateStore: CurrencyRateStore(),
     onSignOut: {}

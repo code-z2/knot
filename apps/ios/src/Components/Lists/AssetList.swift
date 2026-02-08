@@ -1,89 +1,11 @@
+import Balance
 import SwiftUI
 
-struct MockAsset: Identifiable, Hashable {
-  enum Section: Hashable {
-    case suggested
-    case all
-  }
-
-  enum ItemVariant: Hashable {
-    case standard
-    case valueOnly
-    case withChange(PriceChange)
-  }
-
-  struct PriceChange: Hashable {
-    enum Direction: Hashable {
-      case up
-      case down
-    }
-
-    let direction: Direction
-    let percentageText: String
-  }
-
-  let id: String
-  let symbol: String
-  let name: String
-  let amountText: String
-  let valueUSD: Decimal
-  let iconAssetName: String
-  let section: Section
-  let variant: ItemVariant
-  let keywords: [String]
-}
-
-enum MockAssetData {
-  static let portfolio: [MockAsset] = [
-    .init(
-      id: "usdc", symbol: "USDC", name: "USD Coin", amountText: "36.42", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .standard,
-      keywords: ["stablecoin", "usd"]
-    ),
-    .init(
-      id: "eth", symbol: "ETH", name: "Ethereum", amountText: "0.0234", valueUSD: 84.93,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .valueOnly,
-      keywords: ["ethereum", "gas"]
-    ),
-    .init(
-      id: "bnb", symbol: "BNB", name: "BNB", amountText: "1.28", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .suggested, variant: .standard,
-      keywords: ["binance"]
-    ),
-    .init(
-      id: "zsh", symbol: "ZSH", name: "Zcash", amountText: "36.42", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
-      keywords: ["privacy"]
-    ),
-    .init(
-      id: "bat", symbol: "BAT", name: "Basic Attention Token", amountText: "124.10",
-      valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .all,
-      variant: .withChange(.init(direction: .down, percentageText: "3.24%")),
-      keywords: ["attention", "browser"]
-    ),
-    .init(
-      id: "btc", symbol: "BTC", name: "Bitcoin", amountText: "0.0005", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .all,
-      variant: .withChange(.init(direction: .up, percentageText: "1.18%")),
-      keywords: ["bitcoin", "satoshi"]
-    ),
-    .init(
-      id: "usdt", symbol: "USDT", name: "Tether", amountText: "36.42", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
-      keywords: ["stablecoin", "tether"]
-    ),
-    .init(
-      id: "doge", symbol: "DOGE", name: "Dogecoin", amountText: "36.42", valueUSD: 36.21,
-      iconAssetName: "Icons/currency_ethereum_circle", section: .all, variant: .standard,
-      keywords: ["meme", "doge"]
-    ),
-  ]
-}
+private let suggestedSymbols: Set<String> = ["ETH", "USDC", "USDT"]
 
 enum AssetListState: Equatable {
   case loading
-  case loaded([MockAsset])
+  case loaded([TokenBalance])
 }
 
 struct AssetList: View {
@@ -93,7 +15,7 @@ struct AssetList: View {
   var displayLocale: Locale = .current
   var usdToSelectedRate: Decimal = 1
   var showSectionLabels = true
-  var onSelect: ((MockAsset) -> Void)? = nil
+  var onSelect: ((TokenBalance) -> Void)? = nil
 
   var body: some View {
     Group {
@@ -125,14 +47,14 @@ struct AssetList: View {
 
 private struct AssetListContent: View {
   let query: String
-  let assets: [MockAsset]
+  let assets: [TokenBalance]
   let displayCurrencyCode: String
   let displayLocale: Locale
   let usdToSelectedRate: Decimal
   let showSectionLabels: Bool
-  let onSelect: ((MockAsset) -> Void)?
+  let onSelect: ((TokenBalance) -> Void)?
 
-  private var filteredAssets: [MockAsset] {
+  private var filteredAssets: [TokenBalance] {
     SearchSystem.filter(
       query: query,
       items: assets,
@@ -143,20 +65,20 @@ private struct AssetListContent: View {
           keywords: [
             $0.name,
             formatValueText(for: $0),
-            $0.amountText,
-          ] + $0.keywords
+            $0.formattedBalance,
+          ]
         )
       },
       itemID: { $0.id }
     )
   }
 
-  private var suggestedAssets: [MockAsset] {
-    filteredAssets.filter { $0.section == .suggested }
+  private var suggestedAssets: [TokenBalance] {
+    filteredAssets.filter { suggestedSymbols.contains($0.symbol.uppercased()) }
   }
 
-  private var allAssets: [MockAsset] {
-    filteredAssets.filter { $0.section == .all }
+  private var allAssets: [TokenBalance] {
+    filteredAssets.filter { !suggestedSymbols.contains($0.symbol.uppercased()) }
   }
 
   var body: some View {
@@ -178,7 +100,7 @@ private struct AssetListContent: View {
     }
   }
 
-  private func section(title: LocalizedStringKey, assets: [MockAsset]) -> some View {
+  private func section(title: LocalizedStringKey, assets: [TokenBalance]) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       if showSectionLabels {
         Text(title)
@@ -199,9 +121,9 @@ private struct AssetListContent: View {
     }
   }
 
-  private func formatValueText(for asset: MockAsset) -> String {
+  private func formatValueText(for asset: TokenBalance) -> String {
     CurrencyDisplayFormatter.format(
-      amount: asset.valueUSD * usdToSelectedRate,
+      amount: asset.totalValueUSD * usdToSelectedRate,
       currencyCode: displayCurrencyCode,
       locale: displayLocale
     )
@@ -209,7 +131,7 @@ private struct AssetListContent: View {
 }
 
 private struct AssetItem: View {
-  let asset: MockAsset
+  let asset: TokenBalance
   let valueText: String
   var onTap: (() -> Void)? = nil
 
@@ -229,21 +151,16 @@ private struct AssetItem: View {
   private var rowContent: some View {
     HStack(spacing: 0) {
       HStack(spacing: 16) {
-        Image(asset.iconAssetName)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 32, height: 32)
+        TokenLogo(url: asset.logoURL, size: 32)
 
         VStack(alignment: .leading, spacing: 0) {
           Text(asset.symbol)
             .font(.custom("Inter-Regular_Medium", size: 16))
             .foregroundStyle(AppThemeColor.labelVibrantPrimary)
 
-          if showsAmount {
-            Text(asset.amountText)
-              .font(.custom("RobotoMono-Medium", size: 12))
-              .foregroundStyle(AppThemeColor.labelVibrantSecondary)
-          }
+          Text(asset.formattedBalance)
+            .font(.custom("RobotoMono-Medium", size: 12))
+            .foregroundStyle(AppThemeColor.labelVibrantSecondary)
         }
       }
 
@@ -254,7 +171,7 @@ private struct AssetItem: View {
           .font(.custom("Inter-Regular_Medium", size: 12))
           .foregroundStyle(AppThemeColor.labelVibrantPrimary)
 
-        if case .withChange(let change) = asset.variant {
+        if let change = priceChange {
           AssetPriceChange(change: change)
         }
       }
@@ -266,16 +183,33 @@ private struct AssetItem: View {
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 
-  private var showsAmount: Bool {
-    switch asset.variant {
-    case .valueOnly: false
-    case .standard, .withChange: true
-    }
+  private var priceChange: PriceChange? {
+    guard let ratio = asset.priceChangeRatio24h else { return nil }
+    let absPercent = abs(ratio) * 100
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.minimumFractionDigits = 2
+    formatter.maximumFractionDigits = 2
+    let percentText = (formatter.string(from: absPercent as NSDecimalNumber) ?? "0.00") + "%"
+    return PriceChange(
+      direction: ratio >= 0 ? .up : .down,
+      percentageText: percentText
+    )
   }
 }
 
+struct PriceChange: Hashable {
+  enum Direction: Hashable {
+    case up
+    case down
+  }
+
+  let direction: Direction
+  let percentageText: String
+}
+
 private struct AssetPriceChange: View {
-  let change: MockAsset.PriceChange
+  let change: PriceChange
 
   var body: some View {
     HStack(spacing: 8) {
@@ -415,7 +349,6 @@ private struct ShimmerEffect: ViewModifier {
     ScrollView {
       VStack(spacing: 18) {
         SearchInput(text: .constant(""), width: nil)
-        AssetList(query: "", state: .loaded(MockAssetData.portfolio))
         AssetList(query: "", state: .loading)
       }
       .padding()
