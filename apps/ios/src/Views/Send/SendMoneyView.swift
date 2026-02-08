@@ -1,6 +1,10 @@
+import AA
+import AccountSetup
 import Balance
+import Compose
 import RPC
 import SwiftUI
+import Transactions
 import UIKit
 
 private enum SendMoneyField: Hashable {
@@ -29,6 +33,9 @@ struct SendMoneyView: View {
   let balanceStore: BalanceStore
   let preferencesStore: PreferencesStore
   let currencyRateStore: CurrencyRateStore
+  let routeComposer: RouteComposer
+  let aaExecutionService: AAExecutionService
+  let accountService: AccountSetupService
   var onBack: () -> Void = {}
   var onContinue: (SendMoneyDraft) -> Void = { _ in }
   @Environment(\.openURL) private var openURL
@@ -39,6 +46,9 @@ struct SendMoneyView: View {
     balanceStore: BalanceStore,
     preferencesStore: PreferencesStore,
     currencyRateStore: CurrencyRateStore,
+    routeComposer: RouteComposer,
+    aaExecutionService: AAExecutionService,
+    accountService: AccountSetupService,
     onBack: @escaping () -> Void = {},
     onContinue: @escaping (SendMoneyDraft) -> Void = { _ in }
   ) {
@@ -47,6 +57,9 @@ struct SendMoneyView: View {
     self.balanceStore = balanceStore
     self.preferencesStore = preferencesStore
     self.currencyRateStore = currencyRateStore
+    self.routeComposer = routeComposer
+    self.aaExecutionService = aaExecutionService
+    self.accountService = accountService
     self.onBack = onBack
     self.onContinue = onContinue
   }
@@ -78,6 +91,13 @@ struct SendMoneyView: View {
   @State private var spendAssetQuery = ""
   @State private var amountButtonState: AppButtonVisualState = .normal
   @State private var amountActionTask: Task<Void, Never>?
+
+  // Route resolution state
+  @State private var currentRoute: TransferRoute?
+  @State private var routeError: RouteError?
+  @State private var isRoutingInProgress = false
+  @State private var routeDebounceTask: Task<Void, Never>?
+  @State private var txHash: String?
 
   var body: some View {
     ZStack {
@@ -133,9 +153,20 @@ struct SendMoneyView: View {
         selectedSpendAsset = selectedAsset
       }
     }
+    .onChange(of: amountInput) { _, _ in
+      if step == .amount {
+        resolveRoute()
+      }
+    }
+    .onChange(of: selectedSpendAsset?.id) { _, _ in
+      if step == .amount {
+        resolveRoute()
+      }
+    }
     .onDisappear {
       addressDetectionTask?.cancel()
       amountActionTask?.cancel()
+      routeDebounceTask?.cancel()
     }
     .fullScreenCover(isPresented: $isShowingScanner) {
       SendMoneyScanView(
@@ -669,21 +700,43 @@ struct SendMoneyView: View {
       return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
     }
 
-    guard enteredMainAmount > 0 else { return nil }
-    guard
-      let selectedAsset,
-      let spendAsset = currentSpendAsset,
-      selectedAsset.id != spendAsset.id
-    else {
-      return nil
+    if isRoutingInProgress {
+      return ("Finding best route...", AppThemeColor.labelSecondary)
     }
 
-    let recipientRate = selectedAsset.quoteRate
-    guard recipientRate > 0 else { return nil }
-    let recipientAmount = usdAmount / recipientRate
-    let amountText = format(recipientAmount, minFractionDigits: 1, maxFractionDigits: 2)
-    let summary = "Will swap on LiFi. recipient gets \(amountText) \(selectedAsset.symbol)"
-    return (summary, AppThemeColor.accentBrown)
+    if let routeError {
+      switch routeError {
+      case .insufficientBalance:
+        return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
+      case .noRouteFound(let reason):
+        return ("No route found: \(reason)", AppThemeColor.accentRed)
+      case .quoteUnavailable(let provider, _):
+        return ("\(provider) quote unavailable", AppThemeColor.accentRed)
+      case .unsupportedChain:
+        return ("Unsupported chain", AppThemeColor.accentRed)
+      case .unsupportedAsset:
+        return ("Unsupported asset", AppThemeColor.accentRed)
+      }
+    }
+
+    if let route = currentRoute {
+      let amountText = format(route.estimatedAmountOut, minFractionDigits: 1, maxFractionDigits: 4)
+      let stepsDescription = route.steps.map { step in
+        switch step.action {
+        case .transfer: return "transfer"
+        case .swap: return "swap"
+        case .bridge: return "bridge"
+        case .accumulate: return "bridge"
+        }
+      }.joined(separator: " → ")
+      let summary = String(
+        localized: "send_money_swap_summary_format",
+        defaultValue: "Will \(stepsDescription). recipient gets \(amountText) \(route.estimatedAmountOutSymbol)"
+      )
+      return (summary, AppThemeColor.accentBrown)
+    }
+
+    return nil
   }
 
   private func expandedBinding(for field: SendMoneyField) -> Binding<Bool> {
@@ -948,13 +1001,115 @@ struct SendMoneyView: View {
       return
     }
 
+    guard let route = currentRoute else {
+      // No route yet — trigger route resolution
+      resolveRoute()
+      return
+    }
+
     amountButtonState = .loading
     amountActionTask = Task { @MainActor in
-      try? await Task.sleep(for: .milliseconds(1200))
-      amountButtonState = .normal
-      withAnimation(.easeInOut(duration: 0.20)) {
-        step = .success
+      do {
+        let account = try await accountService.restoreSession(eoaAddress: eoaAddress)
+
+        if let jobId = route.jobId {
+          // Multi-chain: executeChainCalls
+          let result = try await aaExecutionService.executeChainCalls(
+            accountService: accountService,
+            account: account,
+            destinationChainId: route.destinationChainId,
+            jobId: jobId,
+            chainCalls: route.chainCalls
+          )
+          txHash = result.destinationSubmission
+        } else {
+          // Single-chain: executeCalls
+          guard let singleBundle = route.chainCalls.first else { return }
+          let hash = try await aaExecutionService.executeCalls(
+            accountService: accountService,
+            account: account,
+            chainId: singleBundle.chainId,
+            calls: singleBundle.calls
+          )
+          txHash = hash
+        }
+
+        amountButtonState = .normal
+        withAnimation(.easeInOut(duration: 0.20)) {
+          step = .success
+        }
+      } catch {
+        amountButtonState = .error
+        errorMessage = error.localizedDescription
+        amountActionTask = Task { @MainActor in
+          try? await Task.sleep(for: .milliseconds(2000))
+          amountButtonState = .normal
+          errorMessage = nil
+        }
       }
+    }
+  }
+
+  /// Debounced route resolution triggered when amount/asset/chain changes.
+  private func resolveRoute() {
+    routeDebounceTask?.cancel()
+    currentRoute = nil
+    routeError = nil
+
+    guard enteredMainAmount > 0,
+      let spendAsset = currentSpendAsset,
+      let selectedChain,
+      let toAddress = resolvedAddress
+    else {
+      return
+    }
+
+    let destToken = selectedAsset?.contractAddress ?? spendAsset.contractAddress
+    let destTokenSymbol = selectedAsset?.symbol ?? spendAsset.symbol
+    let destTokenDecimals = selectedAsset?.decimals ?? spendAsset.decimals
+
+    isRoutingInProgress = true
+    routeDebounceTask = Task { @MainActor in
+      // Debounce: wait for input to stabilize
+      try? await Task.sleep(for: .milliseconds(500))
+      guard !Task.isCancelled else { return }
+
+      do {
+        // Compute accumulator address
+        let smartAccountClient = SmartAccountClient()
+        let accAddress = try? await smartAccountClient.computeAccumulatorAddress(
+          account: eoaAddress,
+          chainId: selectedChain.rpcChainID
+        )
+
+        guard !Task.isCancelled else { return }
+
+        let route = try await routeComposer.getRoute(
+          fromAddress: eoaAddress,
+          toAddress: toAddress,
+          sourceAsset: spendAsset,
+          destChainId: selectedChain.rpcChainID,
+          destToken: destToken,
+          destTokenSymbol: destTokenSymbol,
+          destTokenDecimals: destTokenDecimals,
+          amount: assetAmount,
+          accumulatorAddress: accAddress
+        )
+
+        guard !Task.isCancelled else { return }
+        currentRoute = route
+        routeError = nil
+      } catch let error as RouteError {
+        guard !Task.isCancelled else { return }
+        routeError = error
+        currentRoute = nil
+      } catch {
+        guard !Task.isCancelled else { return }
+        routeError = .noRouteFound(reason: error.localizedDescription)
+        currentRoute = nil
+      }
+
+      isRoutingInProgress = false
     }
   }
 
@@ -1256,6 +1411,9 @@ private struct RoundedCornerArc: Shape {
     store: BeneficiaryStore(),
     balanceStore: BalanceStore(),
     preferencesStore: PreferencesStore(),
-    currencyRateStore: CurrencyRateStore()
+    currencyRateStore: CurrencyRateStore(),
+    routeComposer: RouteComposer(),
+    aaExecutionService: AAExecutionService(),
+    accountService: AccountSetupService()
   )
 }

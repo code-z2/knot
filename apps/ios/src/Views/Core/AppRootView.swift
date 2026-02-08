@@ -1,6 +1,7 @@
 import AA
 import AccountSetup
 import Balance
+import Compose
 import RPC
 import SwiftUI
 import Transactions
@@ -26,6 +27,7 @@ struct AppRootView: View {
   private let accountService = AccountSetupService()
   private let ensService = ENSService()
   private let aaExecutionService = AAExecutionService()
+  private let routeComposer = RouteComposer()
   private let sessionStore = SessionStore()
   private let faucetService = FaucetService()
 
@@ -142,6 +144,9 @@ struct AppRootView: View {
           balanceStore: balanceStore,
           preferencesStore: preferencesStore,
           currencyRateStore: currencyRateStore,
+          routeComposer: routeComposer,
+          aaExecutionService: aaExecutionService,
+          accountService: accountService,
           onBack: { route = .home }
         )
       case .sessionKey:

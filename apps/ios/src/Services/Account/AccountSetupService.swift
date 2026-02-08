@@ -44,10 +44,11 @@ final class AccountSetupService {
 
   init(
     service: AccountSetup.AccountSetupService? = nil,
-    delegateAddress: String = "0x0000000000000000000000000000000000000001",
+    delegateAddress: String = "0x919FB6f181DC306825Dc8F570A1BDF8c456c56Da",
     chainID: UInt64 = 1
   ) {
-    self.service = service ?? AccountSetup.AccountSetupService(passkeyService: PasskeyService(anchor: nil))
+    self.service =
+      service ?? AccountSetup.AccountSetupService(passkeyService: PasskeyService(anchor: nil))
     self.defaultDelegateAddress = delegateAddress
     self.defaultChainID = chainID
   }
@@ -139,7 +140,9 @@ final class AccountSetupService {
     }
   }
 
-  func storedSignedAuthorization(account: AccountIdentity) async throws -> EIP7702AuthorizationSigned {
+  func storedSignedAuthorization(account: AccountIdentity) async throws
+    -> EIP7702AuthorizationSigned
+  {
     do {
       return try await service.signedAuthorization(account: account)
     } catch {

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D0CMP0012F4B0001001771BB /* Compose in Frameworks */ = {isa = PBXBuildFile; productRef = D0CMP0022F4B0002001771BB /* Compose */; };
 		D00267772F3820510016F342 /* Balance in Frameworks */ = {isa = PBXBuildFile; productRef = D0BAL0012F3A0001001771BB /* Balance */; };
 		D00267782F3820510016F342 /* Transactions in Frameworks */ = {isa = PBXBuildFile; productRef = D0TXN0012F3B0001001771BB /* Transactions */; };
 		D0EAD1462F338A17003B1EE1 /* AA in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1452F338A17003B1EE1 /* AA */; };
@@ -99,6 +100,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0CMP0012F4B0001001771BB /* Compose in Frameworks */,
 				D00267782F3820510016F342 /* Transactions in Frameworks */,
 				D00267772F3820510016F342 /* Balance in Frameworks */,
 				D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */,
@@ -174,6 +176,7 @@
 				D0EAD1482F338A51003B1EE1 /* ENS */,
 				D0BAL0012F3A0001001771BB /* Balance */,
 				D0TXN0012F3B0001001771BB /* Transactions */,
+				D0CMP0022F4B0002001771BB /* Compose */,
 			);
 			productName = metu;
 			productReference = D0EEE96A2F312A96001771BB /* metu.app */;
@@ -280,6 +283,7 @@
 				D0EAD1442F338A17003B1EE1 /* XCLocalSwiftPackageReference "../../packages/aa" */,
 				D0EAD1472F338A51003B1EE1 /* XCLocalSwiftPackageReference "../../packages/ens" */,
 				D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */,
+				D0CMP0002F4B0000001771BB /* XCLocalSwiftPackageReference "../../packages/compose" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -736,9 +740,17 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../packages/account-setup";
 		};
+		D0CMP0002F4B0000001771BB /* XCLocalSwiftPackageReference "../../packages/compose" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/compose;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		D0CMP0022F4B0002001771BB /* Compose */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Compose;
+		};
 		D0BAL0012F3A0001001771BB /* Balance */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Balance;

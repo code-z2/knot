@@ -4,7 +4,6 @@ public enum AAConstants {
   public static let entryPointV09 = "0x433709009B8330FDa32311DF1C2AFA402eD8D009"
 
   // Single addresses — same on all chains (deterministic CREATE2 deployment).
-  // TODO: Fill after deterministic deployment.
   public static let accumulatorFactoryAddress = "0xb329c298dfa2f7fce4de1329d8cd1dd1dea9f41f"
   public static let protocolTreasuryAddress = "0xD981029dF93894fCEdb5d116D84cC0e9e7C679CA"
 
