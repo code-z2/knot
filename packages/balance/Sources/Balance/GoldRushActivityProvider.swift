@@ -48,7 +48,17 @@ public actor GoldRushActivityProvider {
       with: walletAddress
     )
 
-    guard let url = URL(string: urlString) else {
+    guard var components = URLComponents(string: urlString) else {
+      throw ActivityProviderError.invalidURL(urlString)
+    }
+
+    // Include testnets so testnet chain activity is returned.
+    var queryItems = components.queryItems ?? []
+    // TODO: Re-enable when Covalent testnet indexers are stable (currently returning 567).
+    // queryItems.append(URLQueryItem(name: "testnets", value: "true"))
+    components.queryItems = queryItems
+
+    guard let url = components.url else {
       throw ActivityProviderError.invalidURL(urlString)
     }
 
@@ -56,11 +66,22 @@ public actor GoldRushActivityProvider {
     request.httpMethod = "GET"
     request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
+    request.setValue(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      forHTTPHeaderField: "User-Agent")
 
+    print("[GoldRushActivity] GET \(url.absoluteString)")
     let (data, response) = try await session.data(for: request)
 
+    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+    print("[GoldRushActivity] HTTP \(statusCode), \(data.count) bytes")
+
     if let httpResponse = response as? HTTPURLResponse,
-       !(200...299).contains(httpResponse.statusCode) {
+      !(200...299).contains(httpResponse.statusCode)
+    {
+      if let body = String(data: data, encoding: .utf8)?.prefix(500) {
+        print("[GoldRushActivity] ❌ error body: \(body)")
+      }
       throw ActivityProviderError.httpError(statusCode: httpResponse.statusCode)
     }
 
@@ -68,20 +89,28 @@ public actor GoldRushActivityProvider {
     do {
       envelope = try JSONDecoder().decode(GoldRushActivityEnvelope.self, from: data)
     } catch {
+      print("[GoldRushActivity] ❌ decode failed: \(error)")
+      if let body = String(data: data, encoding: .utf8)?.prefix(500) {
+        print("[GoldRushActivity] raw response: \(body)")
+      }
       throw ActivityProviderError.decodingFailed
     }
 
     if let errorMessage = envelope.errorMessage, envelope.error == true {
+      print("[GoldRushActivity] ❌ API error: \(errorMessage)")
       throw ActivityProviderError.apiError(message: errorMessage)
     }
 
     guard let items = envelope.data?.items else {
+      print("[GoldRushActivity] ⚠️ envelope.data.items is nil — returning empty")
       return []
     }
+    print("[GoldRushActivity] \(items.count) activity item(s)")
 
     let activeChainIDs = items.compactMap { item -> UInt64? in
       guard let chainIdString = item.chainId,
-            let chainId = UInt64(chainIdString) else { return nil }
+        let chainId = UInt64(chainIdString)
+      else { return nil }
       return supportedChainIDs.contains(chainId) ? chainId : nil
     }
 

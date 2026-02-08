@@ -1,5 +1,6 @@
 import Foundation
 import BigInt
+import RPC
 import Security
 import Web3Core
 import Transactions
@@ -191,11 +192,44 @@ extension ENSClient {
     throw ENSError.missingResult("resolve")
   }
 
+  /// Obtain a Web3 client for the ENS configuration chain, with automatic
+  /// fallback to a direct Alchemy RPC URL when the RPCClient doesn't support
+  /// the chain (e.g. Sepolia 11155111 or mainnet 1 not in LIMITED_MAINNET mode).
+  func getWeb3ForENSChain() async throws -> Web3 {
+    do {
+      let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
+      print("[ENSClient] ✅ got web3 client for chainID \(configuration.chainID)")
+      return web3
+    } catch {
+      print("[ENSClient] ⚠️ getWeb3Client failed for chainID \(configuration.chainID): \(error)")
+      print("[ENSClient] attempting fallback via ChainRegistry slug…")
+
+      guard let definition = ChainRegistry.resolve(chainID: configuration.chainID) else {
+        print("[ENSClient] ❌ no ChainRegistry entry for chainID \(configuration.chainID)")
+        throw error
+      }
+      let apiKey = (Bundle.main.object(forInfoDictionaryKey: "JSONRPC_API_KEY") as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      let fallbackURL = "https://\(definition.slug).g.alchemy.com/v2/\(apiKey)"
+      guard let url = URL(string: fallbackURL), !apiKey.isEmpty else {
+        print("[ENSClient] ❌ fallback URL invalid or missing API key")
+        throw error
+      }
+      print("[ENSClient] 🔄 fallback RPC: \(definition.slug).g.alchemy.com")
+      let web3 = try await Web3.new(url, network: .Custom(networkID: BigUInt(configuration.chainID)))
+      print("[ENSClient] ✅ fallback web3 client ready")
+      return web3
+    }
+  }
+
   func universalResolverContext(forName name: String) async throws -> ENSResolverContext {
     let normalizedName = Self.normalizedENSName(name)
     guard !normalizedName.isEmpty else { throw ENSError.invalidName }
 
-    let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
+    print("[ENSClient] universalResolverContext: name=\(normalizedName), chainID=\(configuration.chainID)")
+
+    let web3 = try await getWeb3ForENSChain()
+
     guard
       let universalResolverAddress = EthereumAddress(configuration.universalResolverAddress),
       let dnsName = Self.dnsEncodedName(normalizedName)
@@ -203,6 +237,7 @@ extension ENSClient {
       throw ENSError.invalidAddress(configuration.universalResolverAddress)
     }
 
+    print("[ENSClient] calling findResolver on \(configuration.universalResolverAddress)")
     let result = try await makeReadResult(
       web3: web3,
       abi: Self.universalResolverABI,
@@ -212,9 +247,11 @@ extension ENSClient {
     )
 
     guard let resolverAddress = Self.parseAddress(result["0"] ?? result["resolver"]) else {
+      print("[ENSClient] ❌ findResolver returned no resolver address")
       throw ENSError.ensUnavailable
     }
     if resolverAddress.address.lowercased() == Self.zeroAddressHex {
+      print("[ENSClient] ❌ findResolver returned zero address")
       throw ENSError.ensUnavailable
     }
 

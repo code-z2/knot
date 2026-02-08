@@ -10,6 +10,8 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
   public let explorerBaseURL: String?
   public let supportsBundler: Bool
   public let supportsPaymaster: Bool
+  /// GoldRush/Covalent chain name for per-chain API calls (differs from Alchemy slug for some chains).
+  public let goldRushChainName: String?
 
   public var id: UInt64 { chainID }
 
@@ -22,7 +24,8 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
     rpcURL: String?,
     explorerBaseURL: String?,
     supportsBundler: Bool = false,
-    supportsPaymaster: Bool = false
+    supportsPaymaster: Bool = false,
+    goldRushChainName: String? = nil
   ) {
     self.chainID = chainID
     self.slug = slug
@@ -33,6 +36,7 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
     self.explorerBaseURL = explorerBaseURL
     self.supportsBundler = supportsBundler
     self.supportsPaymaster = supportsPaymaster
+    self.goldRushChainName = goldRushChainName
   }
 
   public func makeEndpoints(config: RPCEndpointBuilderConfig) -> ChainEndpoints? {
@@ -108,7 +112,8 @@ public enum ChainRegistry {
       assetName: "ethereum",
       keywords: ["eth", "mainnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://etherscan.io"
+      explorerBaseURL: "https://etherscan.io",
+      goldRushChainName: "eth-mainnet"
     ),
     .init(
       chainID: 11_155_111,
@@ -119,7 +124,8 @@ public enum ChainRegistry {
       rpcURL: nil,
       explorerBaseURL: "https://sepolia.etherscan.io",
       supportsBundler: true,
-      supportsPaymaster: true
+      supportsPaymaster: true,
+      goldRushChainName: "eth-sepolia"
     ),
     .init(
       chainID: 8_453,
@@ -130,7 +136,8 @@ public enum ChainRegistry {
       rpcURL: nil,
       explorerBaseURL: "https://basescan.org",
       supportsBundler: true,
-      supportsPaymaster: true
+      supportsPaymaster: true,
+      goldRushChainName: "base-mainnet"
     ),
     .init(
       chainID: 84_532,
@@ -141,7 +148,8 @@ public enum ChainRegistry {
       rpcURL: nil,
       explorerBaseURL: "https://sepolia.basescan.org",
       supportsBundler: true,
-      supportsPaymaster: true
+      supportsPaymaster: true,
+      goldRushChainName: "base-sepolia-testnet"
     ),
     .init(
       chainID: 42_161,
@@ -150,7 +158,8 @@ public enum ChainRegistry {
       assetName: "arbitrum",
       keywords: ["arb"],
       rpcURL: nil,
-      explorerBaseURL: "https://arbiscan.io"
+      explorerBaseURL: "https://arbiscan.io",
+      goldRushChainName: "arb-mainnet"
     ),
     .init(
       chainID: 421_614,
@@ -159,7 +168,8 @@ public enum ChainRegistry {
       assetName: "arbitrum",
       keywords: ["arb", "testnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://sepolia.arbiscan.io"
+      explorerBaseURL: "https://sepolia.arbiscan.io",
+      goldRushChainName: "arbitrum-sepolia"
     ),
     .init(
       chainID: 10,
@@ -177,7 +187,8 @@ public enum ChainRegistry {
       assetName: "polygon",
       keywords: ["matic", "pol"],
       rpcURL: nil,
-      explorerBaseURL: "https://polygonscan.com"
+      explorerBaseURL: "https://polygonscan.com",
+      goldRushChainName: "matic-mainnet"
     ),
     .init(
       chainID: 56,

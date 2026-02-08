@@ -18,11 +18,19 @@ enum DropdownBadgeIconStyle: Hashable {
   case symbol
 }
 
+enum AddressValidationState: Hashable {
+  case idle
+  case validating
+  case valid
+  case invalid
+}
+
 struct DropdownBadgeValue: Equatable {
   let text: String
   var iconAssetName: String? = nil
   var iconURL: URL? = nil
   var iconStyle: DropdownBadgeIconStyle = .network
+  var validationState: AddressValidationState = .idle
 }
 
 struct DropdownInputProperties {
@@ -306,7 +314,28 @@ struct DropdownInputField<DropdownContent: View>: View {
           .fill(AppThemeColor.fillPrimary)
       )
     } else {
-      AppTextBadge(text: badge.text)
+      switch badge.validationState {
+      case .valid:
+        AppIconTextBadge(
+          text: badge.text,
+          icon: .symbol("Icons/check_verified_01"),
+          textColor: .green
+        )
+      case .invalid:
+        AppIconTextBadge(
+          text: badge.text,
+          icon: .symbol("Icons/x_close"),
+          textColor: .red
+        )
+      case .validating:
+        HStack(spacing: 6) {
+          AppTextBadge(text: badge.text)
+          ProgressView()
+            .controlSize(.small)
+        }
+      case .idle:
+        AppTextBadge(text: badge.text)
+      }
     }
   }
 }

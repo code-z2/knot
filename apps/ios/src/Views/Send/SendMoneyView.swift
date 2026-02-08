@@ -2,6 +2,7 @@ import AA
 import AccountSetup
 import Balance
 import Compose
+import ENS
 import RPC
 import SwiftUI
 import Transactions
@@ -36,6 +37,7 @@ struct SendMoneyView: View {
   let routeComposer: RouteComposer
   let aaExecutionService: AAExecutionService
   let accountService: AccountSetupService
+  let ensService: ENSService
   var onBack: () -> Void = {}
   var onContinue: (SendMoneyDraft) -> Void = { _ in }
   @Environment(\.openURL) private var openURL
@@ -49,6 +51,7 @@ struct SendMoneyView: View {
     routeComposer: RouteComposer,
     aaExecutionService: AAExecutionService,
     accountService: AccountSetupService,
+    ensService: ENSService,
     onBack: @escaping () -> Void = {},
     onContinue: @escaping (SendMoneyDraft) -> Void = { _ in }
   ) {
@@ -60,6 +63,7 @@ struct SendMoneyView: View {
     self.routeComposer = routeComposer
     self.aaExecutionService = aaExecutionService
     self.accountService = accountService
+    self.ensService = ensService
     self.onBack = onBack
     self.onContinue = onContinue
   }
@@ -81,6 +85,9 @@ struct SendMoneyView: View {
   @State private var isChainInputFocused = false
   @State private var isAssetInputFocused = false
   @State private var addressDetectionTask: Task<Void, Never>?
+  @State private var addressValidationState: AddressValidationState = .idle
+  @State private var ensResolvedAddress: String?
+  @State private var addressValidationTask: Task<Void, Never>?
   @State private var isShowingScanner = false
   @State private var step: SendMoneyStep = .recipient
 
@@ -456,6 +463,8 @@ struct SendMoneyView: View {
                 selectedBeneficiary = beneficiary
                 finalizedAddressValue = beneficiary.address
                 addressQuery = ""
+                addressValidationState = .valid
+                ensResolvedAddress = nil
                 focusFirstIncompleteField()
               }
             }
@@ -510,7 +519,10 @@ struct SendMoneyView: View {
   private var addressBadge: DropdownBadgeValue? {
     let rawValue = selectedBeneficiary?.address ?? finalizedAddressValue
     guard let rawValue, !rawValue.isEmpty else { return nil }
-    return DropdownBadgeValue(text: displayAddressOrENS(rawValue))
+    return DropdownBadgeValue(
+      text: displayAddressOrENS(rawValue),
+      validationState: addressValidationState
+    )
   }
 
   private var chainBadge: DropdownBadgeValue? {
@@ -536,17 +548,23 @@ struct SendMoneyView: View {
       return selectedBeneficiary.address.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    if let finalizedAddressValue {
+    // If ENS was resolved, use the resolved 0x address
+    if let ensResolvedAddress {
+      return ensResolvedAddress
+    }
+
+    if let finalizedAddressValue, AddressInputParser.isLikelyEVMAddress(finalizedAddressValue) {
       return finalizedAddressValue.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !candidate.isEmpty else { return nil }
-    guard isAddressInputValid(candidate) else { return nil }
+    guard AddressInputParser.isLikelyEVMAddress(candidate) else { return nil }
     return candidate
   }
 
   private var canContinue: Bool {
+    guard addressValidationState == .valid else { return false }
     guard let resolvedAddress, !resolvedAddress.isEmpty else { return false }
     guard selectedChain != nil else { return false }
     return selectedAsset != nil
@@ -731,7 +749,8 @@ struct SendMoneyView: View {
       }.joined(separator: " → ")
       let summary = String(
         localized: "send_money_swap_summary_format",
-        defaultValue: "Will \(stepsDescription). recipient gets \(amountText) \(route.estimatedAmountOutSymbol)"
+        defaultValue:
+          "Will \(stepsDescription). recipient gets \(amountText) \(route.estimatedAmountOutSymbol)"
       )
       return (summary, AppThemeColor.accentBrown)
     }
@@ -790,6 +809,9 @@ struct SendMoneyView: View {
     selectedBeneficiary = nil
     finalizedAddressValue = nil
     addressQuery = ""
+    addressValidationState = .idle
+    ensResolvedAddress = nil
+    addressValidationTask?.cancel()
     activate(.address)
   }
 
@@ -833,6 +855,9 @@ struct SendMoneyView: View {
     if !trimmed.isEmpty, selectedBeneficiary != nil || finalizedAddressValue != nil {
       selectedBeneficiary = nil
       finalizedAddressValue = nil
+      addressValidationState = .idle
+      ensResolvedAddress = nil
+      addressValidationTask?.cancel()
     }
 
     addressDetectionTask?.cancel()
@@ -867,31 +892,90 @@ struct SendMoneyView: View {
       finalizedAddressValue = address
       selectedBeneficiary = nil
       addressQuery = ""
+      validateAddress(address)
       focusFirstIncompleteField()
     case .ensName(let ensName):
       finalizedAddressValue = ensName
       selectedBeneficiary = nil
       addressQuery = ""
+      validateAddress(ensName)
       focusFirstIncompleteField()
     case .invalid:
       finalizedAddressValue = nil
+      addressValidationState = .idle
+      ensResolvedAddress = nil
     }
   }
 
   private func finalizeAddressIfNeeded() {
     if let selectedBeneficiary {
       finalizedAddressValue = selectedBeneficiary.address
+      if addressValidationState != .valid {
+        validateAddress(selectedBeneficiary.address)
+      }
       return
     }
 
     let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !candidate.isEmpty else { return }
 
-    finalizedAddressValue = isAddressInputValid(candidate) ? candidate : nil
+    if isAddressInputValid(candidate) {
+      finalizedAddressValue = candidate
+      if addressValidationState != .valid {
+        validateAddress(candidate)
+      }
+    } else {
+      finalizedAddressValue = nil
+    }
   }
 
   private func isAddressInputValid(_ input: String) -> Bool {
     AddressInputParser.isLikelyEVMAddress(input) || AddressInputParser.isLikelyENSName(input)
+  }
+
+  /// Validate the finalized address: EVM addresses are valid immediately,
+  /// ENS names are resolved asynchronously via `ENSService`.
+  private func validateAddress(_ value: String) {
+    addressValidationTask?.cancel()
+    print("[SendMoney] validateAddress called with: \"\(value)\"")
+
+    if AddressInputParser.isLikelyEVMAddress(value) {
+      print("[SendMoney] ✅ valid EVM address")
+      addressValidationState = .valid
+      ensResolvedAddress = nil
+      return
+    }
+
+    if AddressInputParser.isLikelyENSName(value) {
+      print("[SendMoney] 🔍 detected ENS name, resolving…")
+      addressValidationState = .validating
+      ensResolvedAddress = nil
+      addressValidationTask = Task {
+        do {
+          let resolved = try await ensService.resolveName(name: value)
+          guard !Task.isCancelled else {
+            print("[SendMoney] ⚠️ ENS resolution cancelled for \(value)")
+            return
+          }
+          print("[SendMoney] ✅ ENS resolved \(value) → \(resolved)")
+          ensResolvedAddress = resolved
+          addressValidationState = .valid
+        } catch {
+          guard !Task.isCancelled else {
+            print("[SendMoney] ⚠️ ENS resolution cancelled for \(value)")
+            return
+          }
+          print("[SendMoney] ❌ ENS resolution failed for \(value): \(error)")
+          ensResolvedAddress = nil
+          addressValidationState = .invalid
+        }
+      }
+      return
+    }
+
+    print("[SendMoney] ❌ not a valid EVM address or ENS name")
+    addressValidationState = .invalid
+    ensResolvedAddress = nil
   }
 
   private func displayAddressOrENS(_ value: String) -> String {
@@ -956,6 +1040,7 @@ struct SendMoneyView: View {
     selectedBeneficiary = nil
     finalizedAddressValue = candidate
     addressQuery = ""
+    validateAddress(candidate)
     focusFirstIncompleteField()
     return true
   }
@@ -1003,17 +1088,24 @@ struct SendMoneyView: View {
 
     guard let route = currentRoute else {
       // No route yet — trigger route resolution
+      print("[SendMoney] ⚠️ confirmAmount called but no route available. Resolving...")
       resolveRoute()
       return
     }
+
+    print(
+      "[SendMoney] 🚀 Initiating transaction. Route: \(route.chainCalls.count) call bundle(s). JobID: \(route.jobId != nil ? "Yes" : "No")"
+    )
 
     amountButtonState = .loading
     amountActionTask = Task { @MainActor in
       do {
         let account = try await accountService.restoreSession(eoaAddress: eoaAddress)
+        print("[SendMoney] Session restored for \(account.eoaAddress)")
 
         if let jobId = route.jobId {
           // Multi-chain: executeChainCalls
+          print("[SendMoney] Executing multi-chain calls...")
           let result = try await aaExecutionService.executeChainCalls(
             accountService: accountService,
             account: account,
@@ -1021,16 +1113,24 @@ struct SendMoneyView: View {
             jobId: jobId,
             chainCalls: route.chainCalls
           )
+          print(
+            "[SendMoney] ✅ Multi-chain execution submitted. Dest Tx: \(result.destinationSubmission)"
+          )
           txHash = result.destinationSubmission
         } else {
           // Single-chain: executeCalls
-          guard let singleBundle = route.chainCalls.first else { return }
+          guard let singleBundle = route.chainCalls.first else {
+            print("[SendMoney] ❌ Unexpected empty chain calls for single-chain route")
+            return
+          }
+          print("[SendMoney] Executing single-chain calls on chain \(singleBundle.chainId)...")
           let hash = try await aaExecutionService.executeCalls(
             accountService: accountService,
             account: account,
             chainId: singleBundle.chainId,
             calls: singleBundle.calls
           )
+          print("[SendMoney] ✅ Single-chain execution submitted. Hash: \(hash)")
           txHash = hash
         }
 
@@ -1039,6 +1139,7 @@ struct SendMoneyView: View {
           step = .success
         }
       } catch {
+        print("[SendMoney] ❌ Transaction failed: \(error)")
         amountButtonState = .error
         errorMessage = error.localizedDescription
         amountActionTask = Task { @MainActor in
@@ -1414,6 +1515,7 @@ private struct RoundedCornerArc: Shape {
     currencyRateStore: CurrencyRateStore(),
     routeComposer: RouteComposer(),
     aaExecutionService: AAExecutionService(),
-    accountService: AccountSetupService()
+    accountService: AccountSetupService(),
+    ensService: ENSService()
   )
 }

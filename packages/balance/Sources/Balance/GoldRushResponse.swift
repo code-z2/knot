@@ -1,6 +1,9 @@
 import Foundation
 
-// MARK: - GoldRush Multichain Balance API Response
+// MARK: - GoldRush Allchains Balance API Response
+//
+// The allchains endpoint returns a flat list of balance items, each annotated
+// with chain_id and chain_name directly on the item (no chain-level grouping).
 
 struct GoldRushEnvelope: Decodable {
   let data: GoldRushDataWrapper?
@@ -17,22 +20,12 @@ struct GoldRushEnvelope: Decodable {
 }
 
 struct GoldRushDataWrapper: Decodable {
-  let items: [GoldRushChainData]?
-}
-
-struct GoldRushChainData: Decodable {
-  let chainId: Int?
-  let chainName: String?
   let items: [GoldRushBalanceItem]?
-
-  enum CodingKeys: String, CodingKey {
-    case chainId = "chain_id"
-    case chainName = "chain_name"
-    case items
-  }
 }
 
 struct GoldRushBalanceItem: Decodable {
+  let chainId: Int?
+  let chainName: String?
   let contractDecimals: Int?
   let contractName: String?
   let contractTickerSymbol: String?
@@ -50,6 +43,8 @@ struct GoldRushBalanceItem: Decodable {
   let quote24h: Double?
 
   enum CodingKeys: String, CodingKey {
+    case chainId = "chain_id"
+    case chainName = "chain_name"
     case contractDecimals = "contract_decimals"
     case contractName = "contract_name"
     case contractTickerSymbol = "contract_ticker_symbol"
@@ -65,6 +60,35 @@ struct GoldRushBalanceItem: Decodable {
     case quoteRate24h = "quote_rate_24h"
     case quote
     case quote24h = "quote_24h"
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    chainName = try container.decodeIfPresent(String.self, forKey: .chainName)
+    contractDecimals = try container.decodeIfPresent(Int.self, forKey: .contractDecimals)
+    contractName = try container.decodeIfPresent(String.self, forKey: .contractName)
+    contractTickerSymbol = try container.decodeIfPresent(String.self, forKey: .contractTickerSymbol)
+    contractAddress = try container.decodeIfPresent(String.self, forKey: .contractAddress)
+    contractDisplayName = try container.decodeIfPresent(String.self, forKey: .contractDisplayName)
+    logoUrls = try container.decodeIfPresent(LogoUrls.self, forKey: .logoUrls)
+    isNativeToken = try container.decodeIfPresent(Bool.self, forKey: .isNativeToken)
+    type = try container.decodeIfPresent(String.self, forKey: .type)
+    isSpam = try container.decodeIfPresent(Bool.self, forKey: .isSpam)
+    balance = try container.decodeIfPresent(String.self, forKey: .balance)
+    balance24h = try container.decodeIfPresent(String.self, forKey: .balance24h)
+    quoteRate = try container.decodeIfPresent(Double.self, forKey: .quoteRate)
+    quoteRate24h = try container.decodeIfPresent(Double.self, forKey: .quoteRate24h)
+    quote = try container.decodeIfPresent(Double.self, forKey: .quote)
+    quote24h = try container.decodeIfPresent(Double.self, forKey: .quote24h)
+
+    // chain_id can be either Int or String in the API response
+    if let intVal = try? container.decodeIfPresent(Int.self, forKey: .chainId) {
+      chainId = intVal
+    } else if let strVal = try? container.decodeIfPresent(String.self, forKey: .chainId) {
+      chainId = Int(strVal)
+    } else {
+      chainId = nil
+    }
   }
 }
 

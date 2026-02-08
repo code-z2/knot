@@ -3,6 +3,7 @@ import SwiftUI
 struct AddressBookView: View {
   let eoaAddress: String
   let store: BeneficiaryStore
+  let ensService: ENSService
   var onBack: () -> Void = {}
 
   @State private var searchText = ""
@@ -46,7 +47,7 @@ struct AddressBookView: View {
     }
     .task { await reload() }
     .fullScreenCover(isPresented: $showAddScreen) {
-      AddAddressView(beneficiaries: beneficiaries) { draft in
+      AddAddressView(beneficiaries: beneficiaries, ensService: ensService) { draft in
         await addBeneficiary(draft)
       }
     }
@@ -189,6 +190,7 @@ private struct AddAddressView: View {
   @Environment(\.dismiss) private var dismiss
 
   let beneficiaries: [Beneficiary]
+  let ensService: ENSService
   let onSave: @MainActor @Sendable (AddBeneficiaryDraft) async -> Void
   let addressValidationMode: DropdownInputValidationMode
 
@@ -203,16 +205,21 @@ private struct AddAddressView: View {
   @State private var finalizedAddressValue: String?
   @State private var isSaving = false
   @State private var addressDetectionTask: Task<Void, Never>?
+  @State private var addressValidationState: AddressValidationState = .idle
+  @State private var ensResolvedAddress: String?
+  @State private var addressValidationTask: Task<Void, Never>?
   @State private var isAddressInputFocused = false
   @State private var isChainInputFocused = false
   @State private var isAliasInputFocused = false
 
   init(
     beneficiaries: [Beneficiary],
+    ensService: ENSService,
     addressValidationMode: DropdownInputValidationMode = .strictAddressOrENS,
     onSave: @escaping @MainActor @Sendable (AddBeneficiaryDraft) async -> Void
   ) {
     self.beneficiaries = beneficiaries
+    self.ensService = ensService
     self.addressValidationMode = addressValidationMode
     self.onSave = onSave
   }
@@ -259,6 +266,7 @@ private struct AddAddressView: View {
     }
     .onDisappear {
       addressDetectionTask?.cancel()
+      addressValidationTask?.cancel()
     }
     .onAppear {
       focusFirstIncompleteField()
@@ -366,6 +374,8 @@ private struct AddAddressView: View {
                 selectedBeneficiary = beneficiary
                 finalizedAddressValue = beneficiary.address
                 addressQuery = ""
+                addressValidationState = .valid
+                ensResolvedAddress = nil
                 focusFirstIncompleteField()
               }
             }
@@ -403,7 +413,10 @@ private struct AddAddressView: View {
   private var addressBadge: DropdownBadgeValue? {
     let rawValue = selectedBeneficiary?.address ?? finalizedAddressValue
     guard let rawValue, !rawValue.isEmpty else { return nil }
-    return DropdownBadgeValue(text: displayAddressOrENS(rawValue))
+    return DropdownBadgeValue(
+      text: displayAddressOrENS(rawValue),
+      validationState: addressValidationState
+    )
   }
 
   private var chainBadge: DropdownBadgeValue? {
@@ -417,8 +430,18 @@ private struct AddAddressView: View {
       return selectedBeneficiary.address.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    // For ENS names, return the resolved 0x address
+    if let ensResolvedAddress {
+      return ensResolvedAddress
+    }
+
     if let finalizedAddressValue {
-      return finalizedAddressValue.trimmingCharacters(in: .whitespacesAndNewlines)
+      let trimmed = finalizedAddressValue.trimmingCharacters(in: .whitespacesAndNewlines)
+      // Only return raw address if it's an EVM address (not an unresolved ENS name)
+      if AddressInputParser.isLikelyEVMAddress(trimmed) {
+        return trimmed
+      }
+      return nil
     }
 
     let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -428,6 +451,7 @@ private struct AddAddressView: View {
   }
 
   private var canSave: Bool {
+    guard addressValidationState == .valid else { return false }
     guard let resolvedAddress, !resolvedAddress.isEmpty else { return false }
     guard selectedChain != nil else { return false }
     return !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -490,6 +514,9 @@ private struct AddAddressView: View {
     selectedBeneficiary = nil
     finalizedAddressValue = nil
     addressQuery = ""
+    addressValidationState = .idle
+    ensResolvedAddress = nil
+    addressValidationTask?.cancel()
     activate(.address)
   }
 
@@ -558,20 +585,27 @@ private struct AddAddressView: View {
       finalizedAddressValue = address
       selectedBeneficiary = nil
       addressQuery = ""
+      validateAddress(address)
       focusFirstIncompleteField()
     case .ensName(let ensName):
       finalizedAddressValue = ensName
       selectedBeneficiary = nil
       addressQuery = ""
+      validateAddress(ensName)
       focusFirstIncompleteField()
     case .invalid:
       finalizedAddressValue = nil
+      addressValidationState = .idle
+      ensResolvedAddress = nil
     }
   }
 
   private func finalizeAddressIfNeeded() {
     if let selectedBeneficiary {
       finalizedAddressValue = selectedBeneficiary.address
+      if addressValidationState != .valid {
+        validateAddress(selectedBeneficiary.address)
+      }
       return
     }
 
@@ -580,7 +614,14 @@ private struct AddAddressView: View {
       return
     }
 
-    finalizedAddressValue = isAddressInputValid(candidate) ? candidate : nil
+    if isAddressInputValid(candidate) {
+      finalizedAddressValue = candidate
+      if addressValidationState != .valid {
+        validateAddress(candidate)
+      }
+    } else {
+      finalizedAddressValue = nil
+    }
   }
 
   private func isAddressInputValid(_ input: String) -> Bool {
@@ -590,6 +631,51 @@ private struct AddAddressView: View {
     case .strictAddressOrENS:
       return AddressInputParser.isLikelyEVMAddress(input) || AddressInputParser.isLikelyENSName(input)
     }
+  }
+
+  /// Validate the finalized address: EVM addresses are valid immediately,
+  /// ENS names are resolved asynchronously via `ENSService`.
+  private func validateAddress(_ value: String) {
+    addressValidationTask?.cancel()
+    print("[AddressBook] validateAddress called with: \"\(value)\"")
+
+    if AddressInputParser.isLikelyEVMAddress(value) {
+      print("[AddressBook] ✅ valid EVM address")
+      addressValidationState = .valid
+      ensResolvedAddress = nil
+      return
+    }
+
+    if AddressInputParser.isLikelyENSName(value) {
+      print("[AddressBook] 🔍 detected ENS name, resolving…")
+      addressValidationState = .validating
+      ensResolvedAddress = nil
+      addressValidationTask = Task {
+        do {
+          let resolved = try await ensService.resolveName(name: value)
+          guard !Task.isCancelled else {
+            print("[AddressBook] ⚠️ ENS resolution cancelled for \(value)")
+            return
+          }
+          print("[AddressBook] ✅ ENS resolved \(value) → \(resolved)")
+          ensResolvedAddress = resolved
+          addressValidationState = .valid
+        } catch {
+          guard !Task.isCancelled else {
+            print("[AddressBook] ⚠️ ENS resolution cancelled for \(value)")
+            return
+          }
+          print("[AddressBook] ❌ ENS resolution failed for \(value): \(error)")
+          ensResolvedAddress = nil
+          addressValidationState = .invalid
+        }
+      }
+      return
+    }
+
+    print("[AddressBook] ❌ not a valid EVM address or ENS name")
+    addressValidationState = .invalid
+    ensResolvedAddress = nil
   }
 
   private func displayAddressOrENS(_ value: String) -> String {
@@ -634,6 +720,7 @@ private struct AddAddressView: View {
 #Preview {
   AddressBookView(
     eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
-    store: BeneficiaryStore()
+    store: BeneficiaryStore(),
+    ensService: ENSService()
   )
 }

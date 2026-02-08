@@ -54,11 +54,16 @@ final class ENSService {
   }
 
   func resolveName(name: String) async throws -> String {
+    print("[ENSService] resolveName called for: \(name)")
+    print("[ENSService] config chainID=\(configuration.chainID), universalResolver=\(configuration.universalResolverAddress)")
     do {
-      return try await client.resolveName(
+      let resolved = try await client.resolveName(
         ResolveNameRequest(name: name)
       )
+      print("[ENSService] ✅ resolved \(name) → \(resolved)")
+      return resolved
     } catch {
+      print("[ENSService] ❌ resolveName failed for \(name): \(error)")
       throw ENSServiceError.actionFailed(error)
     }
   }
