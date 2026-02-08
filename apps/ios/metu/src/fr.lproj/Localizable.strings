@@ -12,7 +12,8 @@
 "home_add_money" = "Ajouter de l'argent";
 "home_send_money" = "Envoyer de l'argent";
 "home_assets_title" = "VOS ACTIFS";
-"home_assets_summary" = "7 actifs sur 5 chaînes";
+"home_assets_summary_dynamic %lld %lld" = "%lld actifs sur %lld chaînes";
+"home_assets_summary_empty" = "Aucun actif";
 "home_space_title" = "VOTRE ESPACE";
 "home_profile" = "Profil";
 "home_preferences" = "Préférences";

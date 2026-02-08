@@ -12,7 +12,8 @@
 "home_add_money" = "డబ్బు జోడించు";
 "home_send_money" = "డబ్బు పంపు";
 "home_assets_title" = "మీ ఆస్తులు";
-"home_assets_summary" = "5 చైన్‌లపై 7 ఆస్తులు";
+"home_assets_summary_dynamic %lld %lld" = "%lld ఆస్తులు %lld చెయిన్లలో";
+"home_assets_summary_empty" = "ఇంకా ఆస్తులు లేవు";
 "home_space_title" = "మీ స్పేస్";
 "home_profile" = "ప్రొఫైల్";
 "home_preferences" = "ప్రాధాన్యతలు";

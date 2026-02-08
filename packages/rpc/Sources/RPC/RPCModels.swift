@@ -6,8 +6,8 @@ public struct ChainEndpoints: Sendable, Equatable {
   public let paymasterURL: String
   public let walletAPIURL: String
   public let walletAPIBearerToken: String
-  public let transactionsAPIURL: String
-  public let transactionsAPIBearerToken: String
+  public let addressActivityAPIURL: String
+  public let addressActivityAPIBearerToken: String
 
   public init(
     rpcURL: String,
@@ -15,16 +15,16 @@ public struct ChainEndpoints: Sendable, Equatable {
     paymasterURL: String,
     walletAPIURL: String = "",
     walletAPIBearerToken: String = "",
-    transactionsAPIURL: String = "",
-    transactionsAPIBearerToken: String = ""
+    addressActivityAPIURL: String = "",
+    addressActivityAPIBearerToken: String = ""
   ) {
     self.rpcURL = rpcURL
     self.bundlerURL = bundlerURL
     self.paymasterURL = paymasterURL
     self.walletAPIURL = walletAPIURL
     self.walletAPIBearerToken = walletAPIBearerToken
-    self.transactionsAPIURL = transactionsAPIURL
-    self.transactionsAPIBearerToken = transactionsAPIBearerToken
+    self.addressActivityAPIURL = addressActivityAPIURL
+    self.addressActivityAPIBearerToken = addressActivityAPIBearerToken
   }
 }
 

@@ -12,7 +12,8 @@
 "home_add_money" = "Weka Pesaa";
 "home_send_money" = "Tuma Pesa";
 "home_assets_title" = "MALI ZAKO";
-"home_assets_summary" = "Mali 7 kwenye mitandao 5";
+"home_assets_summary_dynamic %lld %lld" = "%lld mali katika %lld minyororo";
+"home_assets_summary_empty" = "Hakuna mali bado";
 "home_space_title" = "NAFASI YAKO";
 "home_profile" = "Wasifu";
 "home_preferences" = "Mapendeleo";

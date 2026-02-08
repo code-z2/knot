@@ -12,7 +12,8 @@
 "home_add_money" = "Para Ekle";
 "home_send_money" = "Para Gönder";
 "home_assets_title" = "VARLIKLARINIZ";
-"home_assets_summary" = "5 Ağda 7 Varlık";
+"home_assets_summary_dynamic %lld %lld" = "%lld varlık %lld zincirde";
+"home_assets_summary_empty" = "Henüz varlık yok";
 "home_space_title" = "ALANINIZ";
 "home_profile" = "Profil";
 "home_preferences" = "Tercihler";

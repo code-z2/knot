@@ -12,7 +12,8 @@
 "home_add_money" = "إضافة أموال";
 "home_send_money" = "إرسال أموال";
 "home_assets_title" = "أصولك";
-"home_assets_summary" = "7 أصول عبر 5 شبكات";
+"home_assets_summary_dynamic %lld %lld" = "%lld أصول عبر %lld سلاسل";
+"home_assets_summary_empty" = "لا توجد أصول بعد";
 "home_space_title" = "مساحتك";
 "home_profile" = "الملف الشخصي";
 "home_preferences" = "التفضيلات";

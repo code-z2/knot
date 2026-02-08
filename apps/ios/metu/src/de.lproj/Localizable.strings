@@ -12,7 +12,8 @@
 "home_add_money" = "Geld hinzufügen";
 "home_send_money" = "Geld senden";
 "home_assets_title" = "IHRE VERMÖGENSWERTE";
-"home_assets_summary" = "7 Vermögenswerte auf 5 Chains";
+"home_assets_summary_dynamic %lld %lld" = "%lld Assets über %lld Chains";
+"home_assets_summary_empty" = "Noch keine Assets";
 "home_space_title" = "IHR PLATZ";
 "home_profile" = "Profil";
 "home_preferences" = "Einstellungen";

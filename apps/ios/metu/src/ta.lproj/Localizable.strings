@@ -12,7 +12,8 @@
 "home_add_money" = "பணம் சேர்";
 "home_send_money" = "பணம் அனுப்பு";
 "home_assets_title" = "உங்கள் சொத்துக்கள்";
-"home_assets_summary" = "5 செயின்களில் 7 சொத்துக்கள்";
+"home_assets_summary_dynamic %lld %lld" = "%lld சொத்துகள் %lld சங்கிலிகளில்";
+"home_assets_summary_empty" = "இன்னும் சொத்துகள் இல்லை";
 "home_space_title" = "உங்கள் இடம்";
 "home_profile" = "சுயவிவரம்";
 "home_preferences" = "விருப்பத்தேர்வுகள்";

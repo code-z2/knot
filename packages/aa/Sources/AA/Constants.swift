@@ -3,39 +3,26 @@ import Foundation
 public enum AAConstants {
   public static let entryPointV09 = "0x433709009B8330FDa32311DF1C2AFA402eD8D009"
 
-  // Replace these placeholders with deployed addresses per chain.
+  // Single addresses — same on all chains (deterministic CREATE2 deployment).
+  // TODO: Fill after deterministic deployment.
+  public static let accumulatorFactoryAddress = ""
+  public static let protocolTreasuryAddress = ""
+
+  // Across V4 SpokePool addresses by chain ID (messenger for accumulator).
   public static let messengerByChain: [UInt64: String] = [
-    1: "0x0000000000000000000000000000000000000000",
-    11155111: "0x0000000000000000000000000000000000000000"
-  ]
-
-  public static let accumulatorFactoryByChain: [UInt64: String] = [
-    1: "0x0000000000000000000000000000000000000000",
-    11155111: "0x0000000000000000000000000000000000000000"
-  ]
-
-  public static let protocolTreasuryByChain: [UInt64: String] = [
-    1: "0x0000000000000000000000000000000000000000",
-    11155111: "0x0000000000000000000000000000000000000000"
+    // Limited Testnet
+    11_155_111: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",  // Sepolia
+    84_532:    "0x82B564983aE7274c86695917BBf8C99ECb6F0F8F",     // Base Sepolia
+    421_614:   "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",    // Arbitrum Sepolia
+    // Limited Mainnet
+    8_453:  "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",        // Base
+    42_161: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",        // Arbitrum
+    10:     "0x6f26Bf09B1C792e3228e5467807a900A503c0281",        // Optimism
   ]
 
   public static func messengerAddress(chainId: UInt64) throws -> String {
     guard let value = messengerByChain[chainId] else {
       throw SmartAccountError.missingConfiguration(key: "messenger", chainId: chainId)
-    }
-    return value
-  }
-
-  public static func accumulatorFactoryAddress(chainId: UInt64) throws -> String {
-    guard let value = accumulatorFactoryByChain[chainId] else {
-      throw SmartAccountError.missingConfiguration(key: "accumulatorFactory", chainId: chainId)
-    }
-    return value
-  }
-
-  public static func protocolTreasuryAddress(chainId: UInt64) throws -> String {
-    guard let value = protocolTreasuryByChain[chainId] else {
-      throw SmartAccountError.missingConfiguration(key: "protocolTreasury", chainId: chainId)
     }
     return value
   }

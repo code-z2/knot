@@ -12,7 +12,8 @@
 "home_add_money" = "Aggiungi denaro";
 "home_send_money" = "Invia denaro";
 "home_assets_title" = "I TUOI ASSET";
-"home_assets_summary" = "7 Asset in 5 chain";
+"home_assets_summary_dynamic %lld %lld" = "%lld asset su %lld catene";
+"home_assets_summary_empty" = "Nessun asset";
 "home_space_title" = "IL TUO SPAZIO";
 "home_profile" = "Profilo";
 "home_preferences" = "Preferenze";

@@ -9,6 +9,7 @@ import RPC
 @Observable
 public final class BalanceStore {
   public private(set) var balances: [TokenBalance] = []
+  public private(set) var activeChainIDs: [UInt64] = []
   public private(set) var totalValueUSD: Decimal = 0
   public private(set) var isLoading: Bool = false
   public private(set) var lastRefreshed: Date?
@@ -22,13 +23,16 @@ public final class BalanceStore {
   private var lastSilentRefreshTriggered: Date?
 
   private let provider: GoldRushBalanceProvider
+  private let activityProvider: GoldRushActivityProvider
   private let rpcClient: RPCClient
 
   public init(
     provider: GoldRushBalanceProvider = .init(),
+    activityProvider: GoldRushActivityProvider = .init(),
     rpcClient: RPCClient = .init()
   ) {
     self.provider = provider
+    self.activityProvider = activityProvider
     self.rpcClient = rpcClient
   }
 
@@ -69,15 +73,25 @@ public final class BalanceStore {
 
       let apiURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
       let bearerToken = try await rpcClient.getWalletApiBearerToken(chainId: firstChain)
+      let activityURL = try await rpcClient.getAddressActivityApiUrl(chainId: firstChain)
+      let activityToken = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
 
-      let fetched = try await provider.fetchBalances(
+      // Fetch balances and activity in parallel.
+      async let fetchedBalances = provider.fetchBalances(
         walletAddress: walletAddress,
         apiURL: apiURL,
         bearerToken: bearerToken
       )
+      async let fetchedActivity = activityProvider.fetchActiveChainIDs(
+        walletAddress: walletAddress,
+        activityAPIURL: activityURL,
+        bearerToken: activityToken,
+        supportedChainIDs: Set(chains)
+      )
 
-      balances = fetched
-      totalValueUSD = fetched.reduce(Decimal.zero) { $0 + $1.totalValueUSD }
+      balances = try await fetchedBalances
+      activeChainIDs = (try? await fetchedActivity) ?? []
+      totalValueUSD = balances.reduce(Decimal.zero) { $0 + $1.totalValueUSD }
       lastRefreshed = Date()
     } catch {
       self.error = error

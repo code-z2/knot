@@ -85,7 +85,7 @@ public final class TransactionStore {
       let chains = await rpcClient.getSupportedChains()
       guard let firstChain = chains.first else { return }
 
-      let bearerToken = try await rpcClient.getTransactionsApiBearerToken(chainId: firstChain)
+      let bearerToken = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
 
       // Resolve accumulator address (cached after first call)
       let accAddress = await resolveAccumulatorAddress(walletAddress: walletAddress)
@@ -118,9 +118,9 @@ public final class TransactionStore {
       return cached
     }
 
-    // If factory/messenger not configured, skip accumulator resolution
+    // If factory not configured or no messengers, skip accumulator resolution
     guard !accumulatorConfig.factoryAddress.isEmpty,
-          !accumulatorConfig.messengerAddress.isEmpty else {
+          !accumulatorConfig.messengerByChain.isEmpty else {
       return nil
     }
 

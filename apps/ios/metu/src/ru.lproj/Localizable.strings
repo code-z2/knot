@@ -12,7 +12,8 @@
 "home_add_money" = "Пополнить";
 "home_send_money" = "Отправить";
 "home_assets_title" = "ВАШИ АКТИВЫ";
-"home_assets_summary" = "7 активов в 5 сетях";
+"home_assets_summary_dynamic %lld %lld" = "%lld активов в %lld сетях";
+"home_assets_summary_empty" = "Нет активов";
 "home_space_title" = "ВАШЕ ПРОСТРАНСТВО";
 "home_profile" = "Профиль";
 "home_preferences" = "Настройки";

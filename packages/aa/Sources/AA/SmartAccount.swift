@@ -202,7 +202,7 @@ public actor SmartAccountClient {
     account: String,
     chainId: UInt64
   ) async throws -> String {
-    let accumulatorFactory = try AAConstants.accumulatorFactoryAddress(chainId: chainId)
+    let accumulatorFactory = AAConstants.accumulatorFactoryAddress
     let messenger = try AAConstants.messengerAddress(chainId: chainId)
     let data = try SmartAccount.AccumulatorFactory.encodeComputeAddressCall(
       userAccount: account,
@@ -219,7 +219,7 @@ public actor SmartAccountClient {
     calls: [Call]
   ) async throws -> ExecuteBuildResult {
     guard !calls.isEmpty else { throw SmartAccountError.emptyCalls }
-    let accumulatorFactory = try AAConstants.accumulatorFactoryAddress(chainId: chainId)
+    let accumulatorFactory = AAConstants.accumulatorFactoryAddress
     let messenger = try AAConstants.messengerAddress(chainId: chainId)
 
     var prelude: [Call] = []
@@ -384,7 +384,7 @@ public actor SmartAccountClient {
     }
 
     if isDestinationChain {
-      let accumulatorFactory = try AAConstants.accumulatorFactoryAddress(chainId: bundle.chainId)
+      let accumulatorFactory = AAConstants.accumulatorFactoryAddress
       let messenger = try AAConstants.messengerAddress(chainId: bundle.chainId)
       let accumulatorAddress = try await computeAccumulatorAddress(account: account, chainId: bundle.chainId)
       async let accumulatorDeployedTask = isDeployed(
