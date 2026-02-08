@@ -131,13 +131,26 @@ func (s *server) fundOnChain(
 		return
 	}
 
-	gasPrice, err := client.SuggestGasPrice(ctx)
+	// Get the latest block header for baseFee
+	head, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		log.Printf("faucet: chain %d: gas price failed: %v", chainID, err)
+		log.Printf("faucet: chain %d: header failed: %v", chainID, err)
+		return
+	}
+	baseFee := head.BaseFee
+
+	// Get suggested priority fee (tip)
+	gasTipCap, err := client.SuggestGasTipCap(ctx)
+	if err != nil {
+		log.Printf("faucet: chain %d: gas tip failed: %v", chainID, err)
 		return
 	}
 
-	signer := types.NewEIP155Signer(new(big.Int).SetUint64(chainID))
+	// GasFeeCap = 2 * baseFee + gasTipCap  (generous buffer for next-block inclusion)
+	gasFeeCap := new(big.Int).Mul(baseFee, big.NewInt(2))
+	gasFeeCap.Add(gasFeeCap, gasTipCap)
+
+	signer := types.NewLondonSigner(new(big.Int).SetUint64(chainID))
 
 	// --- ERC20 USDC transfer ---
 	for _, t := range testnetUSDCTransfers {
@@ -145,13 +158,15 @@ func (s *server) fundOnChain(
 			continue
 		}
 		calldata := encodeERC20Transfer(recipient, t.amount)
-		tx := types.NewTx(&types.LegacyTx{
-			Nonce:    nonce,
-			GasPrice: gasPrice,
-			Gas:      65_000,
-			To:       &t.tokenAddress,
-			Value:    big.NewInt(0),
-			Data:     calldata,
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   new(big.Int).SetUint64(chainID),
+			Nonce:     nonce,
+			GasTipCap: gasTipCap,
+			GasFeeCap: gasFeeCap,
+			Gas:       65_000,
+			To:        &t.tokenAddress,
+			Value:     big.NewInt(0),
+			Data:      calldata,
 		})
 
 		signed, err := types.SignTx(tx, signer, privKey)
@@ -169,13 +184,15 @@ func (s *server) fundOnChain(
 
 	// --- ETH transfer ---
 	to := recipient
-	tx := types.NewTx(&types.LegacyTx{
-		Nonce:    nonce,
-		GasPrice: gasPrice,
-		Gas:      21_000,
-		To:       &to,
-		Value:    ethDripAmount,
-		Data:     nil,
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   new(big.Int).SetUint64(chainID),
+		Nonce:     nonce,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Gas:       21_000,
+		To:        &to,
+		Value:     ethDripAmount,
+		Data:      nil,
 	})
 
 	signed, err := types.SignTx(tx, signer, privKey)
