@@ -169,6 +169,7 @@
 				D0EAD1452F338A17003B1EE1 /* AA */,
 				D0EAD1482F338A51003B1EE1 /* ENS */,
 				D0BAL0012F3A0001001771BB /* Balance */,
+				D0TXN0012F3B0001001771BB /* Transactions */,
 			);
 			productName = metu;
 			productReference = D0EEE96A2F312A96001771BB /* metu.app */;
@@ -749,6 +750,10 @@
 		D0BAL0012F3A0001001771BB /* Balance */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Balance;
+		};
+		D0TXN0012F3B0001001771BB /* Transactions */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Transactions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
