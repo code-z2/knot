@@ -7,8 +7,13 @@ let package = Package(
   products: [
     .library(name: "Transactions", targets: ["Transactions"])
   ],
+  dependencies: [
+    .package(path: "../rpc")
+  ],
   targets: [
-    .target(name: "Transactions"),
+    .target(name: "Transactions", dependencies: [
+      .product(name: "RPC", package: "rpc")
+    ]),
     .testTarget(name: "TransactionsTests", dependencies: ["Transactions"])
   ]
 )

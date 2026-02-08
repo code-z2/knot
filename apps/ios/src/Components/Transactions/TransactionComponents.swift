@@ -1,5 +1,6 @@
 import RPC
 import SwiftUI
+import Transactions
 
 enum TransactionStatus: Hashable {
   case success
@@ -102,211 +103,125 @@ enum TransactionRowSubtitle: Hashable {
   }
 }
 
-struct MockTransaction: Identifiable, Hashable {
-  let id: String
-  let status: TransactionStatus
-  let variant: TransactionVariant
-  let rowTitle: TransactionRowTitle
-  let rowSubtitle: TransactionRowSubtitle?
-  let assetChange: TransactionAssetChange?
-  let explorerChainId: UInt64
-  let explorerTransactionHash: String?
-  let receiptAmountText: String?
-  let receiptAmountSubtitleKey: String?
-  let counterpartyLabelKey: String
-  let counterpartyValue: String
-  let counterpartyIcon: AppBadgeIcon
-  let timestampText: String
-  let typeKey: String
-  let feeText: String
-  let networkName: String
-  let networkAssetName: String
-  let accumulatedFromNetworkAssetNames: [String]
-}
+// MARK: - TransactionRecord UI Extension
 
-struct TransactionSection: Identifiable, Hashable {
-  let id: String
-  let title: String
-  let transactions: [MockTransaction]
-}
+private let receiptDateFormatter: DateFormatter = {
+  let f = DateFormatter()
+  f.dateFormat = "MM/dd/yyyy, h:mm a"
+  return f
+}()
 
-enum MockTransactionData {
-  static let quickBalanceUSD = Decimal(string: "305234.66") ?? 0
+extension TransactionRecord {
+  var uiStatus: TransactionStatus {
+    switch status {
+    case .success: .success
+    case .failed: .failed
+    }
+  }
 
-  static let sections: [TransactionSection] = [
-    .init(
-      id: "mon_19_jan",
-      title: "Mon, 19 Jan",
-      transactions: [
-        .init(
-          id: "mon_received_usdc",
-          status: .success,
-          variant: .received,
-          rowTitle: .received(assetSymbol: "USDC"),
-          rowSubtitle: .on(networkName: "Base"),
-          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "299.90"),
-          explorerChainId: 8453,
-          explorerTransactionHash:
-            "0x8f3f2c6514cf0e6b4dc9b2a13d7e58d3acb7c8f41d72416ff4ec9e4b7e2d6a77",
-          receiptAmountText: "+$1,000.00",
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_from",
-          counterpartyValue: "0xgfhrb•••hgtsk",
-          counterpartyIcon: .symbol("Icons/arrow_down"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_receive",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-        .init(
-          id: "mon_sent_usdc",
-          status: .success,
-          variant: .sent,
-          rowTitle: .sent(assetSymbol: "USDC"),
-          rowSubtitle: .from(networkName: "Ethereum"),
-          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "299.90"),
-          explorerChainId: 1,
-          explorerTransactionHash:
-            "0x94b1f6f7658fdbe4296e5f27ae6b7d2cc4ab8b98c08f57b1fcb64d9113ca1cbe",
-          receiptAmountText: "-$1,000.00",
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_to",
-          counterpartyValue: "anyaogu.eth",
-          counterpartyIcon: .symbol("Icons/arrow_up_right"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_send",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-        .init(
-          id: "mon_received_eth",
-          status: .success,
-          variant: .received,
-          rowTitle: .received(assetSymbol: "ETH"),
-          rowSubtitle: .on(networkName: "Base"),
-          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "0.025.46"),
-          explorerChainId: 8453,
-          explorerTransactionHash:
-            "0x31bf8f5ad1d2cb6f73900ff633fa4b76f6a8ef23e6f2148ead03be21b05096fd",
-          receiptAmountText: "+$1,000.00",
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_from",
-          counterpartyValue: "0xgfhrb•••hgtsk",
-          counterpartyIcon: .symbol("Icons/arrow_down"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_receive",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-      ]
-    ),
-    .init(
-      id: "sun_18_jan",
-      title: "sun, 18 Jan",
-      transactions: [
-        .init(
-          id: "sun_contract_with_change",
-          status: .success,
-          variant: .contract,
-          rowTitle: .localized(key: "transaction_row_contract_interaction"),
-          rowSubtitle: .on(networkName: "Uniswap"),
-          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "0.025.46"),
-          explorerChainId: 1,
-          explorerTransactionHash:
-            "0x6e2869ebf6d03ae0a1ef8667f77cecb7351375b53f7857387b9de91c1231c8af",
-          receiptAmountText: "-$1,000.00",
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_contract",
-          counterpartyValue: "uniswap",
-          counterpartyIcon: .network("unichain"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_contract_interaction",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-        .init(
-          id: "sun_contract_no_change",
-          status: .success,
-          variant: .contract,
-          rowTitle: .localized(key: "transaction_row_contract_interaction"),
-          rowSubtitle: .on(networkName: "Uniswap"),
-          assetChange: nil,
-          explorerChainId: 1,
-          explorerTransactionHash:
-            "0xfbe4ca91ff53c545142c5b88eab1ab0cc012d2a3598e95546d6b5f02c7e2d94c",
-          receiptAmountText: nil,
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_contract",
-          counterpartyValue: "uniswap",
-          counterpartyIcon: .network("unichain"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_contract_interaction",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-        .init(
-          id: "sun_sent_failed",
-          status: .failed,
-          variant: .sent,
-          rowTitle: .sent(assetSymbol: "USDC"),
-          rowSubtitle: .from(networkName: "Ethereum"),
-          assetChange: .init(direction: .down, fiatUSD: 300.56, assetText: "0.025.46"),
-          explorerChainId: 1,
-          explorerTransactionHash:
-            "0x7e2915ccf6a5e64579c7f18205f8388fc8533d5e905f7e6a1f6f6f86f31d0e42",
-          receiptAmountText: "-<$0.0001",
-          receiptAmountSubtitleKey: "transaction_receipt_subtitle_gas_fee",
-          counterpartyLabelKey: "transaction_label_to",
-          counterpartyValue: "0xgfhrb•••hgtsk",
-          counterpartyIcon: .symbol("Icons/arrow_up_right"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_send",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: []
-        ),
-      ]
-    ),
-    .init(
-      id: "sat_17_jan",
-      title: "sat, 17 Jan",
-      transactions: [
-        .init(
-          id: "sat_multichain",
-          status: .success,
-          variant: .multichain,
-          rowTitle: .localized(key: "transaction_row_multichain_transfer"),
-          rowSubtitle: nil,
-          assetChange: .init(direction: .up, fiatUSD: 300.56, assetText: "0.025.46"),
-          explorerChainId: 1,
-          explorerTransactionHash:
-            "0x713a40f41d0ce2a301a50a0c9143af0ed65f226dcaec2f352d7fd32a6e9ef6b5",
-          receiptAmountText: "-$1,000.00",
-          receiptAmountSubtitleKey: nil,
-          counterpartyLabelKey: "transaction_label_to",
-          counterpartyValue: "anyaogu.eth",
-          counterpartyIcon: .symbol("Icons/arrow_up_right"),
-          timestampText: "01/17/2026, 3:15 am",
-          typeKey: "transaction_type_multichain_transfer",
-          feeText: "<$0.01",
-          networkName: "Ethereum",
-          networkAssetName: "ethereum",
-          accumulatedFromNetworkAssetNames: ["ethereum", "unichain", "bnb-smart-chain", "base"]
-        )
-      ]
-    ),
-  ]
+  var uiVariant: TransactionVariant {
+    switch variant {
+    case .received: .received
+    case .sent: .sent
+    case .contract: .contract
+    case .multichain: .multichain
+    }
+  }
+
+  var uiRowTitle: TransactionRowTitle {
+    switch variant {
+    case .received: .received(assetSymbol: tokenSymbol)
+    case .sent: .sent(assetSymbol: tokenSymbol)
+    case .contract: .localized(key: "transaction_row_contract_interaction")
+    case .multichain: .localized(key: "transaction_row_multichain_transfer")
+    }
+  }
+
+  var uiRowSubtitle: TransactionRowSubtitle? {
+    switch variant {
+    case .received: .on(networkName: chainName)
+    case .sent: .from(networkName: chainName)
+    case .contract: .on(networkName: chainName)
+    case .multichain: nil
+    }
+  }
+
+  var uiAssetChange: TransactionAssetChange? {
+    guard valueQuoteUSD != 0 || !assetAmountText.isEmpty else { return nil }
+    let direction: TransactionAssetChange.Direction = variant == .received ? .up : .down
+    return TransactionAssetChange(
+      direction: direction,
+      fiatUSD: valueQuoteUSD,
+      assetText: assetAmountText
+    )
+  }
+
+  var uiCounterpartyLabelKey: String {
+    switch variant {
+    case .received: "transaction_label_from"
+    case .sent: "transaction_label_to"
+    case .contract: "transaction_label_contract"
+    case .multichain: "transaction_label_to"
+    }
+  }
+
+  var uiCounterpartyValue: String {
+    switch variant {
+    case .received:
+      return abbreviateAddress(fromAddress)
+    case .sent:
+      return abbreviateAddress(toAddress)
+    case .contract:
+      return abbreviateAddress(toAddress)
+    case .multichain:
+      if let recipient = multichainRecipient {
+        return abbreviateAddress(recipient)
+      }
+      return abbreviateAddress(toAddress)
+    }
+  }
+
+  var uiCounterpartyIcon: AppBadgeIcon {
+    switch variant {
+    case .received: .symbol("Icons/arrow_down")
+    case .sent: .symbol("Icons/arrow_up_right")
+    case .contract: .network(networkAssetName)
+    case .multichain: .symbol("Icons/arrow_up_right")
+    }
+  }
+
+  var uiTimestampText: String {
+    receiptDateFormatter.string(from: blockSignedAt)
+  }
+
+  var uiTypeKey: String {
+    switch variant {
+    case .received: "transaction_type_receive"
+    case .sent: "transaction_type_send"
+    case .contract: "transaction_type_contract_interaction"
+    case .multichain: "transaction_type_multichain_transfer"
+    }
+  }
+
+  var uiFeeText: String {
+    if gasQuoteUSD < 0.01 {
+      return "<$0.01"
+    }
+    return "$\(gasQuoteUSD)"
+  }
+
+  var uiReceiptAmountText: String? {
+    guard valueQuoteUSD != 0 else { return nil }
+    let prefix = variant == .received ? "+" : "-"
+    return "\(prefix)$\(valueQuoteUSD)"
+  }
+
+  private func abbreviateAddress(_ address: String) -> String {
+    guard address.count > 10 else { return address }
+    let prefix = address.prefix(6)
+    let suffix = address.suffix(4)
+    return "\(prefix)•••\(suffix)"
+  }
 }
 
 struct TransactionBalanceSummary: View {
@@ -330,11 +245,11 @@ struct TransactionBalanceSummary: View {
 }
 
 struct AccountTransactionsList: View {
-  let sections: [TransactionSection]
+  let sections: [TransactionDateSection]
   let displayCurrencyCode: String
   let displayLocale: Locale
   let usdToSelectedRate: Decimal
-  let onSelect: (MockTransaction) -> Void
+  let onSelect: (TransactionRecord) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
@@ -363,7 +278,7 @@ struct AccountTransactionsList: View {
 }
 
 struct TransactionRow: View {
-  let transaction: MockTransaction
+  let transaction: TransactionRecord
   let displayCurrencyCode: String
   let displayLocale: Locale
   let usdToSelectedRate: Decimal
@@ -377,7 +292,7 @@ struct TransactionRow: View {
             .fill(AppThemeColor.fillPrimary)
             .frame(width: 24, height: 24)
             .overlay {
-              Image(transaction.variant.rowIconAssetName)
+              Image(transaction.uiVariant.rowIconAssetName)
                 .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -386,12 +301,12 @@ struct TransactionRow: View {
             }
 
           VStack(alignment: .leading, spacing: 2) {
-            transaction.rowTitle.text
+            transaction.uiRowTitle.text
               .font(.custom("Roboto-Medium", size: 15))
               .foregroundStyle(AppThemeColor.labelPrimary)
               .multilineTextAlignment(.leading)
 
-            if let subtitle = transaction.rowSubtitle {
+            if let subtitle = transaction.uiRowSubtitle {
               subtitle.text
                 .font(.custom("Roboto-Regular", size: 12))
                 .foregroundStyle(AppThemeColor.labelSecondary)
@@ -401,7 +316,7 @@ struct TransactionRow: View {
 
         Spacer(minLength: 8)
 
-        if let change = transaction.assetChange {
+        if let change = transaction.uiAssetChange {
           VStack(alignment: .trailing, spacing: 4) {
             Text(formattedFiatText(change))
               .font(.custom("RobotoMono-Medium", size: 12))
@@ -471,63 +386,57 @@ struct MultiChainIconGroup: View {
 }
 
 struct TransactionReceiptModal: View {
-  let transaction: MockTransaction
+  let transaction: TransactionRecord
 
   var body: some View {
     VStack(spacing: 0) {
       AppIconTextBadge(
-        text: transaction.status.badgeText,
-        icon: .symbol(transaction.status.badgeIconAssetName),
-        textColor: transaction.status.badgeTextColor,
-        backgroundColor: transaction.status.badgeBackgroundColor
+        text: transaction.uiStatus.badgeText,
+        icon: .symbol(transaction.uiStatus.badgeIconAssetName),
+        textColor: transaction.uiStatus.badgeTextColor,
+        backgroundColor: transaction.uiStatus.badgeBackgroundColor
       )
       .padding(.top, 22)
 
-      if let amount = transaction.receiptAmountText {
+      if let amount = transaction.uiReceiptAmountText {
         VStack(spacing: 9) {
           Text(amount)
             .font(.custom("RobotoMono-Bold", size: 20))
             .foregroundStyle(AppThemeColor.labelPrimary)
             .multilineTextAlignment(.center)
-
-          if let receiptAmountSubtitleKey = transaction.receiptAmountSubtitleKey {
-            Text(LocalizedStringKey(receiptAmountSubtitleKey))
-              .font(.custom("Roboto-Medium", size: 12))
-              .foregroundStyle(AppThemeColor.labelSecondary)
-          }
         }
         .padding(.top, 36)
       }
 
       VStack(alignment: .leading, spacing: 16) {
-        receiptField(label: LocalizedStringKey(transaction.counterpartyLabelKey)) {
+        receiptField(label: LocalizedStringKey(transaction.uiCounterpartyLabelKey)) {
           AppIconTextBadge(
-            text: transaction.counterpartyValue,
-            icon: transaction.counterpartyIcon
+            text: transaction.uiCounterpartyValue,
+            icon: transaction.uiCounterpartyIcon
           )
         }
 
         receiptField(label: "transaction_receipt_time") {
-          Text(transaction.timestampText)
+          Text(transaction.uiTimestampText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
         receiptField(label: "transaction_receipt_type") {
-          Text(LocalizedStringKey(transaction.typeKey))
+          Text(LocalizedStringKey(transaction.uiTypeKey))
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
         receiptField(label: "transaction_receipt_fee") {
-          Text(transaction.feeText)
+          Text(transaction.uiFeeText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
 
         receiptField(label: "transaction_receipt_network") {
           AppIconTextBadge(
-            text: transaction.networkName,
+            text: transaction.chainName,
             icon: .network(transaction.networkAssetName)
           )
         }
@@ -539,7 +448,7 @@ struct TransactionReceiptModal: View {
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.top, transaction.receiptAmountText == nil ? 74 : 36)
+      .padding(.top, transaction.uiReceiptAmountText == nil ? 74 : 36)
 
       Spacer(minLength: 52)
 
@@ -579,10 +488,10 @@ struct TransactionReceiptModal: View {
   @Environment(\.openURL) private var openURL
 
   private func openExplorer() {
-    guard
-      let hash = transaction.explorerTransactionHash,
+    let hash = transaction.txHash
+    guard !hash.isEmpty,
       let url = BlockExplorer.transactionURL(
-        chainId: transaction.explorerChainId, transactionHash: hash)
+        chainId: transaction.chainId, transactionHash: hash)
     else {
       return
     }
@@ -596,7 +505,7 @@ struct TransactionReceiptModal: View {
     VStack(spacing: 24) {
       TransactionBalanceSummary(balanceText: "$305,234.66", isBalanceHidden: .constant(false))
       AccountTransactionsList(
-        sections: MockTransactionData.sections,
+        sections: [],
         displayCurrencyCode: "USD",
         displayLocale: .current,
         usdToSelectedRate: 1

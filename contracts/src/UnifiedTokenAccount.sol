@@ -45,6 +45,7 @@ contract UnifiedTokenAccount is
     address public immutable ALLOWED_PAYMASTER_ADDRESS = 0x888888888888Ec68A58AB8094Cc1AD20Ba3D2402;
 
     event JobRegistered(bytes32 indexed jobId, address indexed accumulator);
+    event CrossChainInitiated();
 
     error ExecuteError(uint256 index, bytes error);
     error PaymasterNotAllowed();
@@ -102,6 +103,7 @@ contract UnifiedTokenAccount is
         for (uint256 i = 0; i < bundlesLength; i++) {
             if (bundles[i].chainId == block.chainid) {
                 this.executeBatch(bundles[i].calls);
+                emit CrossChainInitiated();
                 return;
             }
         }

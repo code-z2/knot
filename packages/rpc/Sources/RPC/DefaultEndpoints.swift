@@ -15,6 +15,8 @@ public enum RPCSecrets {
     "https://api.covalenthq.com/v1/allchains/address/{walletAddress}/balances/"
   public static let transactionsAPIURLTemplate =
     "https://api.covalenthq.com/v1/address/{walletAddress}/activity/"
+  public static let allchainsTransactionsURLBase =
+    "https://api.covalenthq.com/v1/allchains/transactions/"
 }
 
 public struct RPCEndpointBuilderConfig: Sendable, Equatable {
