@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "నుంచి";
 "transaction_row_action_sent" = "పంపబడింది";
 "transaction_row_action_received" = "స్వీకరించబడింది";
+
+"transaction_empty_title" = "ఇటీవలి కార్యాచరణ లేదు";
+"transaction_empty_subtitle" = "మీరు నిధులు పంపిన తర్వాత లేదా స్వీకరించిన తర్వాత మీ లావాదేవీలు ఇక్కడ కనిపిస్తాయి.";

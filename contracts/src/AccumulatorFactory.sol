@@ -21,11 +21,11 @@ contract AccumulatorFactory {
         TREASURY = _treasury;
     }
 
-    /// @notice Compute the accumulator address for a user and messenger.
+    /// @notice Compute the accumulator address for a user.
     /// @dev Used off-chain to precompute the destination recipient for bridge fills.
-    function computeAddress(address userAccount, address messenger) external view returns (address) {
+    function computeAddress(address userAccount) external view returns (address) {
         bytes32 salt = _hashAddress(userAccount);
-        return Create2.computeAddress(salt, keccak256(_getBytecode(userAccount, messenger)), address(this));
+        return Create2.computeAddress(salt, keccak256(_getBytecode(userAccount)), address(this));
     }
 
     /// @notice Deploy the accumulator for msg.sender using a messenger address.
@@ -33,13 +33,15 @@ contract AccumulatorFactory {
     function deploy(address messenger) external returns (address accumulator) {
         address userAccount = msg.sender;
         bytes32 salt = _hashAddress(userAccount);
-        accumulator = Create2.deploy(0, salt, _getBytecode(userAccount, messenger));
+        accumulator = Create2.deploy(0, salt, _getBytecode(userAccount));
+
+        Accumulator(payable(accumulator)).initialize(messenger);
         emit AccumulatorDeployed(userAccount, accumulator);
     }
 
     /// @dev Creation bytecode for the accumulator with constructor args.
-    function _getBytecode(address salt, address messenger) internal view returns (bytes memory) {
-        return abi.encodePacked(type(Accumulator).creationCode, abi.encode(salt, messenger, TREASURY));
+    function _getBytecode(address salt) internal view returns (bytes memory) {
+        return abi.encodePacked(type(Accumulator).creationCode, abi.encode(salt, TREASURY));
     }
 
     /// @dev Hash helper for CREATE2 salt.

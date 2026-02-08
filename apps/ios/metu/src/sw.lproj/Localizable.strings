@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "kutoka";
 "transaction_row_action_sent" = "imetumwa";
 "transaction_row_action_received" = "imepokelewa";
+
+"transaction_empty_title" = "Hakuna shughuli za hivi karibuni";
+"transaction_empty_subtitle" = "Ununuzi wako utaonekana hapa baada ya kutuma au kupokea fedha.";

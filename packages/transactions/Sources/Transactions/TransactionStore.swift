@@ -56,7 +56,8 @@ public final class TransactionStore {
     guard let wallet = lastWalletAddress, !wallet.isEmpty else { return false }
 
     if let last = lastSilentRefreshTriggered,
-       Date().timeIntervalSince(last) < silentRefreshCooldown {
+      Date().timeIntervalSince(last) < silentRefreshCooldown
+    {
       return false
     }
 
@@ -120,11 +121,12 @@ public final class TransactionStore {
 
     // If factory not configured or no messengers, skip accumulator resolution
     guard !accumulatorConfig.factoryAddress.isEmpty,
-          !accumulatorConfig.messengerByChain.isEmpty else {
+      !accumulatorConfig.messengerByChain.isEmpty
+    else {
       return nil
     }
 
-    // TODO: Call AccumulatorFactory.computeAddress(userAccount, messenger)
+    // TODO: Call AccumulatorFactory.computeAddress(userAccount)
     // via eth_call once deterministic deployment is done.
     // For now, return nil — transactions will only include EOA history.
     return nil
@@ -141,8 +143,9 @@ public final class TransactionStore {
 
     // Check if the first new section's date matches the last existing section's date
     if let lastExisting = sections.last,
-       let firstNew = newSections.first,
-       lastExisting.id == firstNew.id {
+      let firstNew = newSections.first,
+      lastExisting.id == firstNew.id
+    {
       var merged = sections
       let lastIdx = merged.count - 1
       merged[lastIdx] = TransactionDateSection(

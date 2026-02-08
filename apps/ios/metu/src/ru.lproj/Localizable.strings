@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "из";
 "transaction_row_action_sent" = "отправлено";
 "transaction_row_action_received" = "получено";
+
+"transaction_empty_title" = "Нет недавней активности";
+"transaction_empty_subtitle" = "Ваши транзакции появятся здесь после отправки или получения средств.";

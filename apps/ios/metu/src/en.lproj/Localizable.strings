@@ -152,3 +152,6 @@
 "transaction_row_prefix_from" = "from";
 "transaction_row_action_sent" = "sent";
 "transaction_row_action_received" = "received";
+
+"transaction_empty_title" = "No recent activity";
+"transaction_empty_subtitle" = "Your transactions will appear here after you send or receive funds.";

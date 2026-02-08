@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "depuis";
 "transaction_row_action_sent" = "envoyé";
 "transaction_row_action_received" = "reçu";
+
+"transaction_empty_title" = "Aucune activité récente";
+"transaction_empty_subtitle" = "Vos transactions apparaîtront ici après avoir envoyé ou reçu des fonds.";

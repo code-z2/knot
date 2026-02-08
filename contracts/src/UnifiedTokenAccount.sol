@@ -55,7 +55,7 @@ contract UnifiedTokenAccount is
     constructor(bytes32 qx, bytes32 qy) SignerP256(qx, qy) {}
 
     /// @notice One-time initializer for upgradeable deployments.
-    /// @dev Used only if deployed as a proxy; EIP-7702 uses the constructor path.
+    /// @dev Used only to keep contructor empty
     function initialize(bytes32 qx, bytes32 qy) external initializer {
         _checkEntryPointOrSelf();
 
@@ -164,7 +164,7 @@ contract UnifiedTokenAccount is
             return userOpHash;
         }
 
-        // derive a multi-chain which is signable across chains.
+        // derive a multi-chain intent hash which is signable across chains.
         if (userOp.paymasterAndData.length > 20) {
             // get the paymaster address from the userOp
             address paymaster = address(bytes20(userOp.paymasterAndData[:20]));

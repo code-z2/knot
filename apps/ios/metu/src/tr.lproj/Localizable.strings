@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "-den";
 "transaction_row_action_sent" = "gönderildi";
 "transaction_row_action_received" = "alındı";
+
+"transaction_empty_title" = "Son aktivite yok";
+"transaction_empty_subtitle" = "Kullanıcılar para gönderip aldıktan sonra işlemleriniz burada görünecektir.";

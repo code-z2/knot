@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D00267772F3820510016F342 /* Balance in Frameworks */ = {isa = PBXBuildFile; productRef = D0BAL0012F3A0001001771BB /* Balance */; };
+		D00267782F3820510016F342 /* Transactions in Frameworks */ = {isa = PBXBuildFile; productRef = D0TXN0012F3B0001001771BB /* Transactions */; };
 		D0EAD1462F338A17003B1EE1 /* AA in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1452F338A17003B1EE1 /* AA */; };
 		D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */ = {isa = PBXBuildFile; productRef = D0EAD1482F338A51003B1EE1 /* ENS */; };
 		D0EAD14B2F33D734003B1EE1 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */; };
@@ -97,6 +99,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D00267782F3820510016F342 /* Transactions in Frameworks */,
+				D00267772F3820510016F342 /* Balance in Frameworks */,
 				D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */,
 				D0EAD1462F338A17003B1EE1 /* AA in Frameworks */,
 				D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */,
@@ -712,6 +716,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/balance;
+		};
 		D0EAD1412F338079003B1EE1 /* XCLocalSwiftPackageReference "../../packages/transactions" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../packages/transactions;
@@ -728,13 +736,13 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../packages/account-setup";
 		};
-		D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../packages/balance;
-		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		D0BAL0012F3A0001001771BB /* Balance */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Balance;
+		};
 		D0EAD1452F338A17003B1EE1 /* AA */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AA;
@@ -746,10 +754,6 @@
 		D0EEE9C22F3145FD001771BB /* AccountSetup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AccountSetup;
-		};
-		D0BAL0012F3A0001001771BB /* Balance */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Balance;
 		};
 		D0TXN0012F3B0001001771BB /* Transactions */ = {
 			isa = XCSwiftPackageProductDependency;

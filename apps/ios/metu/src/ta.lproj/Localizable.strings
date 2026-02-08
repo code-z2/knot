@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "இருந்து";
 "transaction_row_action_sent" = "அனுப்பப்பட்டது";
 "transaction_row_action_received" = "பெறப்பட்டது";
+
+"transaction_empty_title" = "சமீபத்திய செயல்பாடு இல்லை";
+"transaction_empty_subtitle" = "நீங்கள் நிதியை அனுப்பிய அல்லது பெற்ற பிறகு உங்கள் பரிவர்த்தனைகள் இங்கே தோன்றும்.";

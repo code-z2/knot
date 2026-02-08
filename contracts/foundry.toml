@@ -5,4 +5,16 @@ libs = ["lib"]
 solc_version = "0.8.33"
 via_ir = true
 
+auto_detect_solc = false
+
+# Set EVM version explicitly (must match across environments)
+evm_version = "prague"
+
+bytecode_hash = "none"
+cbor_metadata = false
+
+optimizer = true
+optimizer_runs = 200
+
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "von";
 "transaction_row_action_sent" = "gesendet";
 "transaction_row_action_received" = "empfangen";
+
+"transaction_empty_title" = "Keine kürzlichen Aktivitäten";
+"transaction_empty_subtitle" = "Ihre Transaktionen werden hier angezeigt, nachdem Sie Geld gesendet oder empfangen haben.";

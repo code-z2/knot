@@ -9,6 +9,8 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {Call, JobState, JobStatus} from "./types/Structs.sol";
 import {Exec} from "./utils/Exec.sol";
 
+import {Initializable} from "openzeppelin-contracts/proxy/utils/Initializable.sol";
+
 /// @title Accumulator
 /// @notice Destination-chain gatherer for a scatter-gather intent.
 /// @dev
@@ -31,14 +33,14 @@ import {Exec} from "./utils/Exec.sol";
 /// - Late approval: refunds and marks `Refunded`.
 /// - No-swap flows: if swapCalls empty, `outputToken` must equal `inputToken` or refund.
 /// - Swap failure: refund and mark `Refunded`.
-contract Accumulator is Ownable {
+contract Accumulator is Ownable, Initializable {
     using SafeERC20 for IERC20;
 
     /// @dev Sentinel address representing native ETH in token fields.
     address private constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address private immutable TREASURY;
-    address private immutable MESSENGER;
+    address private MESSENGER;
 
     mapping(bytes32 => JobState) public jobs;
 
@@ -56,10 +58,16 @@ contract Accumulator is Ownable {
     error UnrecognizedCaller(address caller);
 
     /// @param _userAccount Owner account (UnifiedTokenAccount) that can approve/refund.
-    /// @param _messenger Authorized caller for handleMessage (Across or equivalent).
     /// @param _treasury Treasury that can be swept manually.
-    constructor(address _userAccount, address _messenger, address _treasury) Ownable(_userAccount) {
+    constructor(address _userAccount, address _treasury) Ownable(_userAccount) {
         TREASURY = _treasury;
+    }
+
+    function initialize(address _messenger) external initializer {
+        MESSENGER = _messenger;
+    }
+
+    function setMessenger(address _messenger) external onlyOwner {
         MESSENGER = _messenger;
     }
 

@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "da";
 "transaction_row_action_sent" = "inviato";
 "transaction_row_action_received" = "ricevuto";
+
+"transaction_empty_title" = "Nessuna attività recente";
+"transaction_empty_subtitle" = "Le tue transazioni appariranno qui dopo aver inviato o ricevuto fondi.";

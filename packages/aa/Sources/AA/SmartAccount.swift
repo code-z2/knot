@@ -109,12 +109,11 @@ public enum SmartAccount {
   }
 
   public enum AccumulatorFactory {
-    public static func encodeComputeAddressCall(userAccount: String, messenger: String) throws -> Data {
+    public static func encodeComputeAddressCall(userAccount: String) throws -> Data {
       let userWord = try ABIWord.address(userAccount)
-      let messengerWord = try ABIWord.address(messenger)
       return ABIEncoder.functionCall(
-        signature: "computeAddress(address,address)",
-        words: [userWord, messengerWord],
+        signature: "computeAddress(address)",
+        words: [userWord],
         dynamic: []
       )
     }
@@ -179,11 +178,13 @@ public actor SmartAccountClient {
   }
 
   public func getNonce(account: String, chainId: UInt64) async throws -> BigUInt {
-    try await ethCallBigUInt(account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall())
+    try await ethCallBigUInt(
+      account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall())
   }
 
   public func getNonce(account: String, chainId: UInt64, key: UInt64) async throws -> BigUInt {
-    try await ethCallBigUInt(account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall(key: key))
+    try await ethCallBigUInt(
+      account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall(key: key))
   }
 
   public func isValidSignature(
@@ -203,10 +204,8 @@ public actor SmartAccountClient {
     chainId: UInt64
   ) async throws -> String {
     let accumulatorFactory = AAConstants.accumulatorFactoryAddress
-    let messenger = try AAConstants.messengerAddress(chainId: chainId)
     let data = try SmartAccount.AccumulatorFactory.encodeComputeAddressCall(
-      userAccount: account,
-      messenger: messenger
+      userAccount: account
     )
     let response = try await ethCallHex(account: accumulatorFactory, chainId: chainId, data: data)
     return try ABIUtils.decodeAddressFromABIWord(response)
@@ -233,7 +232,9 @@ public actor SmartAccountClient {
     let accumulatorAddress = try await accumulatorAddressTask
 
     if !accountDeployed {
-      prelude.insert(try SmartAccount.Initialize.asCall(account: account, passkeyPublicKey: passkeyPublicKey), at: 0)
+      prelude.insert(
+        try SmartAccount.Initialize.asCall(account: account, passkeyPublicKey: passkeyPublicKey),
+        at: 0)
     }
 
     if try await !isDeployed(account: accumulatorAddress, chainId: chainId) {
@@ -344,7 +345,8 @@ public actor SmartAccountClient {
     )
   }
 
-  private func ethCallBigUInt(account: String, chainId: UInt64, data: Data) async throws -> BigUInt {
+  private func ethCallBigUInt(account: String, chainId: UInt64, data: Data) async throws -> BigUInt
+  {
     let response = try await ethCallHex(account: account, chainId: chainId, data: data)
     let valueHex = response.replacingOccurrences(of: "0x", with: "")
     return BigUInt(valueHex, radix: 16) ?? .zero
@@ -353,7 +355,7 @@ public actor SmartAccountClient {
   private func ethCallHex(account: String, chainId: UInt64, data: Data) async throws -> String {
     let txObject: [String: Any] = [
       "to": account,
-      "data": "0x" + data.toHexString()
+      "data": "0x" + data.toHexString(),
     ]
     let response: String = try await rpcClient.makeRpcCall(
       chainId: chainId,
@@ -386,7 +388,8 @@ public actor SmartAccountClient {
     if isDestinationChain {
       let accumulatorFactory = AAConstants.accumulatorFactoryAddress
       let messenger = try AAConstants.messengerAddress(chainId: bundle.chainId)
-      let accumulatorAddress = try await computeAccumulatorAddress(account: account, chainId: bundle.chainId)
+      let accumulatorAddress = try await computeAccumulatorAddress(
+        account: account, chainId: bundle.chainId)
       async let accumulatorDeployedTask = isDeployed(
         account: accumulatorAddress,
         chainId: bundle.chainId

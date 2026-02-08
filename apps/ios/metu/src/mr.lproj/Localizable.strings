@@ -153,3 +153,6 @@
 "transaction_row_prefix_from" = "कडून";
 "transaction_row_action_sent" = "पाठवले";
 "transaction_row_action_received" = "प्राप्त";
+
+"transaction_empty_title" = "कोणतीही अलीकडील क्रिया नाही";
+"transaction_empty_subtitle" = "तुम्ही निधी पाठवल्यानंतर किंवा प्राप्त केल्यानंतर तुमचे व्यवहार येथे दिसतील.";

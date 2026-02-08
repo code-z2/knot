@@ -71,7 +71,8 @@ contract AccumulatorTest is Test {
         tokenOut = new MockERC20("Out", "OUT");
         swap = new MockSwap();
         messenger = new MockMessenger();
-        acc = new Accumulator(address(this), address(messenger), treasury);
+        acc = new Accumulator(address(this), treasury);
+        acc.initialize(address(messenger));
     }
 
     function _message(
@@ -350,8 +351,7 @@ contract AccumulatorTest is Test {
     function test_native_accumulatesAndExecutes_noSwap() public {
         Call[] memory calls = new Call[](0);
         address recipient = address(0xCAFE);
-        bytes memory msgPayload =
-            _message(NATIVE, NATIVE, recipient, 2 ether, 2 ether, calls, 20);
+        bytes memory msgPayload = _message(NATIVE, NATIVE, recipient, 2 ether, 2 ether, calls, 20);
         bytes32 hash = _intentHash(NATIVE, NATIVE, recipient, 2 ether, 2 ether, calls, 20);
 
         acc.approve(hash);
@@ -364,8 +364,7 @@ contract AccumulatorTest is Test {
 
     function test_native_accumulatesMultipleFills() public {
         Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(NATIVE, NATIVE, address(this), 3 ether, 3 ether, calls, 21);
+        bytes memory msgPayload = _message(NATIVE, NATIVE, address(this), 3 ether, 3 ether, calls, 21);
         bytes32 hash = _intentHash(NATIVE, NATIVE, address(this), 3 ether, 3 ether, calls, 21);
 
         vm.deal(address(messenger), 3 ether);
@@ -380,8 +379,7 @@ contract AccumulatorTest is Test {
 
     function test_native_lateApprovalRefunds() public {
         Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(NATIVE, NATIVE, address(this), 1 ether, 1 ether, calls, 22);
+        bytes memory msgPayload = _message(NATIVE, NATIVE, address(this), 1 ether, 1 ether, calls, 22);
         bytes32 hash = _intentHash(NATIVE, NATIVE, address(this), 1 ether, 1 ether, calls, 22);
 
         vm.deal(address(messenger), 1 ether);
@@ -400,8 +398,7 @@ contract AccumulatorTest is Test {
             data: abi.encodeWithSignature("swap(address,uint256)", address(tokenOut), 5 ether)
         });
 
-        bytes memory msgPayload =
-            _message(NATIVE, address(tokenOut), address(this), 5 ether, 5 ether, calls, 23);
+        bytes memory msgPayload = _message(NATIVE, address(tokenOut), address(this), 5 ether, 5 ether, calls, 23);
         bytes32 hash = _intentHash(NATIVE, address(tokenOut), address(this), 5 ether, 5 ether, calls, 23);
 
         acc.approve(hash);
@@ -418,8 +415,7 @@ contract AccumulatorTest is Test {
         // owner() == address(this), so refund goes back here.
         // Use vm.deal on the accumulator directly and call via prank to avoid
         // the test contract's own ETH muddying the accounting.
-        bytes memory msgPayload =
-            _message(NATIVE, address(tokenOut), address(this), 3 ether, 3 ether, calls, 24);
+        bytes memory msgPayload = _message(NATIVE, address(tokenOut), address(this), 3 ether, 3 ether, calls, 24);
         bytes32 hash = _intentHash(NATIVE, address(tokenOut), address(this), 3 ether, 3 ether, calls, 24);
 
         acc.approve(hash);

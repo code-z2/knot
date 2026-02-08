@@ -17,7 +17,7 @@ contract AccumulatorFactoryTest is Test {
         address user = address(0xA11CE);
         address messenger = address(0xB0B);
 
-        address expected = factory.computeAddress(user, messenger);
+        address expected = factory.computeAddress(user);
         vm.prank(user);
         address deployed = factory.deploy(messenger);
 
@@ -39,6 +39,6 @@ contract AccumulatorFactoryTest is Test {
         address userA = address(0xA1);
         address userB = address(0xB2);
 
-        assertTrue(factory.computeAddress(userA, messenger) != factory.computeAddress(userB, messenger));
+        assertTrue(factory.computeAddress(userA) != factory.computeAddress(userB));
     }
 }
