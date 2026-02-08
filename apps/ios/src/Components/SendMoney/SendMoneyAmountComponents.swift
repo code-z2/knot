@@ -1,3 +1,4 @@
+import Balance
 import SwiftUI
 
 enum SendMoneyKeypadKey: Hashable {
@@ -73,7 +74,7 @@ struct SendMoneyAmountDisplay: View {
 }
 
 struct SendMoneyBalanceWidget: View {
-  let asset: MockAsset
+  let asset: TokenBalance
   let balanceText: String
   let onSwitchTap: () -> Void
 
@@ -122,10 +123,7 @@ struct SendMoneyBalanceWidget: View {
       RoundedRectangle(cornerRadius: 12, style: .continuous)
         .fill(AppThemeColor.fillPrimary)
 
-      Image(asset.iconAssetName)
-        .resizable()
-        .scaledToFit()
-        .frame(width: 32, height: 32)
+      TokenLogo(url: asset.logoURL, size: 32)
     }
     .frame(width: 37, height: 37)
   }

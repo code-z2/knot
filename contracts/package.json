@@ -9,6 +9,8 @@
     "coverage": "forge coverage",
     "clean": "forge clean",
     "anvil": "anvil",
-    "install:all": "forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts"
+    "install:all": "forge install foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts",
+    "deploy:limited:testnet": "make deploy-limited-testnet",
+    "deploy:limited:mainnet": "make deploy-limited-mainnet"
   }
 }

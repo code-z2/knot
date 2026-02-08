@@ -1,6 +1,8 @@
+import Balance
 import SwiftUI
 
 struct TransactionsView: View {
+  let balanceStore: BalanceStore
   let preferencesStore: PreferencesStore
   let currencyRateStore: CurrencyRateStore
   var onHomeTap: () -> Void = {}
@@ -8,12 +10,14 @@ struct TransactionsView: View {
   var onSessionKeyTap: () -> Void = {}
 
   init(
+    balanceStore: BalanceStore,
     preferencesStore: PreferencesStore,
     currencyRateStore: CurrencyRateStore,
     onHomeTap: @escaping () -> Void = {},
     onTransactionsTap: @escaping () -> Void = {},
     onSessionKeyTap: @escaping () -> Void = {}
   ) {
+    self.balanceStore = balanceStore
     self.preferencesStore = preferencesStore
     self.currencyRateStore = currencyRateStore
     self.onHomeTap = onHomeTap
@@ -47,7 +51,7 @@ struct TransactionsView: View {
     .safeAreaInset(edge: .top, spacing: 0) {
       TransactionsAppHeader(
         balanceText: currencyRateStore.formatUSD(
-          MockTransactionData.quickBalanceUSD,
+          balanceStore.totalValueUSD,
           currencyCode: preferencesStore.selectedCurrencyCode,
           locale: preferencesStore.locale
         ),
@@ -110,6 +114,7 @@ private struct TransactionsAppHeader: View {
 
 #Preview {
   TransactionsView(
+    balanceStore: BalanceStore(),
     preferencesStore: PreferencesStore(),
     currencyRateStore: CurrencyRateStore()
   )

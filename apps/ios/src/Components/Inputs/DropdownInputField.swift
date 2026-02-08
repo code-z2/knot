@@ -21,6 +21,7 @@ enum DropdownBadgeIconStyle: Hashable {
 struct DropdownBadgeValue: Equatable {
   let text: String
   var iconAssetName: String? = nil
+  var iconURL: URL? = nil
   var iconStyle: DropdownBadgeIconStyle = .network
 }
 
@@ -291,6 +292,19 @@ struct DropdownInputField<DropdownContent: View>: View {
       let icon: AppBadgeIcon =
         badge.iconStyle == .symbol ? .symbol(iconAssetName) : .network(iconAssetName)
       AppIconTextBadge(text: badge.text, icon: icon)
+    } else if badge.iconURL != nil {
+      HStack(spacing: 6) {
+        TokenLogo(url: badge.iconURL, size: 16)
+        Text(badge.text)
+          .font(.custom("Roboto-Medium", size: 13))
+          .foregroundStyle(AppThemeColor.labelPrimary)
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 6)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(AppThemeColor.fillPrimary)
+      )
     } else {
       AppTextBadge(text: badge.text)
     }
