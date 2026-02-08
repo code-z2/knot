@@ -99,7 +99,6 @@ public struct LocalWalletMaterialStore: WalletMaterialStoring {
     )
     try data.write(to: fileURL, options: .atomic)
 
-#if os(iOS)
     var resourceValues = URLResourceValues()
     resourceValues.isExcludedFromBackup = true
     var writableURL = fileURL
@@ -108,7 +107,6 @@ public struct LocalWalletMaterialStore: WalletMaterialStoring {
       [.protectionKey: FileProtectionType.complete],
       ofItemAtPath: fileURL.path
     )
-#endif
   }
 
   public func read(for eoaAddress: String) throws -> WalletMaterial {
@@ -251,7 +249,11 @@ public actor AccountSetupService {
       throw AccountSetupError.passkeyAssertionFailed(error)
     }
 
-    guard let matched = storedAccounts.first(where: { $0.passkey.credentialID == signature.credentialID }) else {
+    guard
+      let matched = storedAccounts.first(where: {
+        $0.passkey.credentialID == signature.credentialID
+      })
+    else {
       throw AccountSetupError.missingStoredPasskey
     }
 
@@ -344,18 +346,43 @@ public actor AccountSetupService {
 
   public func passkeyPublicKey(account: AccountIdentity) throws -> PasskeyPublicKey {
     let records = try loadStoredAccountRecords()
-    if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }) {
+    if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }
+    ) {
       return matched.passkey
     }
     throw AccountSetupError.missingStoredAccount(account.eoaAddress)
   }
 
-  public func signedAuthorization(account: AccountIdentity) throws -> EIP7702AuthorizationSigned {
+  public func signedAuthorization(
+    account: AccountIdentity,
+    chainId: UInt64,
+    delegateAddress: String,
+    nonce: UInt64 = 0
+  ) throws -> EIP7702AuthorizationSigned {
     let records = try loadStoredAccountRecords()
-    if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }) {
+    guard
+      let matched = records.first(where: {
+        $0.passkey.credentialID == account.passkeyCredentialID
+      })
+    else {
+      throw AccountSetupError.missingStoredAccount(account.eoaAddress)
+    }
+
+    if matched.signedAuthorization.chainId == chainId {
       return matched.signedAuthorization
     }
-    throw AccountSetupError.missingStoredAccount(account.eoaAddress)
+
+    // JIT Signing
+    let wallet = try walletStore.read(for: account.eoaAddress)
+    let unsigned = EIP7702AuthorizationUnsigned(
+      chainId: chainId,
+      delegateAddress: delegateAddress,
+      nonce: nonce
+    )
+    return try EIP7702AuthorizationCodec.signAuthorization(
+      unsigned,
+      privateKeyHex: wallet.privateKeyHex
+    )
   }
 
   private func randomChallenge(length: Int = 32) -> Data {
@@ -389,7 +416,9 @@ public actor AccountSetupService {
     _ records: inout [StoredAccountRecord],
     record: StoredAccountRecord
   ) {
-    if let credentialIndex = records.firstIndex(where: { $0.passkey.credentialID == record.passkey.credentialID }) {
+    if let credentialIndex = records.firstIndex(where: {
+      $0.passkey.credentialID == record.passkey.credentialID
+    }) {
       records[credentialIndex] = record
       return
     }

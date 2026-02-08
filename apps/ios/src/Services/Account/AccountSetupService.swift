@@ -1,6 +1,7 @@
 import AccountSetup
 import Foundation
 import Passkey
+import RPC
 internal import SignHandler
 
 typealias AccountIdentity = AccountSetup.AccountIdentity
@@ -40,24 +41,28 @@ extension AccountSetupServiceError: LocalizedError {
 final class AccountSetupService {
   private let service: AccountSetup.AccountSetupService
   private let defaultDelegateAddress: String
-  private let defaultChainID: UInt64
+  private let supportedChainIDs: [UInt64]
+  private let rpcClient: RPCClient
 
   init(
     service: AccountSetup.AccountSetupService? = nil,
     delegateAddress: String = "0x919FB6f181DC306825Dc8F570A1BDF8c456c56Da",
-    chainID: UInt64 = 1
+    supportedChainIDs: [UInt64] = ChainSupportRuntime.resolveSupportedChainIDs(),
+    rpcClient: RPCClient? = nil
   ) {
     self.service =
       service ?? AccountSetup.AccountSetupService(passkeyService: PasskeyService(anchor: nil))
     self.defaultDelegateAddress = delegateAddress
-    self.defaultChainID = chainID
+    self.supportedChainIDs = supportedChainIDs
+    self.rpcClient = rpcClient ?? RPCClient()
   }
 
   func createWallet() async throws -> AccountIdentity {
+    let creationChainId = supportedChainIDs.first ?? 1
     do {
       let created = try await service.createEOAAndPasskey(
         delegateAddress: defaultDelegateAddress,
-        chainId: defaultChainID,
+        chainId: creationChainId,
         nonce: 0
       )
       return AccountIdentity(
@@ -140,11 +145,34 @@ final class AccountSetupService {
     }
   }
 
-  func storedSignedAuthorization(account: AccountIdentity) async throws
+  func storedSignedAuthorization(account: AccountIdentity, chainId: UInt64) async throws
     -> EIP7702AuthorizationSigned
   {
     do {
-      return try await service.signedAuthorization(account: account)
+      let nonceHex = try await rpcClient.makeRpcCall(
+        chainId: chainId,
+        method: "eth_getTransactionCount",
+        params: [AnyCodable(account.eoaAddress), AnyCodable("pending")],
+        responseType: String.self
+      )
+
+      let cleanHex = nonceHex.replacingOccurrences(of: "0x", with: "")
+      guard let nonce = UInt64(cleanHex, radix: 16) else {
+        throw AccountSetupError.walletGenerationFailed(
+          NSError(
+            domain: "AccountSetupService",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Invalid nonce hex: \(nonceHex)"]
+          )
+        )
+      }
+
+      return try await service.signedAuthorization(
+        account: account,
+        chainId: chainId,
+        delegateAddress: defaultDelegateAddress,
+        nonce: nonce
+      )
     } catch {
       throw AccountSetupServiceError.restoreSessionFailed(error)
     }
