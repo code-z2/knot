@@ -48,23 +48,36 @@ final class AAExecutionService {
     chainId: UInt64,
     calls: [Call]
   ) async throws -> String {
+    print("[AAExec] 🏁 executeCalls started for chain \(chainId). Calls: \(calls.count)")
     do {
       let context = try await makeContext(accountService: accountService, account: account)
+      print("[AAExec] Context created for \(context.account.eoaAddress)")
+
       let passkey = try await accountService.passkeyPublicKeyData(for: context.account)
+      print("[AAExec] Passkey retrieved: \(passkey)")
+
       let execute = try await smartAccountClient.execute(
         account: context.account.eoaAddress,
         chainId: chainId,
         passkeyPublicKey: passkey,
         calls: calls
       )
+      print("[AAExec] SmartAccount execution payload generated. Length: \(execute.payload.count)")
+
       let userOp = try await buildAndSign(
         accountService: accountService,
         context: context,
         chainId: chainId,
         payload: execute.payload
       )
-      return try await sendUserOperation(userOp, useSyncSend: false)
+      print(
+        "[AAExec] UserOperation built and signed. Sender: \(userOp.sender), Nonce: \(userOp.nonce)")
+
+      let txHash = try await sendUserOperation(userOp, useSyncSend: false)
+      print("[AAExec] 🚀 UserOperation sent! Hash: \(txHash)")
+      return txHash
     } catch {
+      print("[AAExec] ❌ executeCalls failed: \(error)")
       throw AAExecutionServiceError.executionFailed(error)
     }
   }
@@ -164,10 +177,15 @@ final class AAExecutionService {
     chainId: UInt64,
     payload: Data
   ) async throws -> UserOperation {
+    print("[AAExec] buildUserOperation: Fetching authorization...")
     let authorization = try await accountService.storedSignedAuthorization(
       account: context.account,
       chainId: chainId
     )
+    print(
+      "[AAExec] buildUserOperation: Authorization fetched. Delegate: \(authorization.delegateAddress)"
+    )
+
     let auth = EIP7702Auth(
       address: authorization.delegateAddress,
       chainId: "0x" + String(authorization.chainId, radix: 16),
@@ -177,14 +195,19 @@ final class AAExecutionService {
       yParity: "0x" + String(authorization.yParity, radix: 16)
     )
 
+    print("[AAExec] buildUserOperation: Fetching nonce...")
     let nonce = try await smartAccountClient.getNonce(
       account: context.account.eoaAddress,
       chainId: chainId
     )
+    print("[AAExec] buildUserOperation: Nonce fetched: \(nonce)")
+
     let nonceHex: String = {
       if nonce == .zero { return "0x0" }
       return "0x" + nonce.serialize().toHexString()
     }()
+
+    print("[AAExec] buildUserOperation: Calling aaClient.buildUserOperation...")
     let userOp = try await aaClient.buildUserOperation(
       chainId: chainId,
       sender: context.account.eoaAddress,
@@ -192,6 +215,7 @@ final class AAExecutionService {
       payload: "0x" + payload.toHexString(),
       eip7702Auth: auth
     )
+    print("[AAExec] buildUserOperation: aaClient returned UserOp.")
     return userOp
   }
 
@@ -216,12 +240,20 @@ final class AAExecutionService {
     _ userOp: UserOperation,
     useSyncSend: Bool
   ) async throws -> String {
+    print(
+      "[AAExec] sendUserOperation called. Sync: \(useSyncSend). OpHash: \(try? userOp.hash(route: .normal).toHexString() ?? "unknown")"
+    )
     do {
       if useSyncSend {
-        return try await aaClient.sendUserOperationSync(userOp)
+        let hash = try await aaClient.sendUserOperationSync(userOp)
+        print("[AAExec] Sync send successful. Hash: \(hash)")
+        return hash
       }
-      return try await aaClient.sendUserOperation(userOp)
+      let hash = try await aaClient.sendUserOperation(userOp)
+      print("[AAExec] Async send successful. Hash: \(hash)")
+      return hash
     } catch {
+      print("[AAExec] ❌ sendUserOperation failed: \(error)")
       throw AAExecutionServiceError.userOperationFailed(error)
     }
   }
@@ -240,17 +272,22 @@ final class AAExecutionService {
     chainId: UInt64,
     payload: Data
   ) async throws -> UserOperation {
+    print("[AAExec] buildAndSign: Starting...")
     let userOp = try await buildUserOperation(
       accountService: accountService,
       context: context,
       chainId: chainId,
       payload: payload
     )
+    print("[AAExec] buildAndSign: UserOp built. Hashing...")
     let hash = try hashUserOperation(userOp, .normal)
+
+    print("[AAExec] buildAndSign: Signing payload...")
     let signature = try await accountService.signPayloadWithStoredPasskey(
       account: context.account,
       payload: hash
     )
+    print("[AAExec] buildAndSign: Signed. Updating UserOp...")
     let signed = try updateUserOperationSignature(userOp, signature: signature)
     return signed
   }

@@ -23,10 +23,26 @@ public actor AAClient {
       eip7702Auth: eip7702Auth
     )
 
+    // Prefill limits for estimation
+    op.verificationGasLimit = "0xf4240"  // 1,000,000
+    op.preVerificationGas = "0xc350"  // 50,000
+
+    print("[AAClient] buildUserOperation: Getting gas price...")
     let gasPrice = try await core.getUserOperationGasPrice(chainId: chainId)
-    op.setGasPrice(maxFeePerGas: gasPrice.maxFeePerGas, maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas)
+    print("[AAClient] buildUserOperation: Gas price retrieved: \(gasPrice)")
+
+    op.setGasPrice(
+      maxFeePerGas: gasPrice.maxFeePerGas, maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas)
+
+    print("[AAClient] buildUserOperation: Estimating gas...")
+    print("[AAClient] UserOperation before estimation: \(op.rpcObject)")
     op = try await core.estimateUserOperationGas(op)
+    print("[AAClient] buildUserOperation: Gas estimated.")
+
+    print("[AAClient] buildUserOperation: Sponsoring UserOp...")
     op = try await core.sponsorUserOperation(op)
+    print("[AAClient] buildUserOperation: UserOp sponsored.")
+
     return op
   }
 
@@ -34,7 +50,8 @@ public actor AAClient {
     try await core.getUserOperationGasPrice(chainId: chainId)
   }
 
-  public func estimateUserOperationGas(_ userOperation: UserOperation) async throws -> UserOperation {
+  public func estimateUserOperationGas(_ userOperation: UserOperation) async throws -> UserOperation
+  {
     try await core.estimateUserOperationGas(userOperation)
   }
 

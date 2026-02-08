@@ -57,28 +57,61 @@ public actor AACore {
       let standard: SlowPrice?
       let fast: SlowPrice?
     }
-    let result: GelatoGasPriceEnvelope = try await rpcClient.makeBundlerRpcCall(
-      chainId: chainId,
-      method: "gelato_getUserOperationGasPrice",
-      params: [],
-      responseType: GelatoGasPriceEnvelope.self
-    )
-    let selected = result.standard ?? result.fast ?? result.slow
-    guard let selected else { throw RPCError.missingResult }
-    return UserOperationGasPrice(
-      maxFeePerGas: AAUtils.normalizeHexQuantity(selected.maxFeePerGas),
-      maxPriorityFeePerGas: AAUtils.normalizeHexQuantity(selected.maxPriorityFeePerGas)
-    )
+
+    print("[AACore] 🟢 getUserOperationGasPrice called for chain \(chainId)")
+
+    // 1. Try Gelato Oracle
+    do {
+      print("[AACore] → attempting gelato_getUserOperationGasPrice")
+      let result: GelatoGasPriceEnvelope = try await rpcClient.makeBundlerRpcCall(
+        chainId: chainId,
+        method: "gelato_getUserOperationGasPrice",
+        params: [],
+        responseType: GelatoGasPriceEnvelope.self
+      )
+
+      if let selected = result.standard ?? result.fast ?? result.slow {
+        print("[AACore] ✅ Gelato gas price: maxFee=\(selected.maxFeePerGas)")
+        return UserOperationGasPrice(
+          maxFeePerGas: AAUtils.normalizeHexQuantity(selected.maxFeePerGas),
+          maxPriorityFeePerGas: AAUtils.normalizeHexQuantity(selected.maxPriorityFeePerGas)
+        )
+      }
+      print("[AACore] ⚠️ Gelato oracle returned no price tiers. Falling back...")
+    } catch {
+      print("[AACore] ⚠️ Gelato oracle failed: \(error). Falling back to eth_gasPrice...")
+    }
+
+    // 2. Fallback to Standard RPC
+    do {
+      let gasPriceHex: String = try await rpcClient.makeRpcCall(
+        chainId: chainId,
+        method: "eth_gasPrice",
+        params: [],
+        responseType: String.self
+      )
+      print("[AACore] ✅ Fallback gas price: \(gasPriceHex)")
+      let normalized = AAUtils.normalizeHexQuantity(gasPriceHex)
+      return UserOperationGasPrice(
+        maxFeePerGas: normalized,
+        maxPriorityFeePerGas: normalized  // Simple legacy fallback
+      )
+    } catch {
+      print("[AACore] ❌ Gas price estimation failed completely: \(error)")
+      throw error
+    }
   }
 
   public func estimateUserOperationGas(_ userOperation: UserOperation) async throws -> UserOperation
   {
+    print("[AACore] → eth_estimateUserOperationGas (chain \(userOperation.chainId))")
     let estimate: UserOperationGasEstimate = try await rpcClient.makeBundlerRpcCall(
       chainId: userOperation.chainId,
       method: "eth_estimateUserOperationGas",
       params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
       responseType: UserOperationGasEstimate.self
     )
+    print("[AACore] ✅ gas estimated")
     var op = userOperation
     op.applyGasEstimate(estimate)
     return op
@@ -86,7 +119,8 @@ public actor AACore {
 
   public func getPaymasterStubData(_ userOperation: UserOperation) async throws -> PaymasterStubData
   {
-    try await rpcClient.makePaymasterRpcCall(
+    print("[AACore] → pm_getPaymasterStubData (chain \(userOperation.chainId))")
+    let result = try await rpcClient.makePaymasterRpcCall(
       chainId: userOperation.chainId,
       method: "pm_getPaymasterStubData",
       params: [
@@ -96,10 +130,13 @@ public actor AACore {
       ],
       responseType: PaymasterStubData.self
     )
+    print("[AACore] ✅ paymaster stub data received")
+    return result
   }
 
   public func sponsorUserOperation(_ userOperation: UserOperation) async throws -> UserOperation {
     let _: PaymasterStubData = try await getPaymasterStubData(userOperation)
+    print("[AACore] → pm_sponsorUserOperation (chain \(userOperation.chainId))")
     let sponsored: SponsoredPaymasterData = try await rpcClient.makePaymasterRpcCall(
       chainId: userOperation.chainId,
       method: "pm_sponsorUserOperation",
@@ -110,6 +147,7 @@ public actor AACore {
       ],
       responseType: SponsoredPaymasterData.self
     )
+    print("[AACore] ✅ sponsored")
     var op = userOperation
     op.applyPaymaster(sponsored)
     return op

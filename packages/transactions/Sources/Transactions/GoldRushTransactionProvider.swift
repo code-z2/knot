@@ -235,12 +235,21 @@ public actor GoldRushTransactionProvider {
       )
     }
 
-    // Find the primary Transfer event for value extraction
-    let transfer = findPrimaryTransfer(item: item, userAddress: userAddress)
+    // Find the primary Transfer event for value extraction.
+    // Check both the user's EOA and accumulator address as possible participants.
+    let transfer = findPrimaryTransfer(
+      item: item, userAddress: userAddress, accumulatorAddress: accumulatorAddress)
 
     let tokenSymbol = transfer?.symbol ?? (valueQuote > 0 ? "ETH" : "")
     let amountText = transfer?.amountText ?? ""
     let transferUSD = transfer?.usdValue ?? valueQuote
+
+    // Build the set of addresses we consider "ours"
+    let ownedAddresses: Set<String> = {
+      var addrs: Set<String> = [userAddress]
+      if let acc = accumulatorAddress { addrs.insert(acc) }
+      return addrs
+    }()
 
     // Classify variant
     let variant: TxRecordVariant
@@ -248,9 +257,9 @@ public actor GoldRushTransactionProvider {
       variant = .received
     } else if transfer != nil && transfer!.direction == .outbound {
       variant = .sent
-    } else if to == userAddress && valueQuote > 0 {
+    } else if ownedAddresses.contains(to) && valueQuote > 0 {
       variant = .received
-    } else if from == userAddress && (valueQuote > 0 || transfer != nil) {
+    } else if ownedAddresses.contains(from) && (valueQuote > 0 || transfer != nil) {
       variant = .sent
     } else {
       variant = .contract
@@ -289,23 +298,26 @@ public actor GoldRushTransactionProvider {
   }
 
   /// Find the primary ERC-20 Transfer event relevant to the user.
-  private func findPrimaryTransfer(item: GoldRushTxItem, userAddress: String) -> TransferInfo? {
+  /// Checks both the user's EOA address and accumulator address.
+  private func findPrimaryTransfer(
+    item: GoldRushTxItem,
+    userAddress: String,
+    accumulatorAddress: String?
+  ) -> TransferInfo? {
     guard let logs = item.logEvents else { return nil }
+
+    // All addresses we consider "ours"
+    var ownedAddresses: Set<String> = [userAddress]
+    if let acc = accumulatorAddress { ownedAddresses.insert(acc) }
 
     for log in logs {
       guard let topics = log.rawLogTopics,
         let topic0 = topics.first
       else { continue }
 
-      // Debug: print topics to see what we're getting
-      print("[GoldRushTx] Log topic0: \(topic0) (expecting \(Self.transferTopic0))")
-
       guard topic0.lowercased() == Self.transferTopic0.lowercased(),
         topics.count >= 3
-      else { 
-        print("[GoldRushTx] Skipping log: topic0 mismatch or insufficient topics (\(topics.count))")
-        continue 
-      }
+      else { continue }
 
       // topic1 = from (indexed, padded to 32 bytes), topic2 = to (indexed)
       let fromTopic = extractAddress(from: topics[1])
@@ -321,20 +333,15 @@ public actor GoldRushTransactionProvider {
       // Estimate USD value (use the tx-level value_quote as approximation)
       let usdValue = Decimal(item.valueQuote ?? 0)
 
-      print("[GoldRushTx] Found transfer: \(amountText) \(symbol) from \(fromTopic) to \(toTopic)")
-
-      if toTopic == userAddress {
+      if ownedAddresses.contains(toTopic) {
         return TransferInfo(
           direction: .inbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
-      } else if fromTopic == userAddress {
+      } else if ownedAddresses.contains(fromTopic) {
         return TransferInfo(
           direction: .outbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
-      } else {
-        print("[GoldRushTx] Transfer not involving user: \(userAddress)")
       }
     }
 
-    print("[GoldRushTx] No primary transfer found for user \(userAddress)")
     return nil
   }
 

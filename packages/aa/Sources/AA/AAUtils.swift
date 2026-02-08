@@ -33,9 +33,13 @@ enum AAUtils {
   static func normalizeHexQuantity(_ value: String) -> String {
     let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     if normalized.hasPrefix("0x") {
-      let stripped = String(normalized.dropFirst(2)).trimmingCharacters(in: CharacterSet(charactersIn: "0"))
-      return "0x" + (stripped.isEmpty ? "0" : stripped)
+      var stripped = String(normalized.dropFirst(2))
+      while stripped.hasPrefix("0") && stripped.count > 1 {
+        stripped.removeFirst()
+      }
+      return "0x" + stripped
     }
+
     guard let number = BigUInt(normalized, radix: 10) else { return normalized }
     if number == .zero { return "0x0" }
     return "0x" + number.serialize().toHexString()
@@ -62,7 +66,9 @@ enum AAUtils {
 
   static func addressData(_ value: String) throws -> Data {
     let clean = normalizeAddressOrEmpty(value).replacingOccurrences(of: "0x", with: "")
-    guard clean.count == 40, let out = Data.fromHex(clean) else { throw AAError.invalidAddress(value) }
+    guard clean.count == 40, let out = Data.fromHex(clean) else {
+      throw AAError.invalidAddress(value)
+    }
     return out
   }
 
@@ -92,7 +98,9 @@ enum AAUtils {
   static func domainSeparator(chainId: UInt64, entryPoint: String) throws -> Data {
     let chainWord = ABIWord.uint(BigUInt(chainId))
     let entryWord = try ABIWord.address(entryPoint)
-    return Data((eip712DomainTypeHash + domainNameHash + domainVersionHash + chainWord + entryWord).sha3(.keccak256))
+    return Data(
+      (eip712DomainTypeHash + domainNameHash + domainVersionHash + chainWord + entryWord).sha3(
+        .keccak256))
   }
 
   static func looksLikeEip7702SenderCode(_ code: Data) -> Bool {
@@ -112,9 +120,10 @@ enum AAUtils {
 
     let lenWordStart = paymasterAndData.count - paymasterSigSuffixLength
     let lenData = Data(paymasterAndData[lenWordStart..<(lenWordStart + 2)])
-    let sigLen = Int(lenData.withUnsafeBytes { rawBuffer in
-      UInt16(bigEndian: rawBuffer.load(as: UInt16.self))
-    })
+    let sigLen = Int(
+      lenData.withUnsafeBytes { rawBuffer in
+        UInt16(bigEndian: rawBuffer.load(as: UInt16.self))
+      })
 
     let signedLen = paymasterAndData.count - sigLen - paymasterSigSuffixLength
     guard signedLen >= paymasterStaticPrefixLength else {
