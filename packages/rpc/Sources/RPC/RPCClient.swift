@@ -1,5 +1,5 @@
-import Foundation
 import BigInt
+import Foundation
 import web3swift
 
 public actor RPCClient {
@@ -19,21 +19,31 @@ public actor RPCClient {
       return
     }
 
-    let resolvedJSONRPCAPIKey = jsonRPCAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.jsonRPCKeyInfoPlistKey
-    )
-    let resolvedBundlerAPIKey = bundlerAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.bundlerKeyInfoPlistKey
-    )
-    let resolvedPaymasterAPIKey = paymasterAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.paymasterKeyInfoPlistKey
-    )
-    let resolvedWalletAPIKey = walletAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.walletAPIKeyInfoPlistKey
-    )
-    let resolvedAddressActivityAPIKey = addressActivityAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.addressActivityAPIKeyInfoPlistKey
-    )
+    let resolvedJSONRPCAPIKey =
+      jsonRPCAPIKey
+      ?? Self.resolveSetting(
+        infoPlistKey: RPCSecrets.jsonRPCKeyInfoPlistKey
+      )
+    let resolvedBundlerAPIKey =
+      bundlerAPIKey
+      ?? Self.resolveSetting(
+        infoPlistKey: RPCSecrets.bundlerKeyInfoPlistKey
+      )
+    let resolvedPaymasterAPIKey =
+      paymasterAPIKey
+      ?? Self.resolveSetting(
+        infoPlistKey: RPCSecrets.paymasterKeyInfoPlistKey
+      )
+    let resolvedWalletAPIKey =
+      walletAPIKey
+      ?? Self.resolveSetting(
+        infoPlistKey: RPCSecrets.walletAPIKeyInfoPlistKey
+      )
+    let resolvedAddressActivityAPIKey =
+      addressActivityAPIKey
+      ?? Self.resolveSetting(
+        infoPlistKey: RPCSecrets.addressActivityAPIKeyInfoPlistKey
+      )
     let endpointConfig = RPCEndpointBuilderConfig(
       jsonRPCAPIKey: resolvedJSONRPCAPIKey,
       bundlerAPIKey: resolvedBundlerAPIKey,
@@ -158,7 +168,9 @@ public actor RPCClient {
     )
   }
 
-  public func getCode(chainId: UInt64, address: String, block: String = "latest") async throws -> String {
+  public func getCode(chainId: UInt64, address: String, block: String = "latest") async throws
+    -> String
+  {
     try await makeRpcCall(
       chainId: chainId,
       method: "eth_getCode",
@@ -187,16 +199,31 @@ public actor RPCClient {
     request.httpBody = try JSONEncoder().encode(payload)
 
     let (data, _) = try await URLSession.shared.data(for: request)
-    let decoded = try JSONDecoder().decode(JSONRPCResponse<Response>.self, from: data)
 
-    if let error = decoded.error {
-      throw RPCError.rpcError(code: error.code, message: error.message)
-    }
+    // Debug decoding errors
+    do {
+      let decoded = try JSONDecoder().decode(JSONRPCResponse<Response>.self, from: data)
+      if let error = decoded.error {
+        print(
+          "[RPC] ❌ Error for \(method) to \(urlString): code=\(error.code), msg=\(error.message)")
+        throw RPCError.rpcError(code: error.code, message: error.message)
+      }
 
-    guard let result = decoded.result else {
-      throw RPCError.missingResult
+      guard let result = decoded.result else {
+        let rawString = String(data: data, encoding: .utf8) ?? "decoding_failed"
+        print("[RPC] ⚠️ Missing result for \(method) to \(urlString)")
+        print("[RPC] Raw Response: \(rawString)")
+        throw RPCError.missingResult
+      }
+      return result
+    } catch {
+      if let rpcError = error as? RPCError { throw rpcError }
+      let rawString = String(data: data, encoding: .utf8) ?? "decoding_failed"
+      print("[RPC] 🚨 JSON Decoding failed for \(method) to \(urlString)")
+      print("[RPC] Raw Response: \(rawString)")
+      print("[RPC] Error: \(error)")
+      throw error
     }
-    return result
   }
 
   private static func resolveSetting(
@@ -219,7 +246,9 @@ public actor RPCClient {
     return config
   }
 
-  private static func applyChainSupportMode(_ endpointsByChain: [UInt64: ChainEndpoints]) -> [UInt64: ChainEndpoints] {
+  private static func applyChainSupportMode(_ endpointsByChain: [UInt64: ChainEndpoints])
+    -> [UInt64: ChainEndpoints]
+  {
     guard let config = resolveChainSupportConfig() else {
       return endpointsByChain
     }

@@ -51,7 +51,8 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
       return nil
     }
 
-    let bundlerURL = supportsBundler
+    let bundlerURL =
+      supportsBundler
       ? makeURL(
         chainID: chainID,
         slug: slug,
@@ -59,7 +60,8 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
         apiKey: config.bundlerAPIKey
       )
       : ""
-    let paymasterURL = supportsPaymaster
+    let paymasterURL =
+      supportsPaymaster
       ? makeURL(
         chainID: chainID,
         slug: slug,
@@ -188,6 +190,8 @@ public enum ChainRegistry {
       keywords: ["matic", "pol"],
       rpcURL: nil,
       explorerBaseURL: "https://polygonscan.com",
+      supportsBundler: true,
+      supportsPaymaster: true,
       goldRushChainName: "matic-mainnet"
     ),
     .init(
