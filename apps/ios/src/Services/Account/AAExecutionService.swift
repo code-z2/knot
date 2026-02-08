@@ -1,12 +1,11 @@
 import AA
-import Foundation
-import Transactions
 import AccountSetup
-import RPC
-internal import CryptoSwift
-internal import SignHandler
 internal import BigInt
-
+internal import CryptoSwift
+import Foundation
+import RPC
+internal import SignHandler
+import Transactions
 
 enum AAExecutionServiceError: Error {
   case executionFailed(Error)
@@ -89,10 +88,12 @@ final class AAExecutionService {
       )
 
       // 1. Build Ops in Parallel
-      let unsignedOps: [UserOperation] = try await withThrowingTaskGroup(of: UserOperation.self) { group in
+      let unsignedOps: [UserOperation] = try await withThrowingTaskGroup(of: UserOperation.self) {
+        group in
         for call in chainCalls {
           group.addTask {
             return try await self.buildUserOperation(
+              accountService: accountService,
               context: context,
               chainId: call.chainId,
               payload: execute.payload
@@ -116,7 +117,7 @@ final class AAExecutionService {
         account: context.account,
         payload: hash
       )
-      
+
       let signedOps = try compactedOps.map {
         try updateUserOperationSignature($0, signature: signature)
       }
@@ -158,10 +159,24 @@ final class AAExecutionService {
   }
 
   private func buildUserOperation(
+    accountService: AccountSetupService,
     context: ExecutionContext,
     chainId: UInt64,
     payload: Data
   ) async throws -> UserOperation {
+    let authorization = try await accountService.storedSignedAuthorization(
+      account: context.account,
+      chainId: chainId
+    )
+    let auth = EIP7702Auth(
+      address: authorization.delegateAddress,
+      chainId: "0x" + String(authorization.chainId, radix: 16),
+      nonce: "0x" + String(authorization.nonce, radix: 16),
+      r: authorization.r,
+      s: authorization.s,
+      yParity: "0x" + String(authorization.yParity, radix: 16)
+    )
+
     let nonce = try await smartAccountClient.getNonce(
       account: context.account.eoaAddress,
       chainId: chainId
@@ -175,12 +190,14 @@ final class AAExecutionService {
       sender: context.account.eoaAddress,
       nonce: nonceHex,
       payload: "0x" + payload.toHexString(),
-      eip7702Auth: context.auth
+      eip7702Auth: auth
     )
     return userOp
   }
 
-  private func hashUserOperation(_ userOp: UserOperation, _ route: UserOperation.HashRoute) throws -> Data {
+  private func hashUserOperation(_ userOp: UserOperation, _ route: UserOperation.HashRoute) throws
+    -> Data
+  {
     do {
       return try userOp.hash(route: route)
     } catch {
@@ -214,16 +231,7 @@ final class AAExecutionService {
     account: AccountIdentity
   ) async throws -> ExecutionContext {
     let sessionAccount = try await accountService.restoreSession(eoaAddress: account.eoaAddress)
-    let authorization = try await accountService.storedSignedAuthorization(account: sessionAccount)
-    let auth = EIP7702Auth(
-      address: authorization.delegateAddress,
-      chainId: "0x" + String(authorization.chainId, radix: 16),
-      nonce: "0x" + String(authorization.nonce, radix: 16),
-      r: authorization.r,
-      s: authorization.s,
-      yParity: "0x" + String(authorization.yParity, radix: 16)
-    )
-    return ExecutionContext(account: sessionAccount, auth: auth)
+    return ExecutionContext(account: sessionAccount)
   }
 
   private func buildAndSign(
@@ -233,6 +241,7 @@ final class AAExecutionService {
     payload: Data
   ) async throws -> UserOperation {
     let userOp = try await buildUserOperation(
+      accountService: accountService,
       context: context,
       chainId: chainId,
       payload: payload
@@ -257,12 +266,13 @@ final class AAExecutionService {
 
     while Date().timeIntervalSince(startedAt) < timeout {
       do {
-        let receiptEnvelope: BundlerUserOperationReceiptEnvelope = try await rpcClient.makeBundlerRpcCall(
-          chainId: chainId,
-          method: "eth_getUserOperationReceipt",
-          params: [AnyCodable(normalizedHash)],
-          responseType: BundlerUserOperationReceiptEnvelope.self
-        )
+        let receiptEnvelope: BundlerUserOperationReceiptEnvelope =
+          try await rpcClient.makeBundlerRpcCall(
+            chainId: chainId,
+            method: "eth_getUserOperationReceipt",
+            params: [AnyCodable(normalizedHash)],
+            responseType: BundlerUserOperationReceiptEnvelope.self
+          )
 
         let blockEnvelope: BlockTimestampEnvelope = try await rpcClient.makeRpcCall(
           chainId: chainId,
@@ -300,7 +310,6 @@ final class AAExecutionService {
 
 private struct ExecutionContext {
   let account: AccountIdentity
-  let auth: EIP7702Auth
 }
 
 private struct BundlerUserOperationReceiptEnvelope: Decodable {
