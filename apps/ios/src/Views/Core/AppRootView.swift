@@ -1,3 +1,4 @@
+import AA
 import AccountSetup
 import Balance
 import RPC
@@ -15,7 +16,12 @@ struct AppRootView: View {
   @State private var preferencesStore = PreferencesStore()
   @State private var currencyRateStore = CurrencyRateStore()
   @State private var balanceStore = BalanceStore()
-  @State private var transactionStore = TransactionStore()
+  @State private var transactionStore = TransactionStore(
+    accumulatorConfig: AccumulatorConfig(
+      factoryAddress: AAConstants.accumulatorFactoryAddress,
+      messengerByChain: AAConstants.messengerByChain
+    )
+  )
   private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
   private let ensService = ENSService()

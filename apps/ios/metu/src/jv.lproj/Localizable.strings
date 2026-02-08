@@ -12,7 +12,8 @@
 "home_add_money" = "Nambah Dhuwit";
 "home_send_money" = "Ngirim Dhuwit";
 "home_assets_title" = "ASETMU";
-"home_assets_summary" = "7 Aset ing 5 rante";
+"home_assets_summary_dynamic %lld %lld" = "%lld aset ing %lld chain";
+"home_assets_summary_empty" = "Durung ana aset";
 "home_space_title" = "RUANGMU";
 "home_profile" = "Profil";
 "home_preferences" = "Pilihan";

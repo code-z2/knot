@@ -12,7 +12,8 @@
 "home_add_money" = "충전";
 "home_send_money" = "송금";
 "home_assets_title" = "보유 자산";
-"home_assets_summary" = "5개 체인의 7개 자산";
+"home_assets_summary_dynamic %lld %lld" = "%lld 자산 %lld 체인";
+"home_assets_summary_empty" = "자산 없음";
 "home_space_title" = "내 공간";
 "home_profile" = "프로필";
 "home_preferences" = "설정";

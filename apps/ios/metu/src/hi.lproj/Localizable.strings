@@ -12,7 +12,8 @@
 "home_add_money" = "पैसे जोड़ें";
 "home_send_money" = "पैसे भेजें";
 "home_assets_title" = "आपकी संपत्ति";
-"home_assets_summary" = "5 चेन पर 7 संपत्ति";
+"home_assets_summary_dynamic %lld %lld" = "%lld संपत्तियाँ %lld चेन पर";
+"home_assets_summary_empty" = "अभी कोई संपत्ति नहीं";
 "home_space_title" = "आपका स्पेस";
 "home_profile" = "प्रोफ़ाइल";
 "home_preferences" = "प्राथमिकताएं";

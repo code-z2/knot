@@ -12,7 +12,8 @@
 "home_add_money" = "Adicionar dinheiro";
 "home_send_money" = "Enviar dinheiro";
 "home_assets_title" = "SEUS ATIVOS";
-"home_assets_summary" = "7 Ativos em 5 redes";
+"home_assets_summary_dynamic %lld %lld" = "%lld ativos em %lld redes";
+"home_assets_summary_empty" = "Nenhum ativo";
 "home_space_title" = "SEU ESPAÇO";
 "home_profile" = "Perfil";
 "home_preferences" = "Preferências";

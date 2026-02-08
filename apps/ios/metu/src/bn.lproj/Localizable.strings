@@ -12,7 +12,8 @@
 "home_add_money" = "টাকা যোগ করুন";
 "home_send_money" = "টাকা পাঠান";
 "home_assets_title" = "আপনার সম্পদ";
-"home_assets_summary" = "৫টি চেইনে ৭টি সম্পদ";
+"home_assets_summary_dynamic %lld %lld" = "%lld সম্পদ %lld চেইনে";
+"home_assets_summary_empty" = "এখনও কোনো সম্পদ নেই";
 "home_space_title" = "আপনার স্পেস";
 "home_profile" = "প্রোফাইল";
 "home_preferences" = "পছন্দসমূহ";

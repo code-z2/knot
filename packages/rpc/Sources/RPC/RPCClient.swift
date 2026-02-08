@@ -12,7 +12,7 @@ public actor RPCClient {
     bundlerAPIKey: String? = nil,
     paymasterAPIKey: String? = nil,
     walletAPIKey: String? = nil,
-    transactionsAPIKey: String? = nil
+    addressActivityAPIKey: String? = nil
   ) {
     if let endpointsByChain {
       self.endpointsByChain = endpointsByChain
@@ -31,20 +31,20 @@ public actor RPCClient {
     let resolvedWalletAPIKey = walletAPIKey ?? Self.resolveSetting(
       infoPlistKey: RPCSecrets.walletAPIKeyInfoPlistKey
     )
-    let resolvedTransactionsAPIKey = transactionsAPIKey ?? Self.resolveSetting(
-      infoPlistKey: RPCSecrets.transactionsAPIKeyInfoPlistKey
+    let resolvedAddressActivityAPIKey = addressActivityAPIKey ?? Self.resolveSetting(
+      infoPlistKey: RPCSecrets.addressActivityAPIKeyInfoPlistKey
     )
     let endpointConfig = RPCEndpointBuilderConfig(
       jsonRPCAPIKey: resolvedJSONRPCAPIKey,
       bundlerAPIKey: resolvedBundlerAPIKey,
       paymasterAPIKey: resolvedPaymasterAPIKey,
       walletAPIKey: resolvedWalletAPIKey,
-      transactionsAPIKey: resolvedTransactionsAPIKey,
+      addressActivityAPIKey: resolvedAddressActivityAPIKey,
       jsonRPCURLTemplate: RPCSecrets.jsonRPCURLTemplate,
       bundlerURLTemplate: RPCSecrets.bundlerURLTemplate,
       paymasterURLTemplate: RPCSecrets.paymasterURLTemplate,
       walletAPIURLTemplate: RPCSecrets.walletAPIURLTemplate,
-      transactionsAPIURLTemplate: RPCSecrets.transactionsAPIURLTemplate
+      addressActivityAPIURLTemplate: RPCSecrets.addressActivityAPIURLTemplate
     )
     let defaultEndpoints = makeRPCDefaultEndpoints(
       config: endpointConfig
@@ -87,18 +87,18 @@ public actor RPCClient {
     return endpoints.walletAPIBearerToken
   }
 
-  public func getTransactionsApiUrl(chainId: UInt64) throws -> String {
+  public func getAddressActivityApiUrl(chainId: UInt64) throws -> String {
     guard let endpoints = endpointsByChain[chainId] else {
       throw RPCError.unsupportedChain(chainId)
     }
-    return endpoints.transactionsAPIURL
+    return endpoints.addressActivityAPIURL
   }
 
-  public func getTransactionsApiBearerToken(chainId: UInt64) throws -> String {
+  public func getAddressActivityApiBearerToken(chainId: UInt64) throws -> String {
     guard let endpoints = endpointsByChain[chainId] else {
       throw RPCError.unsupportedChain(chainId)
     }
-    return endpoints.transactionsAPIBearerToken
+    return endpoints.addressActivityAPIBearerToken
   }
 
   public func getSupportedChains() -> [UInt64] {

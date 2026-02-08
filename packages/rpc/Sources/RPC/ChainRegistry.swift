@@ -68,10 +68,10 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
       slug: slug,
       template: config.walletAPIURLTemplate
     )
-    let transactionsAPIURL = makeURL(
+    let addressActivityAPIURL = makeURL(
       chainID: chainID,
       slug: slug,
-      template: config.transactionsAPIURLTemplate
+      template: config.addressActivityAPIURLTemplate
     )
     return ChainEndpoints(
       rpcURL: resolvedRPCURL,
@@ -79,8 +79,8 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
       paymasterURL: paymasterURL,
       walletAPIURL: walletAPIURL,
       walletAPIBearerToken: config.walletAPIKey,
-      transactionsAPIURL: transactionsAPIURL,
-      transactionsAPIBearerToken: config.transactionsAPIKey
+      addressActivityAPIURL: addressActivityAPIURL,
+      addressActivityAPIBearerToken: config.addressActivityAPIKey
     )
   }
 

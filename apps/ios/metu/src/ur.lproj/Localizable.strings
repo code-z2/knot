@@ -12,7 +12,8 @@
 "home_add_money" = "رقم شامل کریں";
 "home_send_money" = "رقم بھیجیں";
 "home_assets_title" = "آپ کے اثاثے";
-"home_assets_summary" = "5 چینز پر 7 اثاثے";
+"home_assets_summary_dynamic %lld %lld" = "%lld اثاثے %lld زنجیروں پر";
+"home_assets_summary_empty" = "ابھی کوئی اثاثہ نہیں";
 "home_space_title" = "آپ کی جگہ";
 "home_profile" = "پروفائل";
 "home_preferences" = "ترجیحات";

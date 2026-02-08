@@ -12,7 +12,8 @@
 "home_add_money" = "पैसे जोडा";
 "home_send_money" = "पैसे पाठवा";
 "home_assets_title" = "तुमची मालमत्ता";
-"home_assets_summary" = "५ चेनवर ७ मालमत्ता";
+"home_assets_summary_dynamic %lld %lld" = "%lld मालमत्ता %lld चेनवर";
+"home_assets_summary_empty" = "अद्याप मालमत्ता नाही";
 "home_space_title" = "तुमची स्पेस";
 "home_profile" = "प्रोफाइल";
 "home_preferences" = "प्राधान्ये";

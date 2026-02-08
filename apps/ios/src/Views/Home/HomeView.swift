@@ -122,6 +122,24 @@ struct HomeView: View {
     )
   }
 
+  private var assetsSummaryText: String {
+    let assetCount = balanceStore.balances.count
+    let chainCount: Int
+    if !balanceStore.activeChainIDs.isEmpty {
+      chainCount = balanceStore.activeChainIDs.count
+    } else {
+      // Fallback: derive from balance data
+      let uniqueChains = Set(balanceStore.balances.flatMap { $0.chainBalances.map(\.chainID) })
+      chainCount = uniqueChains.count
+    }
+
+    guard assetCount > 0 else {
+      return String(localized: "home_assets_summary_empty")
+    }
+
+    return String(localized: "home_assets_summary_dynamic \(assetCount) \(chainCount)")
+  }
+
   private var balanceSection: some View {
     VStack(spacing: 44) {
       VStack(spacing: 16) {
@@ -216,7 +234,7 @@ struct HomeView: View {
           }
 
           VStack(alignment: .leading, spacing: 2) {
-            Text("home_assets_summary")
+            Text(assetsSummaryText)
               .font(.custom("RobotoMono-Medium", size: 15))
               .foregroundStyle(AppThemeColor.labelSecondary)
           }

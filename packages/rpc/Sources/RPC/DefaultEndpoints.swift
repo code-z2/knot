@@ -5,7 +5,7 @@ public enum RPCSecrets {
   public static let bundlerKeyInfoPlistKey = "BUNDLER_API_KEY"
   public static let paymasterKeyInfoPlistKey = "PAYMASTER_API_KEY"
   public static let walletAPIKeyInfoPlistKey = "WALLET_API_KEY"
-  public static let transactionsAPIKeyInfoPlistKey = "TRANSACTIONS_API_KEY"
+  public static let addressActivityAPIKeyInfoPlistKey = "TRANSACTIONS_API_KEY"
 
   // Hardcoded URL templates: edit here to swap providers globally.
   public static let jsonRPCURLTemplate = "https://{slug}.g.alchemy.com/v2/{apiKey}"
@@ -13,7 +13,7 @@ public enum RPCSecrets {
   public static let paymasterURLTemplate = "https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}"
   public static let walletAPIURLTemplate =
     "https://api.covalenthq.com/v1/allchains/address/{walletAddress}/balances/"
-  public static let transactionsAPIURLTemplate =
+  public static let addressActivityAPIURLTemplate =
     "https://api.covalenthq.com/v1/address/{walletAddress}/activity/"
   public static let allchainsTransactionsURLBase =
     "https://api.covalenthq.com/v1/allchains/transactions/"
@@ -24,35 +24,35 @@ public struct RPCEndpointBuilderConfig: Sendable, Equatable {
   public let bundlerAPIKey: String
   public let paymasterAPIKey: String
   public let walletAPIKey: String
-  public let transactionsAPIKey: String
+  public let addressActivityAPIKey: String
   public let jsonRPCURLTemplate: String
   public let bundlerURLTemplate: String
   public let paymasterURLTemplate: String
   public let walletAPIURLTemplate: String
-  public let transactionsAPIURLTemplate: String
+  public let addressActivityAPIURLTemplate: String
 
   public init(
     jsonRPCAPIKey: String,
     bundlerAPIKey: String,
     paymasterAPIKey: String,
     walletAPIKey: String,
-    transactionsAPIKey: String,
+    addressActivityAPIKey: String,
     jsonRPCURLTemplate: String,
     bundlerURLTemplate: String,
     paymasterURLTemplate: String,
     walletAPIURLTemplate: String,
-    transactionsAPIURLTemplate: String
+    addressActivityAPIURLTemplate: String
   ) {
     self.jsonRPCAPIKey = jsonRPCAPIKey
     self.bundlerAPIKey = bundlerAPIKey
     self.paymasterAPIKey = paymasterAPIKey
     self.walletAPIKey = walletAPIKey
-    self.transactionsAPIKey = transactionsAPIKey
+    self.addressActivityAPIKey = addressActivityAPIKey
     self.jsonRPCURLTemplate = jsonRPCURLTemplate
     self.bundlerURLTemplate = bundlerURLTemplate
     self.paymasterURLTemplate = paymasterURLTemplate
     self.walletAPIURLTemplate = walletAPIURLTemplate
-    self.transactionsAPIURLTemplate = transactionsAPIURLTemplate
+    self.addressActivityAPIURLTemplate = addressActivityAPIURLTemplate
   }
 }
 

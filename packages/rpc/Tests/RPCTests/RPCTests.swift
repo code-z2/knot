@@ -11,8 +11,8 @@ final class RPCTests: XCTestCase {
           paymasterURL: "https://paymaster.example",
           walletAPIURL: "https://wallet.example",
           walletAPIBearerToken: "wallet-token-123",
-          transactionsAPIURL: "https://transactions.example",
-          transactionsAPIBearerToken: "txn-token-456"
+          addressActivityAPIURL: "https://activity.example",
+          addressActivityAPIBearerToken: "activity-token-456"
         )
       ]
     )
@@ -22,8 +22,8 @@ final class RPCTests: XCTestCase {
     let paymaster = try await client.getPaymasterUrl(chainId: 1)
     let wallet = try await client.getWalletApiUrl(chainId: 1)
     let walletToken = try await client.getWalletApiBearerToken(chainId: 1)
-    let transactions = try await client.getTransactionsApiUrl(chainId: 1)
-    let txnToken = try await client.getTransactionsApiBearerToken(chainId: 1)
+    let activity = try await client.getAddressActivityApiUrl(chainId: 1)
+    let activityToken = try await client.getAddressActivityApiBearerToken(chainId: 1)
     let chains = await client.getSupportedChains()
 
     XCTAssertEqual(rpc, "https://rpc.example")
@@ -31,8 +31,8 @@ final class RPCTests: XCTestCase {
     XCTAssertEqual(paymaster, "https://paymaster.example")
     XCTAssertEqual(wallet, "https://wallet.example")
     XCTAssertEqual(walletToken, "wallet-token-123")
-    XCTAssertEqual(transactions, "https://transactions.example")
-    XCTAssertEqual(txnToken, "txn-token-456")
+    XCTAssertEqual(activity, "https://activity.example")
+    XCTAssertEqual(activityToken, "activity-token-456")
     XCTAssertEqual(chains, [1])
   }
 }
