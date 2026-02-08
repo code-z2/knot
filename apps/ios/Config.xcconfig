@@ -11,7 +11,7 @@
 PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL = upload.peteranyaogu.com
 
 // Chain support mode (active default for now)
-CHAIN_SUPPORT_MODE = LIMITED_TESTNET
+CHAIN_SUPPORT_MODE = LIMITED_MAINNET
 
 // Comma-separated chain ids
 SUPPORTED_CHAINS_LIMITED_TESTNET = 11155111,84532,421614

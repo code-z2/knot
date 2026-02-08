@@ -33,7 +33,8 @@ extension AAError: LocalizedError {
     case .invalidHexValue(let value): return "Invalid hex value: \(value)"
     case .invalidQuantity(let value): return "Invalid numeric quantity: \(value)"
     case .invalidPackedWord(let value): return "Invalid packed word: \(value)"
-    case .invalidEip7702SenderCodePrefix(let value): return "Invalid EIP-7702 sender code prefix: \(value)"
+    case .invalidEip7702SenderCodePrefix(let value):
+      return "Invalid EIP-7702 sender code prefix: \(value)"
     case .missingEip7702Auth: return "Missing EIP-7702 authorization."
     }
   }
@@ -48,7 +49,10 @@ public actor AACore {
 
   public func getUserOperationGasPrice(chainId: UInt64) async throws -> UserOperationGasPrice {
     struct GelatoGasPriceEnvelope: Decodable {
-      struct SlowPrice: Decodable { let maxFeePerGas: String; let maxPriorityFeePerGas: String }
+      struct SlowPrice: Decodable {
+        let maxFeePerGas: String
+        let maxPriorityFeePerGas: String
+      }
       let slow: SlowPrice?
       let standard: SlowPrice?
       let fast: SlowPrice?
@@ -67,7 +71,8 @@ public actor AACore {
     )
   }
 
-  public func estimateUserOperationGas(_ userOperation: UserOperation) async throws -> UserOperation {
+  public func estimateUserOperationGas(_ userOperation: UserOperation) async throws -> UserOperation
+  {
     let estimate: UserOperationGasEstimate = try await rpcClient.makeBundlerRpcCall(
       chainId: userOperation.chainId,
       method: "eth_estimateUserOperationGas",
@@ -79,14 +84,15 @@ public actor AACore {
     return op
   }
 
-  public func getPaymasterStubData(_ userOperation: UserOperation) async throws -> PaymasterStubData {
+  public func getPaymasterStubData(_ userOperation: UserOperation) async throws -> PaymasterStubData
+  {
     try await rpcClient.makePaymasterRpcCall(
       chainId: userOperation.chainId,
       method: "pm_getPaymasterStubData",
       params: [
         AnyCodable(userOperation.rpcObject),
         AnyCodable(userOperation.entryPoint),
-        AnyCodable(AAUtils.normalizeHexQuantity(String(userOperation.chainId)))
+        AnyCodable(AAUtils.normalizeHexQuantity(String(userOperation.chainId))),
       ],
       responseType: PaymasterStubData.self
     )
@@ -100,7 +106,7 @@ public actor AACore {
       params: [
         AnyCodable(userOperation.rpcObject),
         AnyCodable(userOperation.entryPoint),
-        AnyCodable(AAUtils.normalizeHexQuantity(String(userOperation.chainId)))
+        AnyCodable(AAUtils.normalizeHexQuantity(String(userOperation.chainId))),
       ],
       responseType: SponsoredPaymasterData.self
     )
@@ -110,20 +116,41 @@ public actor AACore {
   }
 
   public func sendUserOperation(_ userOperation: UserOperation) async throws -> String {
-    try await rpcClient.makeBundlerRpcCall(
-      chainId: userOperation.chainId,
-      method: "eth_sendUserOperation",
-      params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
-      responseType: String.self
+    print(
+      "[AACore] Sending Async UserOp. ChainID: \(userOperation.chainId). EntryPoint: \(userOperation.entryPoint)"
     )
+    // print("[AACore] Payload: \(userOperation.rpcObject)") // Uncomment for full payload debug
+    do {
+      let hash = try await rpcClient.makeBundlerRpcCall(
+        chainId: userOperation.chainId,
+        method: "eth_sendUserOperation",
+        params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
+        responseType: String.self
+      )
+      print("[AACore] Async send success -> \(hash)")
+      return hash
+    } catch {
+      print("[AACore] Async send failed: \(error)")
+      throw error
+    }
   }
 
   public func sendUserOperationSync(_ userOperation: UserOperation) async throws -> String {
-    try await rpcClient.makeBundlerRpcCall(
-      chainId: userOperation.chainId,
-      method: "eth_sendUserOperationSync",
-      params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
-      responseType: String.self
+    print(
+      "[AACore] Sending Sync UserOp. ChainID: \(userOperation.chainId). EntryPoint: \(userOperation.entryPoint)"
     )
+    do {
+      let hash = try await rpcClient.makeBundlerRpcCall(
+        chainId: userOperation.chainId,
+        method: "eth_sendUserOperationSync",
+        params: [AnyCodable(userOperation.rpcObject), AnyCodable(userOperation.entryPoint)],
+        responseType: String.self
+      )
+      print("[AACore] Sync send success -> \(hash)")
+      return hash
+    } catch {
+      print("[AACore] Sync send failed: \(error)")
+      throw error
+    }
   }
 }

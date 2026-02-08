@@ -39,7 +39,11 @@ public final class TransactionStore {
 
   /// Full refresh — clears existing data, fetches page 1.
   public func refresh(walletAddress: String) async {
-    guard !walletAddress.isEmpty else { return }
+    guard !walletAddress.isEmpty else {
+      print("[TransactionStore] ⚠️ refresh called with empty wallet address")
+      return
+    }
+    print("[TransactionStore] refresh(walletAddress: \(walletAddress.prefix(10))…)")
     lastWalletAddress = walletAddress
     isLoading = true
     error = nil
@@ -84,19 +88,27 @@ public final class TransactionStore {
   private func performFetch(walletAddress: String, cursor: String?, replace: Bool) async {
     do {
       let chains = await rpcClient.getSupportedChains()
-      guard let firstChain = chains.first else { return }
+      print("[TransactionStore] supportedChains = \(chains)")
+      guard let firstChain = chains.first else {
+        print("[TransactionStore] ⚠️ no supported chains — aborting fetch")
+        return
+      }
 
-      let bearerToken = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
+      let apiKey = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
+      print("[TransactionStore] apiKey = \(apiKey.prefix(8))…")
+
+      let transactionsURLBase = RPCSecrets.allchainsTransactionsURLBase
+      print("[TransactionStore] transactionsURLBase = \(transactionsURLBase)")
 
       // Resolve accumulator address (cached after first call)
       let accAddress = await resolveAccumulatorAddress(walletAddress: walletAddress)
+      print("[TransactionStore] accumulatorAddress = \(accAddress ?? "nil")")
 
       let page = try await provider.fetchTransactions(
         walletAddress: walletAddress,
         accumulatorAddress: accAddress,
-        chainIds: chains,
-        bearerToken: bearerToken,
-        cursor: cursor
+        transactionsURLBase: transactionsURLBase,
+        apiKey: apiKey
       )
 
       if replace {
@@ -108,7 +120,11 @@ public final class TransactionStore {
       currentCursor = page.cursorAfter
       hasMore = page.hasMore
       lastRefreshed = Date()
+
+      let totalTxCount = sections.reduce(0) { $0 + $1.transactions.count }
+      print("[TransactionStore] ✅ \(sections.count) section(s), \(totalTxCount) total tx(s), hasMore=\(hasMore)")
     } catch {
+      print("[TransactionStore] ❌ performFetch error: \(error)")
       self.error = error
     }
   }

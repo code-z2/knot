@@ -70,6 +70,38 @@ struct GoldRushTxItem: Decodable {
     case logEvents = "log_events"
     case explorers
   }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    chainId = try container.decodeIfPresent(String.self, forKey: .chainId)
+    chainName = try container.decodeIfPresent(String.self, forKey: .chainName)
+    txHash = try container.decodeIfPresent(String.self, forKey: .txHash)
+    fromAddress = try container.decodeIfPresent(String.self, forKey: .fromAddress)
+    toAddress = try container.decodeIfPresent(String.self, forKey: .toAddress)
+    value = try container.decodeIfPresent(String.self, forKey: .value)
+    valueQuote = try container.decodeIfPresent(Double.self, forKey: .valueQuote)
+    prettyValueQuote = try container.decodeIfPresent(String.self, forKey: .prettyValueQuote)
+    successful = try container.decodeIfPresent(Bool.self, forKey: .successful)
+    blockSignedAt = try container.decodeIfPresent(String.self, forKey: .blockSignedAt)
+    blockHeight = try container.decodeIfPresent(Int.self, forKey: .blockHeight)
+    gasSpent = try container.decodeIfPresent(Int.self, forKey: .gasSpent)
+    gasPrice = try container.decodeIfPresent(Int.self, forKey: .gasPrice)
+    gasQuote = try container.decodeIfPresent(Double.self, forKey: .gasQuote)
+    prettyGasQuote = try container.decodeIfPresent(String.self, forKey: .prettyGasQuote)
+    logEvents = try container.decodeIfPresent([GoldRushLogEvent].self, forKey: .logEvents)
+    explorers = try container.decodeIfPresent([GoldRushExplorer].self, forKey: .explorers)
+
+    // fees_paid can be either String or number in the API response
+    if let strVal = try? container.decodeIfPresent(String.self, forKey: .feesPaid) {
+      feesPaid = strVal
+    } else if let intVal = try? container.decodeIfPresent(Int64.self, forKey: .feesPaid) {
+      feesPaid = String(intVal)
+    } else if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: .feesPaid) {
+      feesPaid = String(format: "%.0f", doubleVal)
+    } else {
+      feesPaid = nil
+    }
+  }
 }
 
 struct GoldRushLogEvent: Decodable {
@@ -168,3 +200,4 @@ struct GoldRushExplorer: Decodable {
   let label: String?
   let url: String?
 }
+

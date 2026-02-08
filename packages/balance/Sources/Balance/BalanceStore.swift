@@ -38,7 +38,11 @@ public final class BalanceStore {
 
   /// Refresh balances for the given wallet across all supported chains.
   public func refresh(walletAddress: String) async {
-    guard !walletAddress.isEmpty else { return }
+    guard !walletAddress.isEmpty else {
+      print("[BalanceStore] ⚠️ refresh called with empty wallet address")
+      return
+    }
+    print("[BalanceStore] refresh(walletAddress: \(walletAddress.prefix(10))…)")
     lastWalletAddress = walletAddress
     isLoading = true
     error = nil
@@ -69,18 +73,25 @@ public final class BalanceStore {
   private func performFetch(walletAddress: String) async {
     do {
       let chains = await rpcClient.getSupportedChains()
-      guard let firstChain = chains.first else { return }
+      print("[BalanceStore] supportedChains = \(chains)")
+      guard let firstChain = chains.first else {
+        print("[BalanceStore] ⚠️ no supported chains — aborting fetch")
+        return
+      }
 
-      let apiURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
-      let bearerToken = try await rpcClient.getWalletApiBearerToken(chainId: firstChain)
+      let walletAPIURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
+      let apiKey = try await rpcClient.getWalletApiBearerToken(chainId: firstChain)
       let activityURL = try await rpcClient.getAddressActivityApiUrl(chainId: firstChain)
       let activityToken = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
+      print("[BalanceStore] apiKey = \(apiKey.prefix(8))…")
+      print("[BalanceStore] walletAPIURL = \(walletAPIURL)")
+      print("[BalanceStore] activityURL = \(activityURL)")
 
       // Fetch balances and activity in parallel.
       async let fetchedBalances = provider.fetchBalances(
         walletAddress: walletAddress,
-        apiURL: apiURL,
-        bearerToken: bearerToken
+        walletAPIURL: walletAPIURL,
+        bearerToken: apiKey
       )
       async let fetchedActivity = activityProvider.fetchActiveChainIDs(
         walletAddress: walletAddress,
@@ -90,10 +101,24 @@ public final class BalanceStore {
       )
 
       balances = try await fetchedBalances
-      activeChainIDs = (try? await fetchedActivity) ?? []
+      print("[BalanceStore] ✅ fetched \(balances.count) token groups")
+      for b in balances {
+        print("[BalanceStore]   • \(b.symbol): \(b.totalBalance) ($\(b.totalValueUSD)) across \(b.chainBalances.count) chain(s)")
+      }
+
+      do {
+        activeChainIDs = try await fetchedActivity
+        print("[BalanceStore] ✅ activeChainIDs = \(activeChainIDs)")
+      } catch {
+        print("[BalanceStore] ⚠️ activity fetch failed: \(error)")
+        activeChainIDs = []
+      }
+
       totalValueUSD = balances.reduce(Decimal.zero) { $0 + $1.totalValueUSD }
       lastRefreshed = Date()
+      print("[BalanceStore] totalValueUSD = $\(totalValueUSD)")
     } catch {
+      print("[BalanceStore] ❌ performFetch error: \(error)")
       self.error = error
     }
   }

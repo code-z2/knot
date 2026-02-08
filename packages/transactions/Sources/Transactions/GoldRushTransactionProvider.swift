@@ -46,59 +46,111 @@ public actor GoldRushTransactionProvider {
     self.session = session
   }
 
-  /// Fetch a page of transactions for the given wallet (and optional accumulator) across chains.
+  /// Fetch recent transactions for the given wallet (and optional accumulator) via the
+  /// allchains endpoint: `GET /v1/allchains/transactions/{address}/`.
   ///
   /// - Parameters:
   ///   - walletAddress: The user's EOA address.
   ///   - accumulatorAddress: The user's Accumulator address (same on all chains). Nil if unresolved.
-  ///   - chainIds: Supported chain IDs to query.
-  ///   - bearerToken: GoldRush API key.
-  ///   - cursor: Pagination cursor for next page. Nil for first page.
-  ///   - limit: Max items per page.
-  /// - Returns: A page of classified, date-grouped transaction sections.
+  ///   - transactionsURLBase: The allchains transactions base URL (e.g. `https://api.covalenthq.com/v1/allchains/transactions/`).
+  ///   - apiKey: GoldRush API key.
+  /// - Returns: Classified, date-grouped transaction sections.
   public func fetchTransactions(
     walletAddress: String,
     accumulatorAddress: String?,
-    chainIds: [UInt64],
-    bearerToken: String,
-    cursor: String? = nil,
-    limit: Int = 50
+    transactionsURLBase: String,
+    apiKey: String
   ) async throws -> TransactionPage {
-    // Build URL
-    let baseURL = RPCSecrets.allchainsTransactionsURLBase
-    guard var components = URLComponents(string: baseURL) else {
-      throw TransactionProviderError.invalidURL(baseURL)
-    }
+    // Fetch EOA transactions
+    var allItems = try await fetchAllchains(
+      address: walletAddress,
+      transactionsURLBase: transactionsURLBase,
+      apiKey: apiKey
+    )
 
-    var addresses = walletAddress
+    // If accumulator address exists, also fetch its txs
     if let acc = accumulatorAddress, !acc.isEmpty {
-      addresses += ",\(acc)"
+      let accItems = try await fetchAllchains(
+        address: acc,
+        transactionsURLBase: transactionsURLBase,
+        apiKey: apiKey
+      )
+      allItems.append(contentsOf: accItems)
     }
 
-    var queryItems: [URLQueryItem] = [
-      URLQueryItem(name: "addresses", value: addresses),
-      URLQueryItem(name: "chains", value: chainIds.map(String.init).joined(separator: ",")),
-      URLQueryItem(name: "limit", value: String(limit)),
-      URLQueryItem(name: "quote-currency", value: "USD"),
-    ]
-    if let cursor, !cursor.isEmpty {
-      queryItems.append(URLQueryItem(name: "after", value: cursor))
+    print("[GoldRushTx] \(allItems.count) raw tx item(s)")
+
+    let userAddr = walletAddress.lowercased()
+    let accAddr = accumulatorAddress?.lowercased()
+
+    // Classify and filter
+    var records: [TransactionRecord] = []
+
+    for item in allItems {
+      // Detect cross-chain suppression via raw_log_topics
+      if hasCrossChainInitiatedEvent(item) {
+        continue  // suppress source-chain scatter txs
+      }
+
+      let record = classify(item: item, userAddress: userAddr, accumulatorAddress: accAddr)
+      records.append(record)
     }
-    components.queryItems = queryItems
+
+    // Sort by date descending before grouping
+    records.sort { $0.blockSignedAt > $1.blockSignedAt }
+
+    // Group by date
+    let sections = groupByDate(records)
+
+    return TransactionPage(
+      sections: sections,
+      cursorAfter: nil,
+      hasMore: false
+    )
+  }
+
+  // MARK: - Allchains fetch
+
+  /// Fetch recent transactions via the allchains endpoint.
+  private func fetchAllchains(
+    address: String,
+    transactionsURLBase: String,
+    apiKey: String
+  ) async throws -> [GoldRushTxItem] {
+    let urlString = "\(transactionsURLBase)"
+
+    guard var components = URLComponents(string: urlString) else {
+      throw TransactionProviderError.invalidURL(urlString)
+    }
+
+    components.queryItems = [
+      URLQueryItem(name: "quote-currency", value: "USD"),
+      // The allchains/transactions endpoint requires 'addresses' as a query param,
+      // not as part of the path.
+      URLQueryItem(name: "addresses", value: address),
+    ]
 
     guard let url = components.url else {
-      throw TransactionProviderError.invalidURL(baseURL)
+      throw TransactionProviderError.invalidURL(urlString)
     }
 
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
-    request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Accept")
 
+    print("[GoldRushTx] GET \(url.absoluteString)")
     let (data, response) = try await session.data(for: request)
 
+    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+    print("[GoldRushTx] HTTP \(statusCode), \(data.count) bytes")
+
     if let httpResponse = response as? HTTPURLResponse,
-       !(200...299).contains(httpResponse.statusCode) {
+      !(200...299).contains(httpResponse.statusCode)
+    {
+      if let body = String(data: data, encoding: .utf8)?.prefix(500) {
+        print("[GoldRushTx] ❌ error body: \(body)")
+      }
       throw TransactionProviderError.httpError(statusCode: httpResponse.statusCode)
     }
 
@@ -106,38 +158,21 @@ public actor GoldRushTransactionProvider {
     do {
       envelope = try JSONDecoder().decode(GoldRushTxEnvelope.self, from: data)
     } catch {
+      print("[GoldRushTx] ❌ decode failed: \(error)")
+      if let body = String(data: data, encoding: .utf8)?.prefix(500) {
+        print("[GoldRushTx] raw response: \(body)")
+      }
       throw TransactionProviderError.decodingFailed
     }
 
     if let errorMessage = envelope.errorMessage, envelope.error == true {
+      print("[GoldRushTx] ❌ API error: \(errorMessage)")
       throw TransactionProviderError.apiError(message: errorMessage)
     }
 
     let items = envelope.data?.items ?? []
-    let userAddr = walletAddress.lowercased()
-    let accAddr = accumulatorAddress?.lowercased()
-
-    // Classify and filter
-    var records: [TransactionRecord] = []
-
-    for item in items {
-      // Detect cross-chain suppression via raw_log_topics
-      if hasCrossChainInitiatedEvent(item) {
-        continue // suppress source-chain scatter txs
-      }
-
-      let record = classify(item: item, userAddress: userAddr, accumulatorAddress: accAddr)
-      records.append(record)
-    }
-
-    // Group by date
-    let sections = groupByDate(records)
-
-    return TransactionPage(
-      sections: sections,
-      cursorAfter: envelope.data?.cursorAfter,
-      hasMore: envelope.data?.hasMore ?? false
-    )
+    print("[GoldRushTx] \(items.count) tx(s)")
+    return items
   }
 
   // MARK: - Classification
@@ -259,9 +294,18 @@ public actor GoldRushTransactionProvider {
 
     for log in logs {
       guard let topics = log.rawLogTopics,
-            let topic0 = topics.first,
-            topic0.lowercased() == Self.transferTopic0.lowercased(),
-            topics.count >= 3 else { continue }
+        let topic0 = topics.first
+      else { continue }
+
+      // Debug: print topics to see what we're getting
+      print("[GoldRushTx] Log topic0: \(topic0) (expecting \(Self.transferTopic0))")
+
+      guard topic0.lowercased() == Self.transferTopic0.lowercased(),
+        topics.count >= 3
+      else { 
+        print("[GoldRushTx] Skipping log: topic0 mismatch or insufficient topics (\(topics.count))")
+        continue 
+      }
 
       // topic1 = from (indexed, padded to 32 bytes), topic2 = to (indexed)
       let fromTopic = extractAddress(from: topics[1])
@@ -277,45 +321,45 @@ public actor GoldRushTransactionProvider {
       // Estimate USD value (use the tx-level value_quote as approximation)
       let usdValue = Decimal(item.valueQuote ?? 0)
 
+      print("[GoldRushTx] Found transfer: \(amountText) \(symbol) from \(fromTopic) to \(toTopic)")
+
       if toTopic == userAddress {
-        return TransferInfo(direction: .inbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
+        return TransferInfo(
+          direction: .inbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
       } else if fromTopic == userAddress {
-        return TransferInfo(direction: .outbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
+        return TransferInfo(
+          direction: .outbound, symbol: symbol, amountText: amountText, usdValue: usdValue)
+      } else {
+        print("[GoldRushTx] Transfer not involving user: \(userAddress)")
       }
     }
 
+    print("[GoldRushTx] No primary transfer found for user \(userAddress)")
     return nil
   }
 
   // MARK: - Multichain value extraction
 
   private func extractSourceChainAssets(_ item: GoldRushTxItem) -> [String] {
-    // Attempt to decode sourceChains from the MultiChainIntentExecuted raw_log_data.
-    // For now, return an empty array — full ABI decoding of uint256[] from raw data
-    // is complex and can be added when accumulator transactions exist on-chain.
-    // The UI will fall back to not showing the multi-chain icon group.
     return []
   }
 
   private func extractMultichainRecipient(_ item: GoldRushTxItem) -> String? {
-    // The recipient is the 3rd indexed param (topic index 3) or in the data.
-    // MultiChainIntentExecuted(bytes32 indexed intentId, address indexed user, address recipient, ...)
-    // topic0 = sig, topic1 = intentId, topic2 = user
-    // recipient is in log data (non-indexed)
     guard let logs = item.logEvents else { return nil }
     for log in logs {
       guard let topics = log.rawLogTopics,
-            let topic0 = topics.first,
-            topic0.lowercased() == Self.multiChainIntentExecutedTopic0.lowercased(),
-            let rawData = log.rawLogData, rawData.count >= 66 else { continue }
-      // First 32 bytes of data = recipient address (padded)
+        let topic0 = topics.first,
+        topic0.lowercased() == Self.multiChainIntentExecutedTopic0.lowercased(),
+        let rawData = log.rawLogData, rawData.count >= 66
+      else { continue }
       return extractAddress(from: String(rawData.prefix(66)))
     }
     return nil
   }
 
-  private func extractMultichainValue(_ item: GoldRushTxItem) -> (symbol: String?, amountText: String?, usdValue: Decimal?) {
-    // Use GoldRush's tx-level value_quote as approximation
+  private func extractMultichainValue(_ item: GoldRushTxItem) -> (
+    symbol: String?, amountText: String?, usdValue: Decimal?
+  ) {
     let usd = item.valueQuote.map { Decimal($0) }
     return (nil, nil, usd)
   }
@@ -337,7 +381,6 @@ public actor GoldRushTransactionProvider {
     guard hex.count >= 64 else { return 0 }
     let first64 = String(hex.prefix(64))
 
-    // Parse hex to Decimal — handle large numbers
     var result: Decimal = 0
     for char in first64 {
       guard let digit = char.hexDigitValue else { return 0 }
@@ -409,7 +452,8 @@ public actor GoldRushTransactionProvider {
     }
     .sorted { lhs, rhs in
       guard let lDate = lhs.transactions.first?.blockSignedAt,
-            let rDate = rhs.transactions.first?.blockSignedAt else {
+        let rDate = rhs.transactions.first?.blockSignedAt
+      else {
         return false
       }
       return lDate > rDate

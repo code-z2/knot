@@ -5,8 +5,17 @@ import web3swift
 extension ENSClient {
   public func resolveName(_ request: ResolveNameRequest) async throws -> String {
     let name = Self.normalizedENSName(request.name)
+    print("[ENSClient] resolveName: normalized=\(name), chainID=\(configuration.chainID)")
     guard !name.isEmpty else { throw ENSError.invalidName }
-    let context = try await universalResolverContext(forName: name)
+
+    let context: ENSResolverContext
+    do {
+      context = try await universalResolverContext(forName: name)
+      print("[ENSClient] got resolver context: resolver=\(context.resolverAddress.address)")
+    } catch {
+      print("[ENSClient] ❌ universalResolverContext failed: \(error)")
+      throw error
+    }
 
     let encodedCall = try makeCallData(
       web3: context.web3,
@@ -14,17 +23,29 @@ extension ENSClient {
       method: "addr",
       parameters: [context.nodeHash]
     )
-    let resolved = try await universalResolve(
-      web3: context.web3,
-      normalizedName: context.normalizedName,
-      callData: encodedCall
-    )
+
+    let resolved: Data
+    do {
+      resolved = try await universalResolve(
+        web3: context.web3,
+        normalizedName: context.normalizedName,
+        callData: encodedCall
+      )
+      print("[ENSClient] universalResolve returned \(resolved.count) bytes")
+    } catch {
+      print("[ENSClient] ❌ universalResolve failed: \(error)")
+      throw error
+    }
+
     guard let address = Self.abiDecodeAddress(from: resolved) else {
+      print("[ENSClient] ❌ could not decode address from resolved data")
       throw ENSError.ensUnavailable
     }
     guard address.address.lowercased() != Self.zeroAddressHex else {
+      print("[ENSClient] ❌ resolved to zero address")
       throw ENSError.ensUnavailable
     }
+    print("[ENSClient] ✅ resolved \(name) → \(address.address)")
     return address.address
   }
 

@@ -19,7 +19,7 @@ extension ENSClient {
       throw ENSError.invalidAddress(configuration.registrarControllerAddress)
     }
 
-    let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
+    let web3 = try await getWeb3ForENSChain()
     async let availabilityResult = makeReadResult(
       web3: web3,
       abi: Self.ethRegistrarControllerV2ABI,
@@ -80,7 +80,7 @@ extension ENSClient {
       throw ENSError.invalidName
     }
 
-    let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
+    let web3 = try await getWeb3ForENSChain()
     async let minCommitmentAgeTask = minimumCommitmentAgeSeconds(
       web3: web3,
       controllerAddress: controllerAddress
