@@ -3,13 +3,14 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {Accumulator} from "../src/Accumulator.sol";
-import {Call, JobStatus} from "../src/types/Structs.sol";
+import {Call, FillStatus} from "../src/types/Structs.sol";
 
 contract MockERC20 {
     string public name;
     string public symbol;
     uint8 public decimals = 18;
     mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
 
     constructor(string memory _name, string memory _symbol) {
         name = _name;
@@ -26,413 +27,679 @@ contract MockERC20 {
         balanceOf[to] += amount;
         return true;
     }
+
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount;
+        return true;
+    }
+
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        uint256 current = allowance[from][msg.sender];
+        require(current >= amount, "allowance");
+        require(balanceOf[from] >= amount, "balance");
+        allowance[from][msg.sender] = current - amount;
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+        return true;
+    }
+}
+
+contract MockSpokePool {
+    function deliver(Accumulator acc, MockERC20 token, uint256 amount, address relayer, bytes memory message) external {
+        require(token.transfer(address(acc), amount), "transfer");
+        acc.handleV3AcrossMessage(address(token), amount, relayer, message);
+    }
 }
 
 contract MockSwap {
-    function swap(address token, uint256 amount) external {
+    function mintToCaller(address token, uint256 amount) external {
         MockERC20(token).mint(msg.sender, amount);
     }
 
+    function noop() external {}
+
     function fail() external pure {
-        revert("swap failed");
+        revert("fail");
     }
-}
-
-contract MockMessenger {
-    function deliver(Accumulator acc, uint256 fromChain, MockERC20 token, uint256 amount, bytes calldata message)
-        external
-    {
-        require(token.transfer(address(acc), amount), "transfer");
-        acc.handleMessage(fromChain, amount, message);
-    }
-
-    function deliverNative(Accumulator acc, uint256 fromChain, uint256 amount, bytes calldata message)
-        external
-        payable
-    {
-        (bool ok,) = address(acc).call{value: amount}("");
-        require(ok, "eth transfer");
-        acc.handleMessage(fromChain, amount, message);
-    }
-
-    receive() external payable {}
 }
 
 contract AccumulatorTest is Test {
+    bytes32 private constant ZERO_SALT = bytes32(0);
+
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     MockSwap swap;
-    MockMessenger messenger;
+    MockSpokePool spokePool;
     Accumulator acc;
-    address treasury = address(0xBEEF);
+
+    address recipient = address(0xCAFE);
+    address feeSponsor = address(0xBEEF);
+    address relayer = address(0xFEED);
 
     function setUp() public {
         tokenIn = new MockERC20("In", "IN");
         tokenOut = new MockERC20("Out", "OUT");
         swap = new MockSwap();
-        messenger = new MockMessenger();
-        acc = new Accumulator(address(this), treasury);
-        acc.initialize(address(messenger));
+        spokePool = new MockSpokePool();
+        acc = new Accumulator(address(this));
+        acc.initialize(address(spokePool));
     }
 
-    function _message(
-        address inputToken,
-        address outputToken,
-        address recipient,
-        uint256 minInput,
-        uint256 minOutput,
-        Call[] memory calls,
-        uint256 nonce
-    ) internal pure returns (bytes memory) {
-        return abi.encode(inputToken, outputToken, recipient, minInput, minOutput, calls, nonce);
+    event FillExecuted(
+        bytes32 indexed fillId,
+        address indexed recipient,
+        address finalOutputToken,
+        uint256 requestedOutput,
+        uint256 actualOutput,
+        uint256 feeDeducted,
+        uint256[] sourceChainIds
+    );
+
+    function test_access_spokePoolCanCall() public {
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 1 ether,
+            finalMinOutput: 1 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 1 ether);
+        spokePool.deliver(acc, tokenIn, 1 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(recipient), 1 ether);
     }
 
-    function _intentHash(
-        address inputToken,
-        address outputToken,
-        address recipient,
-        uint256 minInput,
-        uint256 minOutput,
-        Call[] memory calls,
-        uint256 nonce
-    ) internal view returns (bytes32) {
-        bytes32 inner = keccak256(
-            abi.encode(address(this), inputToken, outputToken, recipient, minInput, minOutput, calls)
+    function test_access_ownerCanCallDirectly() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 2 ether);
+
+        tokenIn.mint(address(acc), 2 ether);
+        acc.handleV3AcrossMessage(address(tokenIn), 2 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(recipient), 2 ether);
+    }
+
+    function test_access_randomCallerReverts() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 1 ether);
+
+        vm.expectRevert(abi.encodeWithSelector(Accumulator.UnrecognizedCaller.selector, address(0xDEAD)));
+        vm.prank(address(0xDEAD));
+        acc.handleV3AcrossMessage(address(tokenIn), 1 ether, relayer, msgPayload);
+    }
+
+    function test_invalidOriginatorReverts() public {
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(0xDEAD),
+            _recipient: recipient,
+            sumOutput: 1 ether,
+            finalMinOutput: 1 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 1 ether);
+        vm.expectRevert(abi.encodeWithSelector(Accumulator.InvalidOriginator.selector, address(0xDEAD)));
+        spokePool.deliver(acc, tokenIn, 1 ether, relayer, msgPayload);
+    }
+
+    function test_singleFill_directTransferExecutes() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 3 ether);
+
+        tokenIn.mint(address(spokePool), 3 ether);
+        spokePool.deliver(acc, tokenIn, 3 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(recipient), 3 ether);
+        assertEq(acc.reservedByToken(address(tokenIn)), 0);
+    }
+
+    function test_multipleFills_accumulateThenExecute() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 5 ether);
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        spokePool.deliver(acc, tokenIn, 2 ether, relayer, msgPayload);
+        assertEq(tokenIn.balanceOf(recipient), 0);
+        assertEq(acc.reservedByToken(address(tokenIn)), 2 ether);
+
+        spokePool.deliver(acc, tokenIn, 3 ether, relayer, msgPayload);
+        assertEq(tokenIn.balanceOf(recipient), 5 ether);
+        assertEq(acc.reservedByToken(address(tokenIn)), 0);
+    }
+
+    function test_overfill_onlyCreditsUpToTargetAndSweepRecoversExcess() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 7 ether);
+
+        tokenIn.mint(address(spokePool), 10 ether);
+        spokePool.deliver(acc, tokenIn, 10 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(recipient), 7 ether);
+        assertEq(tokenIn.balanceOf(address(this)), 3 ether);
+        assertEq(tokenIn.balanceOf(address(acc)), 0);
+    }
+
+    function test_feePaidToSponsor_minOfQuoteAndMax() public {
+        bytes32 fees = _packFees(2 ether, 1 ether);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: fees,
+            _feeSponsor: feeSponsor,
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(feeSponsor), 1 ether);
+        assertEq(tokenIn.balanceOf(recipient), 4 ether);
+    }
+
+    function test_feeExceedsInputReverts() public {
+        bytes32 fees = _packFees(6 ether, 6 ether);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: fees,
+            _feeSponsor: feeSponsor,
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        vm.expectRevert(abi.encodeWithSelector(Accumulator.FeeExceedsInput.selector, 6 ether, 5 ether));
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
+    }
+
+    function test_noDestCalls_finalOutputMustEqualInputToken() public {
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenOut),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Accumulator.InvalidFinalOutputTokenForDirectTransfer.selector, address(tokenIn), address(tokenOut)
+            )
         );
-        uint256 salt = (nonce << 60) | block.chainid;
-        bytes32 result;
-        assembly ("memory-safe") {
-            mstore(0x00, salt)
-            mstore(0x20, inner)
-            result := keccak256(0x00, 0x40)
-        }
-        return result;
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
     }
 
-    function test_messengerOnly() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 1);
+    function test_tokenMismatchIgnoredWithoutRevert() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 5 ether);
 
-        vm.expectRevert(abi.encodeWithSelector(Accumulator.UnrecognizedCaller.selector, address(this)));
-        acc.handleMessage(1, 1 ether, msgPayload);
-    }
+        tokenIn.mint(address(spokePool), 2 ether);
+        spokePool.deliver(acc, tokenIn, 2 ether, relayer, msgPayload);
 
-    function test_accumulatesTracksStatusAndChains() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 3 ether, 3 ether, calls, 11);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 3 ether, 3 ether, calls, 11);
+        tokenOut.mint(address(spokePool), 2 ether);
+        spokePool.deliver(acc, tokenOut, 2 ether, relayer, msgPayload);
 
-        tokenIn.mint(address(messenger), 3 ether);
-        messenger.deliver(acc, 100, tokenIn, 1 ether, msgPayload);
-        messenger.deliver(acc, 200, tokenIn, 2 ether, msgPayload);
-
-        (uint256 received,,, JobStatus status, address inputToken) = acc.jobs(hash);
-        assertEq(received, 3 ether);
-        assertEq(inputToken, address(tokenIn));
-        assertEq(uint256(status), uint256(JobStatus.Accumulated));
-    }
-
-    function test_approveBeforeAccumulated_executesNoSwap() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 10 ether, 10 ether, calls, 2);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 10 ether, 10 ether, calls, 2);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 10 ether);
-        messenger.deliver(acc, 10, tokenIn, 10 ether, msgPayload);
-
-        assertEq(tokenIn.balanceOf(address(this)), 10 ether);
-    }
-
-    function test_approvedBeforeAccumulated_waitsForMore() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 5 ether, 5 ether, calls, 12);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 5 ether, 5 ether, calls, 12);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 2 ether);
-        messenger.deliver(acc, 10, tokenIn, 2 ether, msgPayload);
-
-        (uint256 received,,, JobStatus status,) = acc.jobs(hash);
+        bytes32 fillId = _fillId(
+            ZERO_SALT,
+            uint32(block.timestamp + 1 hours),
+            address(this),
+            recipient,
+            5 ether,
+            5 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+        (uint256 received,,,,,,,,, FillStatus status) = acc.fills(fillId);
         assertEq(received, 2 ether);
-        assertEq(uint256(status), uint256(JobStatus.Accumulating));
-    }
-
-    function test_approveAfterAccumulated_refunds() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 5 ether, 5 ether, calls, 3);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 5 ether, 5 ether, calls, 3);
-
-        tokenIn.mint(address(messenger), 5 ether);
-        messenger.deliver(acc, 10, tokenIn, 5 ether, msgPayload);
-
-        acc.approve(hash);
-        assertEq(tokenIn.balanceOf(address(this)), 5 ether);
-    }
-
-    function test_swapSuccess_paysRecipient() public {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            target: address(swap),
-            value: 0,
-            data: abi.encodeWithSignature("swap(address,uint256)", address(tokenOut), 7 ether)
-        });
-
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenOut), address(this), 7 ether, 7 ether, calls, 4);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenOut), address(this), 7 ether, 7 ether, calls, 4);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 7 ether);
-        messenger.deliver(acc, 10, tokenIn, 7 ether, msgPayload);
-
-        assertEq(tokenOut.balanceOf(address(this)), 7 ether);
-    }
-
-    function test_swapOutAboveMinOutput_capsTransfer() public {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            target: address(swap),
-            value: 0,
-            data: abi.encodeWithSignature("swap(address,uint256)", address(tokenOut), 10 ether)
-        });
-
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenOut), address(this), 5 ether, 6 ether, calls, 13);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenOut), address(this), 5 ether, 6 ether, calls, 13);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 5 ether);
-        messenger.deliver(acc, 10, tokenIn, 5 ether, msgPayload);
-
-        assertEq(tokenOut.balanceOf(address(this)), 6 ether);
-    }
-
-    function test_swapOutBelowMinOutput_sendsActual() public {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            target: address(swap),
-            value: 0,
-            data: abi.encodeWithSignature("swap(address,uint256)", address(tokenOut), 2 ether)
-        });
-
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenOut), address(this), 5 ether, 3 ether, calls, 16);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenOut), address(this), 5 ether, 3 ether, calls, 16);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 5 ether);
-        messenger.deliver(acc, 10, tokenIn, 5 ether, msgPayload);
-
+        assertEq(uint8(status), uint8(FillStatus.Accumulating));
+        assertEq(tokenOut.balanceOf(address(acc)), 0);
         assertEq(tokenOut.balanceOf(address(this)), 2 ether);
     }
 
-    function test_swapFailure_refunds() public {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({target: address(swap), value: 0, data: abi.encodeWithSignature("fail()")});
-
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenOut), address(this), 4 ether, 4 ether, calls, 5);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenOut), address(this), 4 ether, 4 ether, calls, 5);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 4 ether);
-        messenger.deliver(acc, 10, tokenIn, 4 ether, msgPayload);
-
-        assertEq(tokenIn.balanceOf(address(this)), 4 ether);
-    }
-
-    function test_outputTokenMismatch_noSwap_refunds() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenOut), address(this), 2 ether, 2 ether, calls, 6);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenOut), address(this), 2 ether, 2 ether, calls, 6);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 2 ether);
-        messenger.deliver(acc, 10, tokenIn, 2 ether, msgPayload);
-
-        assertEq(tokenIn.balanceOf(address(this)), 2 ether);
-    }
-
-    function test_duplicateFills_capAtMinInput() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 3 ether, 3 ether, calls, 7);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 3 ether, 3 ether, calls, 7);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 5 ether);
-        messenger.deliver(acc, 10, tokenIn, 2 ether, msgPayload);
-        messenger.deliver(acc, 11, tokenIn, 3 ether, msgPayload);
-
-        assertEq(tokenIn.balanceOf(address(this)), 3 ether);
-    }
-
-    function test_ignoreWrongInputToken() public {
-        MockERC20 other = new MockERC20("Other", "O");
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 8);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 8);
-
-        acc.approve(hash);
-
-        tokenIn.mint(address(messenger), 1 ether);
-        messenger.deliver(acc, 10, tokenIn, 1 ether, msgPayload);
-
-        // Same intent hash but wrong token should be ignored
-        other.mint(address(messenger), 1 ether);
-        messenger.deliver(acc, 11, other, 1 ether, msgPayload);
-
-        assertEq(tokenIn.balanceOf(address(this)), 1 ether);
-        assertEq(other.balanceOf(address(this)), 0);
-        assertEq(other.balanceOf(address(acc)), 1 ether);
-    }
-
-    function test_ignoreAfterRefunded() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 14);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 14);
-
-        tokenIn.mint(address(messenger), 1 ether);
-        messenger.deliver(acc, 1, tokenIn, 1 ether, msgPayload);
-
-        acc.approve(hash);
-        assertEq(tokenIn.balanceOf(address(this)), 1 ether);
-
-        tokenIn.mint(address(messenger), 1 ether);
-        messenger.deliver(acc, 2, tokenIn, 1 ether, msgPayload);
-
-        (uint256 received,,, JobStatus status,) = acc.jobs(hash);
-        assertEq(uint256(status), uint256(JobStatus.Refunded));
-        assertEq(received, 1 ether);
-    }
-
-    function test_approveAfterExecuted_reverts() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload =
-            _message(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 15);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 15);
-
-        acc.approve(hash);
-        tokenIn.mint(address(messenger), 1 ether);
-        messenger.deliver(acc, 10, tokenIn, 1 ether, msgPayload);
-
-        vm.expectRevert(Accumulator.AlreadyExecuted.selector);
-        acc.approve(hash);
-    }
-
-    function test_approveTwice_noRevert() public {
-        Call[] memory calls = new Call[](0);
-        bytes32 hash = _intentHash(address(tokenIn), address(tokenIn), address(this), 1 ether, 1 ether, calls, 9);
-        acc.approve(hash);
-        acc.approve(hash);
-    }
-
-    function test_sweepMovesBalance() public {
-        tokenIn.mint(address(acc), 1 ether);
-        acc.sweep(address(tokenIn));
-        assertEq(tokenIn.balanceOf(treasury), 1 ether);
-    }
-
-    // ──────────────────────────────────────────────
-    //  Native ETH tests
-    // ──────────────────────────────────────────────
-
-    address constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    function test_native_accumulatesAndExecutes_noSwap() public {
-        Call[] memory calls = new Call[](0);
-        address recipient = address(0xCAFE);
-        bytes memory msgPayload = _message(NATIVE, NATIVE, recipient, 2 ether, 2 ether, calls, 20);
-        bytes32 hash = _intentHash(NATIVE, NATIVE, recipient, 2 ether, 2 ether, calls, 20);
-
-        acc.approve(hash);
-
-        vm.deal(address(messenger), 2 ether);
-        messenger.deliverNative{value: 2 ether}(acc, 10, 2 ether, msgPayload);
-
-        assertEq(recipient.balance, 2 ether);
-    }
-
-    function test_native_accumulatesMultipleFills() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload = _message(NATIVE, NATIVE, address(this), 3 ether, 3 ether, calls, 21);
-        bytes32 hash = _intentHash(NATIVE, NATIVE, address(this), 3 ether, 3 ether, calls, 21);
-
-        vm.deal(address(messenger), 3 ether);
-        messenger.deliverNative{value: 1 ether}(acc, 100, 1 ether, msgPayload);
-        messenger.deliverNative{value: 2 ether}(acc, 200, 2 ether, msgPayload);
-
-        (uint256 received,,, JobStatus status, address inputToken) = acc.jobs(hash);
-        assertEq(received, 3 ether);
-        assertEq(inputToken, NATIVE);
-        assertEq(uint256(status), uint256(JobStatus.Accumulated));
-    }
-
-    function test_native_lateApprovalRefunds() public {
-        Call[] memory calls = new Call[](0);
-        bytes memory msgPayload = _message(NATIVE, NATIVE, address(this), 1 ether, 1 ether, calls, 22);
-        bytes32 hash = _intentHash(NATIVE, NATIVE, address(this), 1 ether, 1 ether, calls, 22);
-
-        vm.deal(address(messenger), 1 ether);
-        messenger.deliverNative{value: 1 ether}(acc, 10, 1 ether, msgPayload);
-
-        uint256 balBefore = address(this).balance;
-        acc.approve(hash);
-        assertEq(address(this).balance - balBefore, 1 ether);
-    }
-
-    function test_native_swapToERC20() public {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            target: address(swap),
-            value: 0,
-            data: abi.encodeWithSignature("swap(address,uint256)", address(tokenOut), 5 ether)
+    function test_staleOnArrival_marksStaleAndRefunds() public {
+        uint32 pastDeadline = uint32(block.timestamp - 1);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: pastDeadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
         });
 
-        bytes memory msgPayload = _message(NATIVE, address(tokenOut), address(this), 5 ether, 5 ether, calls, 23);
-        bytes32 hash = _intentHash(NATIVE, address(tokenOut), address(this), 5 ether, 5 ether, calls, 23);
+        tokenIn.mint(address(spokePool), 5 ether);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
 
-        acc.approve(hash);
-        vm.deal(address(messenger), 5 ether);
-        messenger.deliverNative{value: 5 ether}(acc, 10, 5 ether, msgPayload);
-
-        assertEq(tokenOut.balanceOf(address(this)), 5 ether);
+        assertEq(tokenIn.balanceOf(address(this)), 5 ether);
+        bytes32 fillId = _fillId(
+            ZERO_SALT,
+            pastDeadline,
+            address(this),
+            recipient,
+            5 ether,
+            5 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+        (,,,,,,,,, FillStatus status) = acc.fills(fillId);
+        assertEq(uint8(status), uint8(FillStatus.Stale));
     }
 
-    function test_native_swapFailureRefundsETH() public {
+    function test_lateArrivalAfterStale_isAutoRefunded() public {
+        uint32 pastDeadline = uint32(block.timestamp - 1);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: pastDeadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 8 ether);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
+        spokePool.deliver(acc, tokenIn, 3 ether, relayer, msgPayload);
+
+        assertEq(tokenIn.balanceOf(address(this)), 8 ether);
+        assertEq(tokenIn.balanceOf(address(acc)), 0);
+    }
+
+    function test_postDeadlineTokenMismatchStillMarksStaleAndRefunds() public {
+        uint32 deadline = uint32(block.timestamp + 10);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 2 ether);
+        spokePool.deliver(acc, tokenIn, 2 ether, relayer, msgPayload);
+        assertEq(acc.reservedByToken(address(tokenIn)), 2 ether);
+
+        vm.warp(deadline + 1);
+
+        tokenOut.mint(address(spokePool), 1 ether);
+        spokePool.deliver(acc, tokenOut, 1 ether, relayer, msgPayload);
+
+        bytes32 fillId = _fillId(
+            ZERO_SALT,
+            deadline,
+            address(this),
+            recipient,
+            5 ether,
+            5 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+        (uint256 received,,,,,,,,, FillStatus status) = acc.fills(fillId);
+        assertEq(received, 0);
+        assertEq(uint8(status), uint8(FillStatus.Stale));
+        assertEq(acc.reservedByToken(address(tokenIn)), 0);
+
+        // Both expected-token accumulated funds and mismatched late-arrival funds are refunded.
+        assertEq(tokenIn.balanceOf(address(this)), 2 ether);
+        assertEq(tokenOut.balanceOf(address(this)), 1 ether);
+        assertEq(tokenIn.balanceOf(address(acc)), 0);
+        assertEq(tokenOut.balanceOf(address(acc)), 0);
+    }
+
+    function test_sweep_onlyTransfersAvailableNotReserved() public {
+        bytes memory msgPayload = _simpleMessage(address(tokenIn), 10 ether);
+
+        tokenIn.mint(address(spokePool), 6 ether);
+        spokePool.deliver(acc, tokenIn, 6 ether, relayer, msgPayload);
+
+        tokenIn.mint(address(acc), 4 ether);
+        acc.sweep(address(tokenIn));
+
+        assertEq(tokenIn.balanceOf(address(this)), 4 ether);
+        assertEq(tokenIn.balanceOf(address(acc)), 6 ether);
+        assertEq(acc.reservedByToken(address(tokenIn)), 6 ether);
+    }
+
+    function test_sourceChainIdsAreUnique() public {
+        uint32 deadline = uint32(block.timestamp + 1 hours);
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 42,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        spokePool.deliver(acc, tokenIn, 2 ether, relayer, msgPayload);
+
+        uint256[] memory expectedChains = new uint256[](1);
+        expectedChains[0] = 42;
+        bytes32 fillId = _fillId(
+            ZERO_SALT,
+            deadline,
+            address(this),
+            recipient,
+            5 ether,
+            5 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+
+        vm.expectEmit(true, true, false, true);
+        emit FillExecuted(fillId, recipient, address(tokenIn), 5 ether, 5 ether, 0, expectedChains);
+        spokePool.deliver(acc, tokenIn, 3 ether, relayer, msgPayload);
+    }
+
+    function test_differentSaltsCreateDistinctFillIds() public {
+        uint32 deadline = uint32(block.timestamp + 1 hours);
+        bytes32 saltA = keccak256("A");
+        bytes32 saltB = keccak256("B");
+
+        bytes memory msgA = _message({
+            salt: saltA,
+            fromChainId: 1,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 1 ether,
+            finalMinOutput: 1 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+        bytes memory msgB = _message({
+            salt: saltB,
+            fromChainId: 1,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 1 ether,
+            finalMinOutput: 1 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+
+        tokenIn.mint(address(spokePool), 2 ether);
+        spokePool.deliver(acc, tokenIn, 1 ether, relayer, msgA);
+        spokePool.deliver(acc, tokenIn, 1 ether, relayer, msgB);
+
+        bytes32 fillIdA = _fillId(
+            saltA,
+            deadline,
+            address(this),
+            recipient,
+            1 ether,
+            1 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+        bytes32 fillIdB = _fillId(
+            saltB,
+            deadline,
+            address(this),
+            recipient,
+            1 ether,
+            1 ether,
+            address(tokenIn),
+            bytes32(0),
+            address(0),
+            _emptyCalls()
+        );
+
+        assertTrue(fillIdA != fillIdB);
+
+        (,,,,,,,,, FillStatus statusA) = acc.fills(fillIdA);
+        (,,,,,,,,, FillStatus statusB) = acc.fills(fillIdB);
+        assertEq(uint8(statusA), uint8(FillStatus.Executed));
+        assertEq(uint8(statusB), uint8(FillStatus.Executed));
+    }
+
+    function test_setSpokePool_onlyOwner() public {
+        vm.prank(address(0xDEAD));
+        vm.expectRevert();
+        acc.setSpokePool(address(0x1234));
+    }
+
+    function test_perFillOutputIsolation_doesNotSpendOtherReservations() public {
+        uint32 deadline = uint32(block.timestamp + 1 hours);
+
         Call[] memory calls = new Call[](1);
-        calls[0] = Call({target: address(swap), value: 0, data: abi.encodeWithSignature("fail()")});
+        calls[0] = Call({target: address(swap), value: 0, data: abi.encodeCall(MockSwap.noop, ())});
 
-        // owner() == address(this), so refund goes back here.
-        // Use vm.deal on the accumulator directly and call via prank to avoid
-        // the test contract's own ETH muddying the accounting.
-        bytes memory msgPayload = _message(NATIVE, address(tokenOut), address(this), 3 ether, 3 ether, calls, 24);
-        bytes32 hash = _intentHash(NATIVE, address(tokenOut), address(this), 3 ether, 3 ether, calls, 24);
+        // Fill B: remains active with 5 reserved
+        bytes memory msgB = _message({
+            salt: keccak256("B"),
+            fromChainId: 1,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: address(0xBBBB),
+            sumOutput: 10 ether,
+            finalMinOutput: 10 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: calls
+        });
 
-        acc.approve(hash);
+        // Fill A: executes with finalMinOutput > attributable output
+        bytes memory msgA = _message({
+            salt: keccak256("A"),
+            fromChainId: 1,
+            fillDeadline: deadline,
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 10 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: calls
+        });
 
-        // Simulate messenger delivering native ETH to the accumulator.
-        vm.deal(address(acc), 3 ether);
-        vm.prank(address(messenger));
-        acc.handleMessage(10, 3 ether, msgPayload);
+        tokenIn.mint(address(spokePool), 10 ether);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgB);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgA);
 
-        // Swap failed → refund to owner (this contract). Accumulator should be drained.
-        assertEq(address(acc).balance, 0);
+        // A should only send its attributable 5, not consume B's reserved 5.
+        assertEq(tokenIn.balanceOf(recipient), 5 ether);
+        assertEq(tokenIn.balanceOf(address(acc)), 5 ether);
+        assertEq(acc.reservedByToken(address(tokenIn)), 5 ether);
     }
 
-    function test_native_sweepETH() public {
-        vm.deal(address(acc), 2 ether);
-        acc.sweep(NATIVE);
-        assertEq(treasury.balance, 2 ether);
+    function test_destCalls_outputTokenUsesProducedAmountAndCap() public {
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(swap), value: 0, data: abi.encodeCall(MockSwap.mintToCaller, (address(tokenOut), 8 ether))
+        });
+
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 6 ether,
+            finalOutputToken: address(tokenOut),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: calls
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
+
+        // Produced 8 OUT, capped by finalMinOutput 6.
+        assertEq(tokenOut.balanceOf(recipient), 6 ether);
+        assertEq(tokenOut.balanceOf(address(this)), 2 ether);
+        assertEq(tokenOut.balanceOf(address(acc)), 0);
+    }
+
+    function test_destCallRevertBubblesUp() public {
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: address(swap), value: 0, data: abi.encodeCall(MockSwap.fail, ())});
+
+        bytes memory msgPayload = _message({
+            salt: ZERO_SALT,
+            fromChainId: 1,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: 5 ether,
+            finalMinOutput: 5 ether,
+            finalOutputToken: address(tokenIn),
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: calls
+        });
+
+        tokenIn.mint(address(spokePool), 5 ether);
+        vm.expectRevert(bytes("fail"));
+        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
+    }
+
+    // ───────────────────────── helpers ─────────────────────────
+
+    function _emptyCalls() internal pure returns (Call[] memory calls) {
+        calls = new Call[](0);
+    }
+
+    function _simpleMessage(address finalOutputToken, uint256 amount) internal view returns (bytes memory) {
+        return _message({
+            salt: ZERO_SALT,
+            fromChainId: block.chainid,
+            fillDeadline: uint32(block.timestamp + 1 hours),
+            depositor: address(this),
+            _recipient: recipient,
+            sumOutput: amount,
+            finalMinOutput: amount,
+            finalOutputToken: finalOutputToken,
+            fees: bytes32(0),
+            _feeSponsor: address(0),
+            calls: _emptyCalls()
+        });
+    }
+
+    function _packFees(uint128 feeQuote, uint128 maxFee) internal pure returns (bytes32) {
+        return bytes32((uint256(feeQuote) << 128) | uint256(maxFee));
+    }
+
+    function _message(
+        bytes32 salt,
+        uint256 fromChainId,
+        uint32 fillDeadline,
+        address depositor,
+        address _recipient,
+        uint256 sumOutput,
+        uint256 finalMinOutput,
+        address finalOutputToken,
+        bytes32 fees,
+        address _feeSponsor,
+        Call[] memory calls
+    ) internal pure returns (bytes memory) {
+        bytes memory destCallsEncoded = calls.length > 0 ? abi.encode(calls) : bytes("");
+        return abi.encode(
+            salt,
+            fromChainId,
+            fillDeadline,
+            depositor,
+            _recipient,
+            sumOutput,
+            finalMinOutput,
+            finalOutputToken,
+            fees,
+            _feeSponsor,
+            destCallsEncoded
+        );
+    }
+
+    function _fillId(
+        bytes32 salt,
+        uint32 fillDeadline,
+        address depositor,
+        address _recipient,
+        uint256 sumOutput,
+        uint256 finalMinOutput,
+        address finalOutputToken,
+        bytes32 fees,
+        address _feeSponsor,
+        Call[] memory calls
+    ) internal pure returns (bytes32) {
+        bytes memory destCallsEncoded = calls.length > 0 ? abi.encode(calls) : bytes("");
+        return keccak256(
+            abi.encode(
+                salt,
+                depositor,
+                fillDeadline,
+                _recipient,
+                sumOutput,
+                finalMinOutput,
+                finalOutputToken,
+                fees,
+                _feeSponsor,
+                destCallsEncoded
+            )
+        );
     }
 
     receive() external payable {}
