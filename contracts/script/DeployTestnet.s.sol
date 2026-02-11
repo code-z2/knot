@@ -18,22 +18,20 @@ interface ICreateX {
 ///     --rpc-url $SEPOLIA_RPC --broadcast --verify
 contract DeployTestnet is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
-    bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v1");
-    // UnifiedTokenAccount_v1 salt
-    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedTokenAccount_v1");
+    bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v2");
+    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedTokenAccount_v2");
 
     // P256 Generator Point (for valid constructor generic initialization)
     bytes32 constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
     bytes32 constant GY = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
 
     function run() external {
-        address treasury = vm.envAddress("TREASURY_ADDRESS");
         console.log("Deploying to chain ID:", block.chainid);
 
         vm.startBroadcast();
 
         // 1. Accumulator Factory
-        bytes memory accInitCode = abi.encodePacked(type(AccumulatorFactory).creationCode, abi.encode(treasury));
+        bytes memory accInitCode = type(AccumulatorFactory).creationCode;
         address accFactory = CREATEX.deployCreate2(ACCUMULATOR_SALT, accInitCode);
         console.log("AccumulatorFactory deployed at:", accFactory);
 
