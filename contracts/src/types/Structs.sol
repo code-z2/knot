@@ -18,11 +18,9 @@ struct ChainCalls {
 
 /// @dev packedInputAmounts Packing: (chainId << 192) | amount. uint64 chainId + uint192 amount.
 /// @dev packedInputTokens Packing: token 20 + chainId 12 = 32 bytes
-/// @dev fees Packing: (feeQuote << 128) | maxFee. uint128 feeQuote + uint128 maxFee.
 struct SuperIntentData {
     uint256 destChainId; // the chain id of the destination
     bytes32 salt; // used to prevent replay
-    bytes32 fees; // expected fees the sponsor is willing to pay
     uint256 finalMinOutput; // min output token amount expected by the receipient if destCall is not empty. if it is empty, it means the user wants to receive the finalMinOutput == sum of packedMinOutputs
     bytes32[] packedMinOutputs; // min output token amount expected by the accumulator
     bytes32[] packedInputAmounts; // the amounts of input tokens sent to relayer per chain
@@ -30,7 +28,6 @@ struct SuperIntentData {
     address outputToken; // token requested from the Across relayer on the destination chain (not in Accumulator message)
     address finalOutputToken; // token expected by the receipient if destCall is not empty. if it is empty, it means the user wants to receive the outputToken == finalOutputToken
     address recipient; // final receipient
-    address feeSponsor; // fee sponsor
     ChainCalls[] chainCalls; // per-chain calls (source preflight + destination post-accumulation)
 }
 
@@ -71,8 +68,6 @@ struct FillState {
     uint32 fillDeadline; // deadline after which accumulation is stale
     uint256 finalMinOutput; // min output of finalOutputToken expected by recipient
     address finalOutputToken; // the final token going to the recipient (may differ if destCalls convert)
-    bytes32 fees; // packed fee data: (feeQuote << 128) | maxFee
-    address feeSponsor; // address sponsoring the fees
     FillStatus status; // current fill lifecycle status
     uint256[] sourceChainIds; // chain IDs that contributed fills (for UI tracking)
 }
