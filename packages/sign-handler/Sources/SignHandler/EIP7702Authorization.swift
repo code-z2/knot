@@ -130,9 +130,9 @@ public enum EIP7702AuthorizationCodec {
     }
 
     // Some libs expect 27/28 in the recovery byte.
-    var signatureWithLegacyV = signature
-    signatureWithLegacyV[64] = signed.yParity + 27
-    if let address = recoverAddress(hash: hash, signature: signatureWithLegacyV) {
+    var signatureWithAdjustedV = signature
+    signatureWithAdjustedV[64] = signed.yParity + 27
+    if let address = recoverAddress(hash: hash, signature: signatureWithAdjustedV) {
       return address
     }
 

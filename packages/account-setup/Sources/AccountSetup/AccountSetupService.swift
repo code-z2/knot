@@ -150,8 +150,8 @@ public actor AccountSetupService {
     passkeyService: PasskeyServicing,
     keychain: KeychainStoring = KeychainStore(),
     walletStore: WalletMaterialStoring = LocalWalletMaterialStore(),
-    keychainService: String = "com.peteranyaogu.metu",
-    relyingParty: PasskeyRelyingParty = .init(rpID: "peteranyaogu.com", rpName: "peteranyaogu")
+    keychainService: String = "fi.knot.keychain",
+    relyingParty: PasskeyRelyingParty = .init(rpID: "knot.fi", rpName: "Knot")
   ) {
     self.walletFactory = walletFactory
     self.passkeyService = passkeyService
@@ -172,7 +172,20 @@ public actor AccountSetupService {
     } catch {
       throw AccountSetupError.walletGenerationFailed(error)
     }
+    return try await createEOAAndPasskey(
+      wallet: wallet,
+      delegateAddress: delegateAddress,
+      chainId: chainId,
+      nonce: nonce
+    )
+  }
 
+  private func createEOAAndPasskey(
+    wallet: WalletMaterial,
+    delegateAddress: String,
+    chainId: UInt64,
+    nonce: UInt64
+  ) async throws -> CreatedAccount {
     let userID = Data(UUID().uuidString.utf8)
 
     let passkey: PasskeyPublicKey
