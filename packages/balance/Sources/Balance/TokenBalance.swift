@@ -3,8 +3,7 @@ import Foundation
 /// Canonical multichain token balance model.
 ///
 /// Tokens are grouped by ``symbol`` (case-insensitive) across chains.
-/// Spam tokens are excluded before grouping.
-public struct TokenBalance: Identifiable, Hashable, Sendable {
+public struct TokenBalance: Identifiable, Hashable, Sendable, Codable {
   /// Stable ID: lowercased `symbol`.
   public let id: String
   public let symbol: String
@@ -21,7 +20,7 @@ public struct TokenBalance: Identifiable, Hashable, Sendable {
   public let quoteRate: Decimal
   public let quoteRate24h: Decimal?
 
-  /// Remote logo URL from GoldRush.
+  /// Remote logo URL returned by the balance provider.
   public let logoURL: URL?
 
   /// Breakdown by chain.
@@ -56,7 +55,7 @@ public struct TokenBalance: Identifiable, Hashable, Sendable {
   }
 }
 
-public struct ChainBalance: Hashable, Sendable {
+public struct ChainBalance: Hashable, Sendable, Codable {
   public let chainID: UInt64
   public let chainName: String
   public let balance: Decimal
