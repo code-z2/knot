@@ -2,12 +2,12 @@ import Foundation
 
 // MARK: - Domain Models
 
-public enum TxRecordStatus: Hashable, Sendable {
+public enum TxRecordStatus: Hashable, Sendable, Codable {
   case success
   case failed
 }
 
-public enum TxRecordVariant: Hashable, Sendable {
+public enum TxRecordVariant: Hashable, Sendable, Codable {
   case received
   case sent
   case contract
@@ -15,8 +15,8 @@ public enum TxRecordVariant: Hashable, Sendable {
 }
 
 /// Canonical transaction record replacing MockTransaction.
-/// Built from GoldRush API data and classified by the provider.
-public struct TransactionRecord: Identifiable, Hashable, Sendable {
+/// Built from wallet activity API data and classified by the provider.
+public struct TransactionRecord: Identifiable, Hashable, Sendable, Codable {
   /// Unique ID: "chainId:txHash" for single-chain, "mc:txHash" for multichain
   public let id: String
   public let status: TxRecordStatus
@@ -82,7 +82,7 @@ public struct TransactionRecord: Identifiable, Hashable, Sendable {
 // MARK: - Section
 
 /// A group of transactions sharing the same calendar day.
-public struct TransactionDateSection: Identifiable, Hashable, Sendable {
+public struct TransactionDateSection: Identifiable, Hashable, Sendable, Codable {
   public let id: String
   public let title: String
   public let transactions: [TransactionRecord]
@@ -97,7 +97,7 @@ public struct TransactionDateSection: Identifiable, Hashable, Sendable {
 // MARK: - Page
 
 /// Result of a single fetch from the provider.
-public struct TransactionPage: Sendable {
+public struct TransactionPage: Sendable, Codable {
   public let sections: [TransactionDateSection]
   public let cursorAfter: String?
   public let hasMore: Bool

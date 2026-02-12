@@ -8,7 +8,7 @@ import Transactions
 /// Fetches relay fee quotes from `https://app.across.to/api/suggested-fees`
 /// and encodes `depositV3` calldata targeting the SpokePool contract.
 ///
-/// SpokePool addresses come from `AAConstants.messengerByChain`.
+/// SpokePool addresses come from `AAConstants.spokePoolByChain`.
 public struct AcrossBridgeProvider: BridgeProvider, Sendable {
 
   private let baseURL: String
@@ -78,7 +78,7 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
     sourceChainId: UInt64,
     destinationChainId: UInt64
   ) throws -> Call {
-    let spokePool = try AAConstants.messengerAddress(chainId: sourceChainId)
+    let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
 
     return try SpokePoolEncoder.depositV3Call(
       spokePool: spokePool,
@@ -98,8 +98,8 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
 
   public func canBridge(token: String, sourceChain: UInt64, destChain: UInt64) -> Bool {
     // Both chains must have a SpokePool configured and the token must be a flight asset
-    guard AAConstants.messengerByChain[sourceChain] != nil,
-      AAConstants.messengerByChain[destChain] != nil
+    guard AAConstants.spokePoolByChain[sourceChain] != nil,
+      AAConstants.spokePoolByChain[destChain] != nil
     else {
       return false
     }

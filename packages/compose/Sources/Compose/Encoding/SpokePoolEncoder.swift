@@ -15,7 +15,7 @@ public enum SpokePoolEncoder {
   ///            uint32 exclusivityDeadline, bytes message)`
   ///
   /// - Parameters:
-  ///   - spokePool: SpokePool contract address on the source chain (from AAConstants.messengerByChain).
+  ///   - spokePool: SpokePool contract address on the source chain (from AAConstants.spokePoolByChain).
   ///   - depositor: User's smart account address.
   ///   - recipient: Recipient on destination (user for simple bridge, accumulator for scatter-gather).
   ///   - inputToken: Token address on source chain.

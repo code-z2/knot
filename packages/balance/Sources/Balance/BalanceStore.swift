@@ -1,6 +1,26 @@
 import Foundation
 import RPC
 
+/// Serializable cache payload for `BalanceStore`.
+public struct BalanceStoreSnapshot: Codable, Sendable {
+  public let balances: [TokenBalance]
+  public let activeChainIDs: [UInt64]
+  public let totalValueUSD: Decimal
+  public let lastRefreshed: Date?
+
+  public init(
+    balances: [TokenBalance],
+    activeChainIDs: [UInt64],
+    totalValueUSD: Decimal,
+    lastRefreshed: Date?
+  ) {
+    self.balances = balances
+    self.activeChainIDs = activeChainIDs
+    self.totalValueUSD = totalValueUSD
+    self.lastRefreshed = lastRefreshed
+  }
+}
+
 /// Observable store that holds the current wallet's multichain token balances.
 ///
 /// Create once at the app root and pass down to views that need balance data.
@@ -22,27 +42,23 @@ public final class BalanceStore {
   private let silentRefreshCooldown: TimeInterval = 15
   private var lastSilentRefreshTriggered: Date?
 
-  private let provider: GoldRushBalanceProvider
-  private let activityProvider: GoldRushActivityProvider
+  private let provider: ZerionBalanceProvider
   private let rpcClient: RPCClient
 
   public init(
-    provider: GoldRushBalanceProvider = .init(),
-    activityProvider: GoldRushActivityProvider = .init(),
+    provider: ZerionBalanceProvider = .init(),
     rpcClient: RPCClient = .init()
   ) {
     self.provider = provider
-    self.activityProvider = activityProvider
     self.rpcClient = rpcClient
   }
 
   /// Refresh balances for the given wallet across all supported chains.
   public func refresh(walletAddress: String) async {
     guard !walletAddress.isEmpty else {
-      print("[BalanceStore] ⚠️ refresh called with empty wallet address")
       return
     }
-    print("[BalanceStore] refresh(walletAddress: \(walletAddress.prefix(10))…)")
+
     lastWalletAddress = walletAddress
     isLoading = true
     error = nil
@@ -58,9 +74,9 @@ public final class BalanceStore {
   public func silentRefresh() async -> Bool {
     guard let wallet = lastWalletAddress, !wallet.isEmpty else { return false }
 
-    // Debounce: skip if a silent refresh happened within the cooldown window.
     if let last = lastSilentRefreshTriggered,
-       Date().timeIntervalSince(last) < silentRefreshCooldown {
+      Date().timeIntervalSince(last) < silentRefreshCooldown
+    {
       return false
     }
 
@@ -73,52 +89,30 @@ public final class BalanceStore {
   private func performFetch(walletAddress: String) async {
     do {
       let chains = await rpcClient.getSupportedChains()
-      print("[BalanceStore] supportedChains = \(chains)")
       guard let firstChain = chains.first else {
-        print("[BalanceStore] ⚠️ no supported chains — aborting fetch")
         return
       }
 
-      let walletAPIURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
+      let positionsAPIURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
       let apiKey = try await rpcClient.getWalletApiBearerToken(chainId: firstChain)
-      let activityURL = try await rpcClient.getAddressActivityApiUrl(chainId: firstChain)
-      let activityToken = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
-      print("[BalanceStore] apiKey = \(apiKey.prefix(8))…")
-      print("[BalanceStore] walletAPIURL = \(walletAPIURL)")
-      print("[BalanceStore] activityURL = \(activityURL)")
+      let chainSet = Set(chains)
+      let includeTestnets = chains.allSatisfy(Self.isKnownTestnetChain)
 
-      // Fetch balances and activity in parallel.
-      async let fetchedBalances = provider.fetchBalances(
+      balances = try await provider.fetchBalances(
         walletAddress: walletAddress,
-        walletAPIURL: walletAPIURL,
-        bearerToken: apiKey
-      )
-      async let fetchedActivity = activityProvider.fetchActiveChainIDs(
-        walletAddress: walletAddress,
-        activityAPIURL: activityURL,
-        bearerToken: activityToken,
-        supportedChainIDs: Set(chains)
+        positionsAPIURL: positionsAPIURL,
+        apiKey: apiKey,
+        supportedChainIDs: chainSet,
+        includeTestnets: includeTestnets
       )
 
-      balances = try await fetchedBalances
-      print("[BalanceStore] ✅ fetched \(balances.count) token groups")
-      for b in balances {
-        print("[BalanceStore]   • \(b.symbol): \(b.totalBalance) ($\(b.totalValueUSD)) across \(b.chainBalances.count) chain(s)")
-      }
-
-      do {
-        activeChainIDs = try await fetchedActivity
-        print("[BalanceStore] ✅ activeChainIDs = \(activeChainIDs)")
-      } catch {
-        print("[BalanceStore] ⚠️ activity fetch failed: \(error)")
-        activeChainIDs = []
-      }
-
+      let derivedActiveChainIDs = Set(
+        balances.flatMap { $0.chainBalances.map(\.chainID) }
+      )
+      activeChainIDs = derivedActiveChainIDs.sorted()
       totalValueUSD = balances.reduce(Decimal.zero) { $0 + $1.totalValueUSD }
       lastRefreshed = Date()
-      print("[BalanceStore] totalValueUSD = $\(totalValueUSD)")
     } catch {
-      print("[BalanceStore] ❌ performFetch error: \(error)")
       self.error = error
     }
   }
@@ -131,5 +125,26 @@ public final class BalanceStore {
   /// Lookup balance for a specific token by symbol.
   public func balance(forSymbol symbol: String) -> TokenBalance? {
     balances.first { $0.symbol.caseInsensitiveCompare(symbol) == .orderedSame }
+  }
+
+  public func snapshot() -> BalanceStoreSnapshot {
+    BalanceStoreSnapshot(
+      balances: balances,
+      activeChainIDs: activeChainIDs,
+      totalValueUSD: totalValueUSD,
+      lastRefreshed: lastRefreshed
+    )
+  }
+
+  public func restore(from snapshot: BalanceStoreSnapshot) {
+    balances = snapshot.balances
+    activeChainIDs = snapshot.activeChainIDs
+    totalValueUSD = snapshot.totalValueUSD
+    lastRefreshed = snapshot.lastRefreshed
+    error = nil
+  }
+
+  private static func isKnownTestnetChain(_ chainID: UInt64) -> Bool {
+    [11_155_111, 84_532, 421_614, 10_143, 20_143].contains(chainID)
   }
 }

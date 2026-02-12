@@ -312,7 +312,7 @@ public actor RouteComposer {
 
     // Approve SpokePool if ERC20
     if !sourceAsset.isNative {
-      let spokePool = try AAConstants.messengerAddress(chainId: sourceChainId)
+      let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
       let approveCall = try ERC20Encoder.approveCall(
         token: sourceAsset.contractAddress,
         spender: spokePool,
@@ -487,7 +487,7 @@ public actor RouteComposer {
 
     // Approve SpokePool for flight asset
     if !ERC20Encoder.isNative(bridgeInputToken) {
-      let spokePool = try AAConstants.messengerAddress(chainId: sourceChainId)
+      let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
       sourceCalls.append(try ERC20Encoder.approveCall(
         token: bridgeInputToken,
         spender: spokePool,
@@ -697,7 +697,7 @@ public actor RouteComposer {
 
       // Approve SpokePool
       if !ERC20Encoder.isNative(bridgeToken) {
-        let spokePool = try AAConstants.messengerAddress(chainId: chain.chainID)
+        let spokePool = try AAConstants.spokePoolAddress(chainId: chain.chainID)
         chainCallsList.append(try ERC20Encoder.approveCall(
           token: bridgeToken,
           spender: spokePool,
