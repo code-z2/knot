@@ -18,7 +18,7 @@ enum AAUtils {
     "SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)".utf8
   ).sha3(.keccak256)
   static let superIntentTypeHash = Data(
-    "SuperIntentData(uint256 destChainId,bytes32 salt,bytes32 fees,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,address feeSponsor,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
+    "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
       .utf8
   ).sha3(.keccak256)
 
