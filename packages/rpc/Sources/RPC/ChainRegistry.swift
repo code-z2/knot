@@ -161,6 +161,7 @@ public enum ChainRegistry {
       keywords: ["arb"],
       rpcURL: nil,
       explorerBaseURL: "https://arbiscan.io",
+      supportsBundler: true,
       goldRushChainName: "arb-mainnet"
     ),
     .init(
@@ -171,6 +172,7 @@ public enum ChainRegistry {
       keywords: ["arb", "testnet"],
       rpcURL: nil,
       explorerBaseURL: "https://sepolia.arbiscan.io",
+      supportsBundler: true,
       goldRushChainName: "arbitrum-sepolia"
     ),
     .init(
@@ -180,7 +182,8 @@ public enum ChainRegistry {
       assetName: "optimism",
       keywords: ["op"],
       rpcURL: nil,
-      explorerBaseURL: "https://optimistic.etherscan.io"
+      explorerBaseURL: "https://optimistic.etherscan.io",
+      supportsBundler: true
     ),
     .init(
       chainID: 137,

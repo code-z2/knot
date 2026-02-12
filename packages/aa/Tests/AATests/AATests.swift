@@ -1,156 +1,234 @@
 import XCTest
 @testable import AA
 import BigInt
+import Passkey
 import Transactions
+import web3swift
 
 final class AATests: XCTestCase {
   func testInit() {
     _ = AAClient()
   }
 
-  func testExecuteRouterUsesSingleForOneCall() throws {
+  func testLegacyExecuteSingleEncoding() throws {
     let call = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "0")
-    let single = try SmartAccount.ExecuteSingle.encodeCall(call)
-    let routed = try SmartAccount.Execute.encodeCall([call])
-    XCTAssertEqual(routed, single)
+    let encoded = try SmartAccount.ExecuteSingle.encodeCall(call)
+
+    let expectedSelector = Data("execute(address,uint256,bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), expectedSelector)
   }
 
-  func testExecuteRouterUsesBatchForMultipleCalls() throws {
+  func testLegacyExecuteBatchEncoding() throws {
     let callA = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "0")
     let callB = Call(to: "0x0000000000000000000000000000000000000002", dataHex: "0x", valueWei: "0")
-    let batch = try SmartAccount.ExecuteBatch.encodeCall([callA, callB])
-    let routed = try SmartAccount.Execute.encodeCall([callA, callB])
-    XCTAssertEqual(routed, batch)
+    let encoded = try SmartAccount.ExecuteBatch.encodeCall([callA, callB])
+    let expectedSelector = Data("executeBatch((address,uint256,bytes)[])".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), expectedSelector)
   }
 
-  func testUserOperationPackAndHash() throws {
-    let userOperation = UserOperation(
-      chainId: 8453,
-      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
-      nonce: "0x1",
-      callData: "0xabcd",
-      maxPriorityFeePerGas: "0x3b9aca00",
-      maxFeePerGas: "0x7a5cf70d5",
-      callGasLimit: "0x13880",
-      verificationGasLimit: "0x60b01",
-      preVerificationGas: "0xd3e3",
-      paymaster: "0x",
-      signature: "0x",
-      eip7702Auth: EIP7702Auth(
-        address: "0x1111111111111111111111111111111111111111",
-        chainId: "0x2105",
-        nonce: "0x0",
-        r: "0x1",
-        s: "0x2",
-        yParity: "0x1"
-      )
+  func testExecuteAuthorizedSingleHashVariesByNonceAndDeadline() throws {
+    let call = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0xabcdef", valueWei: "42")
+    let account = "0x0000000000000000000000000000000000000abc"
+    let chainId: UInt64 = 8453
+
+    let hashA = try SmartAccount.ExecuteAuthorized.hashSingle(
+      account: account,
+      chainId: chainId,
+      call: call,
+      nonce: 1,
+      deadline: 100
+    )
+    let hashB = try SmartAccount.ExecuteAuthorized.hashSingle(
+      account: account,
+      chainId: chainId,
+      call: call,
+      nonce: 2,
+      deadline: 100
+    )
+    let hashC = try SmartAccount.ExecuteAuthorized.hashSingle(
+      account: account,
+      chainId: chainId,
+      call: call,
+      nonce: 1,
+      deadline: 101
     )
 
-    let packed = try userOperation.packForSignature()
-    XCTAssertEqual(packed.sender, userOperation.sender)
-    XCTAssertTrue(packed.initCodeHash.hasPrefix("0x"))
-    XCTAssertTrue(packed.callDataHash.hasPrefix("0x"))
-    XCTAssertEqual(packed.accountGasLimits.count, 66)
-    XCTAssertEqual(packed.gasFees.count, 66)
-    let hash = try userOperation.hash()
-    XCTAssertEqual(hash.count, 32)
+    XCTAssertEqual(hashA.count, 32)
+    XCTAssertNotEqual(hashA, hashB)
+    XCTAssertNotEqual(hashA, hashC)
   }
 
-  func testUserOperationUpdateSignature() {
-    let userOperation = UserOperation(
+  func testExecuteAuthorizedBatchHashVariesByChainAndAccount() throws {
+    let calls = [
+      Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "1"),
+      Call(to: "0x0000000000000000000000000000000000000002", dataHex: "0x01", valueWei: "2"),
+    ]
+
+    let hashA = try SmartAccount.ExecuteAuthorized.hashBatch(
+      account: "0x00000000000000000000000000000000000000aa",
       chainId: 8453,
-      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
-      nonce: "0x1",
-      callData: "0xabcd",
-      maxPriorityFeePerGas: "0x1",
-      maxFeePerGas: "0x1",
-      callGasLimit: "0x1",
-      verificationGasLimit: "0x1",
-      preVerificationGas: "0x1"
+      calls: calls,
+      nonce: 7,
+      deadline: 999
     )
-    let updated = userOperation.update(signature: Data([0xaa, 0xbb]))
-    XCTAssertEqual(updated.signature, "0xaabb")
+    let hashB = try SmartAccount.ExecuteAuthorized.hashBatch(
+      account: "0x00000000000000000000000000000000000000bb",
+      chainId: 8453,
+      calls: calls,
+      nonce: 7,
+      deadline: 999
+    )
+    let hashC = try SmartAccount.ExecuteAuthorized.hashBatch(
+      account: "0x00000000000000000000000000000000000000aa",
+      chainId: 10,
+      calls: calls,
+      nonce: 7,
+      deadline: 999
+    )
+
+    XCTAssertEqual(hashA.count, 32)
+    XCTAssertNotEqual(hashA, hashB)
+    XCTAssertNotEqual(hashA, hashC)
   }
 
-  func testCompactOperationsUsesHighestSelectedFields() throws {
-    let auth = EIP7702Auth(
-      address: "0x1111111111111111111111111111111111111111",
-      chainId: "0x2105",
-      nonce: "0x0",
-      r: "0x1",
-      s: "0x2",
-      yParity: "0x1"
+  func testExecuteAuthorizedSingleEncodingLayout() throws {
+    let call = Call(
+      to: "0x0000000000000000000000000000000000000011",
+      dataHex: "0xabcdef",
+      valueWei: "55"
     )
-    let opA = UserOperation(
-      chainId: 8453,
-      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
-      nonce: "0x1",
-      callData: "0xabcd",
-      maxPriorityFeePerGas: "0x10",
-      maxFeePerGas: "0x50",
-      callGasLimit: "0x1000",
-      verificationGasLimit: "0x2000",
-      preVerificationGas: "0x3000",
-      paymaster: "0x2222222222222222222222222222222222222222",
-      paymasterData: "0xaaaa",
-      eip7702Auth: auth
-    )
-    let opB = UserOperation(
-      chainId: 84532,
-      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
-      nonce: "0x2",
-      callData: "0xef",
-      maxPriorityFeePerGas: "0x20",
-      maxFeePerGas: "0x40",
-      callGasLimit: "0x4000",
-      verificationGasLimit: "0x1000",
-      preVerificationGas: "0x1234",
-      paymaster: "0x3333333333333333333333333333333333333333",
-      paymasterData: "0xbbbb",
-      eip7702Auth: auth
+    let nonce: UInt64 = 9
+    let deadline: UInt64 = 123456
+    let signature = Data(repeating: 0x42, count: 65)
+
+    let encoded = try SmartAccount.ExecuteAuthorized.encodeSingle(
+      call: call,
+      nonce: nonce,
+      deadline: deadline,
+      signature: signature
     )
 
-    let compacted = try AACompactionTemp.compactOperations([opA, opB])
-    XCTAssertEqual(compacted.count, 2)
-    XCTAssertEqual(compacted[0].maxFeePerGas, "0x50")
-    XCTAssertEqual(compacted[0].maxPriorityFeePerGas, "0x20")
-    XCTAssertEqual(compacted[0].verificationGasLimit, "0x2000")
-    XCTAssertEqual(compacted[0].callGasLimit, "0x4000")
-    XCTAssertEqual(compacted[0].preVerificationGas, "0x3000")
-    XCTAssertEqual(compacted[0].paymaster, "0x2222222222222222222222222222222222222222")
-    XCTAssertEqual(compacted[0].paymasterData, "0xaaaa")
+    let selector = Data("execute((address,uint256,bytes),uint256,uint256,bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), selector)
+    XCTAssertEqual(word(encoded, 1), ABIWord.uint(BigUInt(nonce)))
+    XCTAssertEqual(word(encoded, 2), ABIWord.uint(BigUInt(deadline)))
   }
 
-  func testCompactOperationsPrependsChainCallsSelector() throws {
-    let chainCalls = [ChainCalls(chainId: 8453, calls: [])]
-    let callData = try SmartAccount.ExecuteChainCalls.encodeCall(chainCalls: chainCalls)
-    let op = UserOperation(
-      chainId: 8453,
-      sender: "0x5a6b47f4131bf1feafa56a05573314bcf44c9149",
-      nonce: "0x1",
-      callData: "0x" + callData.toHexString(),
-      maxPriorityFeePerGas: "0x1",
-      maxFeePerGas: "0x1",
-      callGasLimit: "0x1",
-      verificationGasLimit: "0x1",
-      preVerificationGas: "0x1",
-      eip7702Auth: EIP7702Auth(
-        address: "0x1111111111111111111111111111111111111111",
-        chainId: "0x2105",
-        nonce: "0x0",
-        r: "0x1",
-        s: "0x2",
-        yParity: "0x1"
-      )
+  func testExecuteAuthorizedBatchEncodingLayout() throws {
+    let calls = [Call(to: "0x0000000000000000000000000000000000000011", dataHex: "0x", valueWei: "0")]
+    let nonce: UInt64 = 77
+    let deadline: UInt64 = 500
+    let signature = Data(repeating: 0xaa, count: 65)
+
+    let encoded = try SmartAccount.ExecuteAuthorized.encodeBatch(
+      calls: calls,
+      nonce: nonce,
+      deadline: deadline,
+      signature: signature
     )
 
-    let compacted = try AACompactionTemp.compactOperations([op])
-    let compactedData = try AAUtils.hexToData(compacted[0].callData)
-    let selector = Data("executeChainCalls(bytes)".utf8).sha3(.keccak256).prefix(4)
-    let bytesOffset = Int(BigUInt(compactedData.subdata(in: 4..<(4 + 32))))
-    let payloadLengthIndex = 4 + bytesOffset
-    let payloadStart = payloadLengthIndex + 32
-    let payload = compactedData.subdata(in: payloadStart..<(payloadStart + 4))
-    XCTAssertEqual(payload.prefix(4), selector)
+    let selector = Data("executeBatch((address,uint256,bytes)[],uint256,uint256,bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), selector)
+    XCTAssertEqual(word(encoded, 1), ABIWord.uint(BigUInt(nonce)))
+    XCTAssertEqual(word(encoded, 2), ABIWord.uint(BigUInt(deadline)))
+  }
+
+  func testInitializeSignatureDigestMatchesContractLayout() throws {
+    let passkey = PasskeyPublicKey(
+      x: Data(repeating: 0x11, count: 32),
+      y: Data(repeating: 0x22, count: 32),
+      credentialID: Data([0x01])
+    )
+    let config = InitializationConfig(
+      accumulatorFactory: "0x00000000000000000000000000000000000000f1",
+      wrappedNativeToken: "0x00000000000000000000000000000000000000f2",
+      spokePool: "0x00000000000000000000000000000000000000f3"
+    )
+    let account = "0x0000000000000000000000000000000000000abc"
+    let chainId: UInt64 = 8453
+
+    let digest = try SmartAccount.Initialize.initSignatureDigest(
+      account: account,
+      chainId: chainId,
+      passkeyPublicKey: passkey,
+      config: config
+    )
+
+    let expected = Data(
+      (
+        ABIWord.uint(BigUInt(chainId))
+          + (try ABIWord.address(account))
+          + (try ABIWord.bytes32(passkey.x))
+          + (try ABIWord.bytes32(passkey.y))
+          + (try ABIWord.address(config.accumulatorFactory))
+          + (try ABIWord.address(config.wrappedNativeToken))
+          + (try ABIWord.address(config.spokePool))
+      ).sha3(.keccak256)
+    )
+    XCTAssertEqual(digest, expected)
+  }
+
+  func testInitializeEncodingLayout() throws {
+    let passkey = PasskeyPublicKey(
+      x: Data(repeating: 0x01, count: 32),
+      y: Data(repeating: 0x02, count: 32),
+      credentialID: Data([0xaa])
+    )
+    let config = InitializationConfig(
+      accumulatorFactory: "0x00000000000000000000000000000000000000f1",
+      wrappedNativeToken: "0x00000000000000000000000000000000000000f2",
+      spokePool: "0x00000000000000000000000000000000000000f3"
+    )
+    let initSignature = Data(repeating: 0xab, count: 65)
+
+    let encoded = try SmartAccount.Initialize.encodeCall(
+      passkeyPublicKey: passkey,
+      config: config,
+      initSignature: initSignature
+    )
+
+    let selector = Data("initialize(bytes32,bytes32,address,address,address,bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), selector)
+    XCTAssertEqual(word(encoded, 0), passkey.x)
+    XCTAssertEqual(word(encoded, 1), passkey.y)
+    XCTAssertEqual(word(encoded, 2), try ABIWord.address(config.accumulatorFactory))
+    XCTAssertEqual(word(encoded, 3), try ABIWord.address(config.wrappedNativeToken))
+    XCTAssertEqual(word(encoded, 4), try ABIWord.address(config.spokePool))
+  }
+
+  func testCrossChainOrderEncodingHasExpectedSelectorAndOffsets() throws {
+    let order = OnchainCrossChainOrder(
+      orderDataType: Data(repeating: 0x44, count: 32),
+      fillDeadline: 123,
+      orderData: Data([0xde, 0xad, 0xbe, 0xef])
+    )
+    let signature = Data(repeating: 0x99, count: 65)
+
+    let encoded = try SmartAccount.CrossChainOrder.encodeCall(order: order, signature: signature)
+
+    let selector = Data("executeCrossChainOrder((bytes32,uint32,bytes),bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(encoded.prefix(4), selector)
+    XCTAssertEqual(word(encoded, 0), ABIWord.uint(BigUInt(64)))
+    XCTAssertGreaterThan(encoded.count, 4 + 64)
+  }
+
+  func testAuxiliaryEncodersHaveExpectedSelectors() throws {
+    let accumulatorCall = try SmartAccount.AccumulatorFactory.encodeComputeAddressCall(
+      userAccount: "0x0000000000000000000000000000000000000001"
+    )
+    let accumulatorSelector = Data("computeAddress(address)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(accumulatorCall.prefix(4), accumulatorSelector)
+
+    let sigCall = try SmartAccount.IsValidSignature.encodeCall(
+      hash: Data(repeating: 0x77, count: 32),
+      signature: Data(repeating: 0x88, count: 65)
+    )
+    let sigSelector = Data("isValidSignature(bytes32,bytes)".utf8).sha3(.keccak256).prefix(4)
+    XCTAssertEqual(sigCall.prefix(4), sigSelector)
+  }
+
+  private func word(_ data: Data, _ index: Int) -> Data {
+    let start = 4 + (index * 32)
+    return data.subdata(in: start..<(start + 32))
   }
 }

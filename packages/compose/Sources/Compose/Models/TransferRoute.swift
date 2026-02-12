@@ -7,7 +7,7 @@ public struct TransferRoute: Sendable {
   public let steps: [RouteStep]
   /// Ready-to-sign chain calls for AAExecutionService.
   public let chainCalls: [ChainCalls]
-  /// Non-nil for multi-chain (accumulate) routes; passed to executeChainCalls.
+  /// Optional route identifier for multi-chain (accumulate) UI tracking.
   public let jobId: Data?
   /// The destination chain where funds ultimately arrive.
   public let destinationChainId: UInt64

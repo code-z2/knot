@@ -3,20 +3,24 @@ import Foundation
 import web3swift
 
 enum AAUtils {
-  static let packedUserOpTypeHash = Data(
-    "PackedUserOperation(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData)"
-      .utf8
-  ).sha3(.keccak256)
   static let eip712DomainTypeHash = Data(
     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)".utf8
   ).sha3(.keccak256)
-  static let domainNameHash = Data("ERC4337".utf8).sha3(.keccak256)
-  static let domainVersionHash = Data("1".utf8).sha3(.keccak256)
-  static let eip7702Marker = Data([0x77, 0x02]) + Data(repeating: 0, count: 18)
-  static let eip7702Prefix = Data([0xef, 0x01, 0x00])
-  static let paymasterSigMagic = Data([0x22, 0xe3, 0x25, 0xa2, 0x97, 0x43, 0x96, 0x56])
-  static let paymasterStaticPrefixLength = 52
-  static let paymasterSigSuffixLength = 10
+  static let accountDomainNameHash = Data("UnifiedTokenAccount".utf8).sha3(.keccak256)
+  static let accountDomainVersionHash = Data("1".utf8).sha3(.keccak256)
+  static let executeTypeHash = Data(
+    "Execute(address target,uint256 value,bytes32 dataHash,uint256 nonce,uint256 deadline)".utf8
+  ).sha3(.keccak256)
+  static let executeBatchTypeHash = Data(
+    "ExecuteBatch(bytes32 callsHash,uint256 nonce,uint256 deadline)".utf8
+  ).sha3(.keccak256)
+  static let superIntentExecutionTypeHash = Data(
+    "SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)".utf8
+  ).sha3(.keccak256)
+  static let superIntentTypeHash = Data(
+    "SuperIntentData(uint256 destChainId,bytes32 salt,bytes32 fees,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,address feeSponsor,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
+      .utf8
+  ).sha3(.keccak256)
 
   static func normalizeHexBytes(_ value: String) -> String {
     let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -95,41 +99,19 @@ enum AAUtils {
     return "0x" + padded.toHexString()
   }
 
-  static func domainSeparator(chainId: UInt64, entryPoint: String) throws -> Data {
+  static func accountDomainSeparator(chainId: UInt64, account: String) throws -> Data {
     let chainWord = ABIWord.uint(BigUInt(chainId))
-    let entryWord = try ABIWord.address(entryPoint)
+    let accountWord = try ABIWord.address(account)
     return Data(
-      (eip712DomainTypeHash + domainNameHash + domainVersionHash + chainWord + entryWord).sha3(
+      (eip712DomainTypeHash + accountDomainNameHash + accountDomainVersionHash + chainWord + accountWord).sha3(
         .keccak256))
   }
 
-  static func looksLikeEip7702SenderCode(_ code: Data) -> Bool {
-    code.count >= 23 && code.prefix(3) == eip7702Prefix
+  static func hashTypedDataV4(domainSeparator: Data, structHash: Data) -> Data {
+    Data((Data([0x19, 0x01]) + domainSeparator + structHash).sha3(.keccak256))
   }
 
-  static func paymasterAndDataHash(_ paymasterAndData: Data) throws -> Data {
-    guard paymasterAndData.count >= paymasterStaticPrefixLength + paymasterSigSuffixLength else {
-      return Data(paymasterAndData.sha3(.keccak256))
-    }
-
-    let suffixStart = paymasterAndData.count - paymasterSigMagic.count
-    let suffix = paymasterAndData[suffixStart..<paymasterAndData.count]
-    guard Data(suffix) == paymasterSigMagic else {
-      return Data(paymasterAndData.sha3(.keccak256))
-    }
-
-    let lenWordStart = paymasterAndData.count - paymasterSigSuffixLength
-    let lenData = Data(paymasterAndData[lenWordStart..<(lenWordStart + 2)])
-    let sigLen = Int(
-      lenData.withUnsafeBytes { rawBuffer in
-        UInt16(bigEndian: rawBuffer.load(as: UInt16.self))
-      })
-
-    let signedLen = paymasterAndData.count - sigLen - paymasterSigSuffixLength
-    guard signedLen >= paymasterStaticPrefixLength else {
-      throw AAError.invalidQuantity("Invalid paymaster signature suffix length")
-    }
-
-    return Data(paymasterAndData.prefix(signedLen).sha3(.keccak256))
+  static func toEthSignedMessageHash(_ digest32: Data) -> Data {
+    Data((Data("\u{19}Ethereum Signed Message:\n32".utf8) + digest32).sha3(.keccak256))
   }
 }

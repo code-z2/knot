@@ -1103,14 +1103,13 @@ struct SendMoneyView: View {
         let account = try await accountService.restoreSession(eoaAddress: eoaAddress)
         print("[SendMoney] Session restored for \(account.eoaAddress)")
 
-        if let jobId = route.jobId {
+        if route.jobId != nil {
           // Multi-chain: executeChainCalls
           print("[SendMoney] Executing multi-chain calls...")
           let result = try await aaExecutionService.executeChainCalls(
             accountService: accountService,
             account: account,
             destinationChainId: route.destinationChainId,
-            jobId: jobId,
             chainCalls: route.chainCalls
           )
           print(

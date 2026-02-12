@@ -27,6 +27,7 @@ let package = Package(
       name: "AATests",
       dependencies: [
         "AA",
+        .product(name: "Passkey", package: "passkey"),
         .product(name: "Transactions", package: "transactions"),
       ]
     )

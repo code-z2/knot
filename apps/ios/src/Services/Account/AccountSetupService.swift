@@ -145,6 +145,14 @@ final class AccountSetupService {
     }
   }
 
+  func signEthMessageDigestWithStoredWallet(account: AccountIdentity, digest32: Data) async throws -> Data {
+    do {
+      return try await service.signEthMessageDigestWithStoredWallet(account: account, digest32: digest32)
+    } catch {
+      throw AccountSetupServiceError.walletMaterialLookupFailed(error)
+    }
+  }
+
   func storedSignedAuthorization(account: AccountIdentity, chainId: UInt64) async throws
     -> EIP7702AuthorizationSigned
   {

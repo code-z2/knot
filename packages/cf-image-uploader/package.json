@@ -1,8 +1,0 @@
-{
-  "name": "cf-image-uploader",
-  "private": true,
-  "scripts": {
-    "build": "go build -o cf-image-uploader main.go",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  }
-}

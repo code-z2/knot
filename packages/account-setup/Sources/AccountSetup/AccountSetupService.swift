@@ -344,6 +344,17 @@ public actor AccountSetupService {
     }
   }
 
+  /// Signs a 32-byte digest using the stored EOA private key as an Ethereum signed message.
+  /// Signature format is 65-byte recoverable `[r || s || v]` with `v` in 27/28 domain.
+  public func signEthMessageDigestWithStoredWallet(
+    account: AccountIdentity,
+    digest32: Data
+  ) throws -> Data {
+    let wallet = try walletStore.read(for: account.eoaAddress)
+    let ethSignedDigest = try ECDSASignatureCodec.toEthSignedMessageHash(digest32)
+    return try ECDSASignatureCodec.signDigest(ethSignedDigest, privateKeyHex: wallet.privateKeyHex)
+  }
+
   public func passkeyPublicKey(account: AccountIdentity) throws -> PasskeyPublicKey {
     let records = try loadStoredAccountRecords()
     if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }
