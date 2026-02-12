@@ -141,9 +141,9 @@ contract MockWethForAccount is IWeth {
             keccak256("SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)");
         bytes32 private constant CHAIN_CALLS_TYPEHASH = keccak256("ChainCalls(uint256 chainId,bytes calls)");
         bytes32 private constant SUPER_INTENT_TYPEHASH = keccak256(
-            "SuperIntentData(uint256 destChainId,bytes32 salt,bytes32 fees,uint256 finalMinOutput,"
+            "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,"
             "bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,"
-            "address outputToken,address finalOutputToken,address recipient,address feeSponsor,"
+            "address outputToken,address finalOutputToken,address recipient,"
             "ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
         );
 
@@ -480,7 +480,6 @@ contract MockWethForAccount is IWeth {
                     SUPER_INTENT_TYPEHASH,
                     data.destChainId,
                     data.salt,
-                    data.fees,
                     data.finalMinOutput,
                     keccak256(abi.encodePacked(data.packedMinOutputs)),
                     keccak256(abi.encodePacked(data.packedInputAmounts)),
@@ -488,7 +487,6 @@ contract MockWethForAccount is IWeth {
                     data.outputToken,
                     data.finalOutputToken,
                     data.recipient,
-                    data.feeSponsor,
                     _hashChainCalls(data.chainCalls)
                 )
             );
@@ -545,7 +543,6 @@ contract MockWethForAccount is IWeth {
             intent = SuperIntentData({
                 destChainId: 42161,
                 salt: keccak256("salt"),
-                fees: bytes32(0),
                 finalMinOutput: minOutput,
                 packedMinOutputs: packedMinOutputs,
                 packedInputAmounts: packedInputAmounts,
@@ -553,7 +550,6 @@ contract MockWethForAccount is IWeth {
                 outputToken: address(token),
                 finalOutputToken: address(token),
                 recipient: address(0xCAFE),
-                feeSponsor: address(0),
                 chainCalls: chainCalls
             });
         }

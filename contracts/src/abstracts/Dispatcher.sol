@@ -56,9 +56,9 @@ abstract contract Dispatcher is IDispatcher {
 
     /// @dev EIP-712 typehash for the `SuperIntentData` struct.
     bytes32 internal constant SUPER_INTENT_TYPEHASH = keccak256(
-        "SuperIntentData(uint256 destChainId,bytes32 salt,bytes32 fees,uint256 finalMinOutput,"
+        "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,"
         "bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,"
-        "address outputToken,address finalOutputToken,address recipient,address feeSponsor,"
+        "address outputToken,address finalOutputToken,address recipient,"
         "ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
     );
     /// @dev Maximum number of source-chain entries accepted in packed arrays.
@@ -215,8 +215,6 @@ abstract contract Dispatcher is IDispatcher {
             sumOutput,
             data.finalMinOutput,
             data.finalOutputToken,
-            data.fees,
-            data.feeSponsor,
             destCalls
         );
 
@@ -342,7 +340,6 @@ abstract contract Dispatcher is IDispatcher {
                 SUPER_INTENT_TYPEHASH,
                 data.destChainId,
                 data.salt,
-                data.fees,
                 data.finalMinOutput,
                 keccak256(abi.encodePacked(data.packedMinOutputs)),
                 keccak256(abi.encodePacked(data.packedInputAmounts)),
@@ -350,7 +347,6 @@ abstract contract Dispatcher is IDispatcher {
                 data.outputToken,
                 data.finalOutputToken,
                 data.recipient,
-                data.feeSponsor,
                 _hashChainCalls(data.chainCalls)
             )
         );

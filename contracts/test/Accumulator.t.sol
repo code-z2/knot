@@ -73,7 +73,6 @@ contract AccumulatorTest is Test {
     Accumulator acc;
 
     address recipient = address(0xCAFE);
-    address feeSponsor = address(0xBEEF);
     address relayer = address(0xFEED);
 
     function setUp() public {
@@ -91,7 +90,6 @@ contract AccumulatorTest is Test {
         address finalOutputToken,
         uint256 requestedOutput,
         uint256 actualOutput,
-        uint256 feeDeducted,
         uint256[] sourceChainIds
     );
 
@@ -105,8 +103,6 @@ contract AccumulatorTest is Test {
             sumOutput: 1 ether,
             finalMinOutput: 1 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -143,8 +139,6 @@ contract AccumulatorTest is Test {
             sumOutput: 1 ether,
             finalMinOutput: 1 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -187,50 +181,6 @@ contract AccumulatorTest is Test {
         assertEq(tokenIn.balanceOf(address(acc)), 0);
     }
 
-    function test_feePaidToSponsor_minOfQuoteAndMax() public {
-        bytes32 fees = _packFees(2 ether, 1 ether);
-        bytes memory msgPayload = _message({
-            salt: ZERO_SALT,
-            fromChainId: 1,
-            fillDeadline: uint32(block.timestamp + 1 hours),
-            depositor: address(this),
-            _recipient: recipient,
-            sumOutput: 5 ether,
-            finalMinOutput: 5 ether,
-            finalOutputToken: address(tokenIn),
-            fees: fees,
-            _feeSponsor: feeSponsor,
-            calls: _emptyCalls()
-        });
-
-        tokenIn.mint(address(spokePool), 5 ether);
-        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
-
-        assertEq(tokenIn.balanceOf(feeSponsor), 1 ether);
-        assertEq(tokenIn.balanceOf(recipient), 4 ether);
-    }
-
-    function test_feeExceedsInputReverts() public {
-        bytes32 fees = _packFees(6 ether, 6 ether);
-        bytes memory msgPayload = _message({
-            salt: ZERO_SALT,
-            fromChainId: 1,
-            fillDeadline: uint32(block.timestamp + 1 hours),
-            depositor: address(this),
-            _recipient: recipient,
-            sumOutput: 5 ether,
-            finalMinOutput: 5 ether,
-            finalOutputToken: address(tokenIn),
-            fees: fees,
-            _feeSponsor: feeSponsor,
-            calls: _emptyCalls()
-        });
-
-        tokenIn.mint(address(spokePool), 5 ether);
-        vm.expectRevert(abi.encodeWithSelector(Accumulator.FeeExceedsInput.selector, 6 ether, 5 ether));
-        spokePool.deliver(acc, tokenIn, 5 ether, relayer, msgPayload);
-    }
-
     function test_noDestCalls_finalOutputMustEqualInputToken() public {
         bytes memory msgPayload = _message({
             salt: ZERO_SALT,
@@ -241,8 +191,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenOut),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -272,11 +220,9 @@ contract AccumulatorTest is Test {
             5 ether,
             5 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
-        (uint256 received,,,,,,,,, FillStatus status) = acc.fills(fillId);
+        (uint256 received,,,,,,, FillStatus status) = acc.fills(fillId);
         assertEq(received, 2 ether);
         assertEq(uint8(status), uint8(FillStatus.Accumulating));
         assertEq(tokenOut.balanceOf(address(acc)), 0);
@@ -294,8 +240,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -311,11 +255,9 @@ contract AccumulatorTest is Test {
             5 ether,
             5 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
-        (,,,,,,,,, FillStatus status) = acc.fills(fillId);
+        (,,,,,,, FillStatus status) = acc.fills(fillId);
         assertEq(uint8(status), uint8(FillStatus.Stale));
     }
 
@@ -330,8 +272,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -354,8 +294,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -376,11 +314,9 @@ contract AccumulatorTest is Test {
             5 ether,
             5 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
-        (uint256 received,,,,,,,,, FillStatus status) = acc.fills(fillId);
+        (uint256 received,,,,,,, FillStatus status) = acc.fills(fillId);
         assertEq(received, 0);
         assertEq(uint8(status), uint8(FillStatus.Stale));
         assertEq(acc.reservedByToken(address(tokenIn)), 0);
@@ -417,8 +353,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -435,13 +369,11 @@ contract AccumulatorTest is Test {
             5 ether,
             5 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
 
         vm.expectEmit(true, true, false, true);
-        emit FillExecuted(fillId, recipient, address(tokenIn), 5 ether, 5 ether, 0, expectedChains);
+        emit FillExecuted(fillId, recipient, address(tokenIn), 5 ether, 5 ether, expectedChains);
         spokePool.deliver(acc, tokenIn, 3 ether, relayer, msgPayload);
     }
 
@@ -459,8 +391,6 @@ contract AccumulatorTest is Test {
             sumOutput: 1 ether,
             finalMinOutput: 1 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
         bytes memory msgB = _message({
@@ -472,8 +402,6 @@ contract AccumulatorTest is Test {
             sumOutput: 1 ether,
             finalMinOutput: 1 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
 
@@ -489,8 +417,6 @@ contract AccumulatorTest is Test {
             1 ether,
             1 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
         bytes32 fillIdB = _fillId(
@@ -501,15 +427,13 @@ contract AccumulatorTest is Test {
             1 ether,
             1 ether,
             address(tokenIn),
-            bytes32(0),
-            address(0),
             _emptyCalls()
         );
 
         assertTrue(fillIdA != fillIdB);
 
-        (,,,,,,,,, FillStatus statusA) = acc.fills(fillIdA);
-        (,,,,,,,,, FillStatus statusB) = acc.fills(fillIdB);
+        (,,,,,,, FillStatus statusA) = acc.fills(fillIdA);
+        (,,,,,,, FillStatus statusB) = acc.fills(fillIdB);
         assertEq(uint8(statusA), uint8(FillStatus.Executed));
         assertEq(uint8(statusB), uint8(FillStatus.Executed));
     }
@@ -536,8 +460,6 @@ contract AccumulatorTest is Test {
             sumOutput: 10 ether,
             finalMinOutput: 10 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: calls
         });
 
@@ -551,8 +473,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 10 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: calls
         });
 
@@ -581,8 +501,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 6 ether,
             finalOutputToken: address(tokenOut),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: calls
         });
 
@@ -608,8 +526,6 @@ contract AccumulatorTest is Test {
             sumOutput: 5 ether,
             finalMinOutput: 5 ether,
             finalOutputToken: address(tokenIn),
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: calls
         });
 
@@ -634,14 +550,8 @@ contract AccumulatorTest is Test {
             sumOutput: amount,
             finalMinOutput: amount,
             finalOutputToken: finalOutputToken,
-            fees: bytes32(0),
-            _feeSponsor: address(0),
             calls: _emptyCalls()
         });
-    }
-
-    function _packFees(uint128 feeQuote, uint128 maxFee) internal pure returns (bytes32) {
-        return bytes32((uint256(feeQuote) << 128) | uint256(maxFee));
     }
 
     function _message(
@@ -653,8 +563,6 @@ contract AccumulatorTest is Test {
         uint256 sumOutput,
         uint256 finalMinOutput,
         address finalOutputToken,
-        bytes32 fees,
-        address _feeSponsor,
         Call[] memory calls
     ) internal pure returns (bytes memory) {
         bytes memory destCallsEncoded = calls.length > 0 ? abi.encode(calls) : bytes("");
@@ -667,8 +575,6 @@ contract AccumulatorTest is Test {
             sumOutput,
             finalMinOutput,
             finalOutputToken,
-            fees,
-            _feeSponsor,
             destCallsEncoded
         );
     }
@@ -681,8 +587,6 @@ contract AccumulatorTest is Test {
         uint256 sumOutput,
         uint256 finalMinOutput,
         address finalOutputToken,
-        bytes32 fees,
-        address _feeSponsor,
         Call[] memory calls
     ) internal pure returns (bytes32) {
         bytes memory destCallsEncoded = calls.length > 0 ? abi.encode(calls) : bytes("");
@@ -695,8 +599,6 @@ contract AccumulatorTest is Test {
                 sumOutput,
                 finalMinOutput,
                 finalOutputToken,
-                fees,
-                _feeSponsor,
                 destCallsEncoded
             )
         );

@@ -23,11 +23,11 @@ import {Call, FillState, FillStatus} from "./types/Structs.sol";
 ///         and calls `handleV3AcrossMessage` with the payload.
 ///      3. The Accumulator validates the caller (SpokePool or owner) and originator (owner).
 ///      4. Tokens accumulate per fill ID until `received >= sumOutput`.
-///      5. On threshold: deduct fees → feeSponsor, execute destCalls, transfer finalOutputToken to recipient.
+///      5. On threshold: execute destCalls, transfer finalOutputToken to recipient, return any remainder to owner.
 ///
 ///      Message format (encoded by Dispatcher._buildDestinationMessage):
 ///        abi.encode(salt, fromChainId, fillDeadline, depositor, recipient, sumOutput, finalMinOutput,
-///                   finalOutputToken, fees, feeSponsor, destCalls)
+///                   finalOutputToken, destCalls)
 ///
 ///      The Accumulator always transfers `finalOutputToken` to the recipient.
 ///      If destCalls is empty, the user must ensure `finalOutputToken == tokenSent`.
@@ -44,9 +44,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
 
     /// @dev The depositor in the message does not match the contract owner.
     error InvalidOriginator(address originator);
-
-    /// @dev Fee exceeds currently available locked input for this fill.
-    error FeeExceedsInput(uint256 fee, uint256 input);
 
     /// @dev Reserved accounting invariant was broken.
     error ReservedAccountingInvariant(address token, uint256 reserved, uint256 releaseAmount);
@@ -87,7 +84,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
         address finalOutputToken,
         uint256 requestedOutput,
         uint256 actualOutput,
-        uint256 feeDeducted,
         uint256[] sourceChainIds
     );
 
@@ -137,8 +133,7 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     ///
     /// @dev Message layout (encoded by Dispatcher._buildDestinationMessage):
     ///        (bytes32 salt, uint256 fromChainId, uint32 fillDeadline, address depositor, address recipient, uint256 sumOutput,
-    ///         uint256 finalMinOutput, address finalOutputToken,
-    ///         bytes32 fees, address feeSponsor, bytes destCalls)
+    ///         uint256 finalMinOutput, address finalOutputToken, bytes destCalls)
     ///
     ///      `destCalls` is raw bytes — abi.encode(Call[]). Only decoded here on the destination chain.
     ///      Source chains pass it through without touching it.
@@ -171,11 +166,9 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
             uint256 sumOutput,
             uint256 finalMinOutput,
             address finalOutputToken,
-            bytes32 fees,
-            address feeSponsor,
             bytes memory destCallsEncoded
         ) = abi.decode(
-            message, (bytes32, uint256, uint32, address, address, uint256, uint256, address, bytes32, address, bytes)
+            message, (bytes32, uint256, uint32, address, address, uint256, uint256, address, bytes)
         );
 
         // Only the account owner can originate intents targeting this accumulator.
@@ -192,8 +185,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
                 sumOutput,
                 finalMinOutput,
                 finalOutputToken,
-                fees,
-                feeSponsor,
                 destCallsEncoded
             )
         );
@@ -227,8 +218,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
             state.fillDeadline = fillDeadline;
             state.finalMinOutput = finalMinOutput;
             state.finalOutputToken = finalOutputToken;
-            state.fees = fees;
-            state.feeSponsor = feeSponsor;
             state.status = FillStatus.Accumulating;
         }
 
@@ -301,40 +290,20 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
 
     /// @dev Main execution flow after accumulation threshold is reached.
     ///
-    ///      1. Unpack fees: fees = (feeQuote << 128) | maxFee.
-    ///         Actual fee = min(feeQuote, maxFee). Fee is paid to feeSponsor in the input token.
-    ///
-    ///      2. If destCalls present: execute swaps/conversions.
+    ///      1. If destCalls present: execute swaps/conversions.
     ///         destCalls handle ALL token conversions (WETH→ETH, token swaps, etc.).
     ///         Reverts in destination calls bubble up.
     ///
-    ///      3. Transfer finalOutputToken to recipient, capped at finalMinOutput when destCalls are present.
+    ///      2. Transfer finalOutputToken to recipient, capped at finalMinOutput when destCalls are present.
     ///      `state` is an in-memory snapshot from storage and used only for this execution pass.
     function _executeIntent(bytes32 fillId, FillState memory state, Call[] memory destCalls) internal nonReentrant {
         fills[fillId].status = FillStatus.Executed;
 
-        uint256 lockedInput = state.received;
-        _releaseReserved(state.inputToken, lockedInput);
+        _releaseReserved(state.inputToken, state.received);
 
-        uint256 remainingInput = lockedInput;
         address inputToken = state.inputToken;
 
-        // 1. Unpack fee: feeQuote (upper 128) and maxFee (lower 128).
-        //    Actual fee = min(feeQuote, maxFee).
-        uint128 maxFee = uint128(uint256(state.fees));
-        uint128 feeQuote = uint128(uint256(state.fees) >> 128);
-        uint256 actualFee = feeQuote < maxFee ? feeQuote : maxFee;
-
-        // 2. Pay fee to the fee sponsor (in the received input token).
-        if (actualFee > 0 && state.feeSponsor != address(0)) {
-            if (actualFee > remainingInput) {
-                revert FeeExceedsInput(actualFee, remainingInput);
-            }
-            _transferToken(inputToken, state.feeSponsor, actualFee);
-            remainingInput -= actualFee;
-        }
-
-        // 3. Execute destination calls or direct transfer.
+        // 1. Execute destination calls or direct transfer.
         uint256 actualOutput;
         if (destCalls.length > 0) {
             _executeCalls(destCalls);
@@ -380,7 +349,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
             state.finalOutputToken,
             state.finalMinOutput,
             actualOutput,
-            actualFee,
             state.sourceChainIds
         );
     }

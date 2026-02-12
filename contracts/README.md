@@ -32,7 +32,6 @@ sequenceDiagram
     ACC->>ACC: Accumulate until received >= sumOutput (minimum threshold)
 
     alt Before deadline and threshold reached
-        ACC->>ACC: Deduct fee (min(feeQuote,maxFee))
         ACC->>DEX: Execute dest calls (optional)
         ACC->>RCPT: Transfer up to finalMinOutput in finalOutputToken
         ACC->>UA: Return any unreserved remainder/excess
