@@ -17,29 +17,4 @@ public actor AAClient {
   ) async throws -> String {
     try await core.estimateGas(chainId: chainId, from: from, to: to, data: data, value: value)
   }
-
-  public func getFeeQuote(
-    chainId: UInt64,
-    request: RelayerTransactionRequest
-  ) async throws -> RelayerFeeQuote {
-    try await core.relayerGetFeeQuote(chainId: chainId, request: request)
-  }
-
-  public func sendTransaction(
-    chainId: UInt64,
-    request: RelayerTransactionRequest
-  ) async throws -> RelayerSubmission {
-    try await core.relayerSendTransaction(chainId: chainId, request: request)
-  }
-
-  public func sendTransactionSync(
-    chainId: UInt64,
-    request: RelayerTransactionRequest
-  ) async throws -> RelayerSubmission {
-    try await core.relayerSendTransactionSync(chainId: chainId, request: request)
-  }
-
-  public func getStatus(chainId: UInt64, id: String) async throws -> RelayerStatus {
-    try await core.relayerGetStatus(chainId: chainId, id: id)
-  }
 }

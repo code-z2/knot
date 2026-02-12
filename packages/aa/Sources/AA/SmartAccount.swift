@@ -40,32 +40,6 @@ public struct InitializationConfig: Sendable, Equatable {
 }
 
 public enum SmartAccount {
-  /// Legacy entrypoint/self route. Kept for compatibility where sender is account itself.
-  public enum ExecuteSingle {
-    public static func encodeCall(_ call: Call) throws -> Data {
-      let target = try ABIWord.address(call.to)
-      let value = try ABIWord.uint(call.valueWei)
-      let calldata = try ABIWord.bytes(call.dataHex)
-      return ABIEncoder.functionCall(
-        signature: "execute(address,uint256,bytes)",
-        words: [target, value],
-        dynamic: [calldata]
-      )
-    }
-  }
-
-  /// Legacy entrypoint/self route. Kept for compatibility where sender is account itself.
-  public enum ExecuteBatch {
-    public static func encodeCall(_ calls: [Call]) throws -> Data {
-      let encodedArray = try ABIEncoder.encodeCallTupleArray(calls)
-      return ABIEncoder.functionCall(
-        signature: "executeBatch((address,uint256,bytes)[])",
-        words: [],
-        dynamic: [encodedArray]
-      )
-    }
-  }
-
   /// Explicit-signature account execution helpers.
   public enum ExecuteAuthorized {
     public static func hashSingle(

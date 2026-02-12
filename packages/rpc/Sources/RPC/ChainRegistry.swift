@@ -8,10 +8,6 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
   public let keywords: [String]
   public let rpcURL: String?
   public let explorerBaseURL: String?
-  public let supportsBundler: Bool
-  public let supportsPaymaster: Bool
-  /// GoldRush/Covalent chain name for per-chain API calls (differs from Alchemy slug for some chains).
-  public let goldRushChainName: String?
 
   public var id: UInt64 { chainID }
 
@@ -22,10 +18,7 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
     assetName: String,
     keywords: [String],
     rpcURL: String?,
-    explorerBaseURL: String?,
-    supportsBundler: Bool = false,
-    supportsPaymaster: Bool = false,
-    goldRushChainName: String? = nil
+    explorerBaseURL: String?
   ) {
     self.chainID = chainID
     self.slug = slug
@@ -34,9 +27,6 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
     self.keywords = keywords
     self.rpcURL = rpcURL
     self.explorerBaseURL = explorerBaseURL
-    self.supportsBundler = supportsBundler
-    self.supportsPaymaster = supportsPaymaster
-    self.goldRushChainName = goldRushChainName
   }
 
   public func makeEndpoints(config: RPCEndpointBuilderConfig) -> ChainEndpoints? {
@@ -51,24 +41,6 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
       return nil
     }
 
-    let bundlerURL =
-      supportsBundler
-      ? makeURL(
-        chainID: chainID,
-        slug: slug,
-        template: config.bundlerURLTemplate,
-        apiKey: config.bundlerAPIKey
-      )
-      : ""
-    let paymasterURL =
-      supportsPaymaster
-      ? makeURL(
-        chainID: chainID,
-        slug: slug,
-        template: config.paymasterURLTemplate,
-        apiKey: config.paymasterAPIKey
-      )
-      : ""
     let walletAPIURL = makeURL(
       chainID: chainID,
       slug: slug,
@@ -81,8 +53,6 @@ public struct ChainDefinition: Sendable, Hashable, Identifiable {
     )
     return ChainEndpoints(
       rpcURL: resolvedRPCURL,
-      bundlerURL: bundlerURL,
-      paymasterURL: paymasterURL,
       walletAPIURL: walletAPIURL,
       walletAPIBearerToken: config.walletAPIKey,
       addressActivityAPIURL: addressActivityAPIURL,
@@ -114,8 +84,7 @@ public enum ChainRegistry {
       assetName: "ethereum",
       keywords: ["eth", "mainnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://etherscan.io",
-      goldRushChainName: "eth-mainnet"
+      explorerBaseURL: "https://etherscan.io"
     ),
     .init(
       chainID: 11_155_111,
@@ -124,10 +93,7 @@ public enum ChainRegistry {
       assetName: "ethereum",
       keywords: ["eth", "testnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://sepolia.etherscan.io",
-      supportsBundler: true,
-      supportsPaymaster: true,
-      goldRushChainName: "eth-sepolia"
+      explorerBaseURL: "https://sepolia.etherscan.io"
     ),
     .init(
       chainID: 8_453,
@@ -136,10 +102,7 @@ public enum ChainRegistry {
       assetName: "base",
       keywords: ["coinbase"],
       rpcURL: nil,
-      explorerBaseURL: "https://basescan.org",
-      supportsBundler: true,
-      supportsPaymaster: true,
-      goldRushChainName: "base-mainnet"
+      explorerBaseURL: "https://basescan.org"
     ),
     .init(
       chainID: 84_532,
@@ -148,10 +111,7 @@ public enum ChainRegistry {
       assetName: "base",
       keywords: ["base", "testnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://sepolia.basescan.org",
-      supportsBundler: true,
-      supportsPaymaster: true,
-      goldRushChainName: "base-sepolia-testnet"
+      explorerBaseURL: "https://sepolia.basescan.org"
     ),
     .init(
       chainID: 42_161,
@@ -160,9 +120,7 @@ public enum ChainRegistry {
       assetName: "arbitrum",
       keywords: ["arb"],
       rpcURL: nil,
-      explorerBaseURL: "https://arbiscan.io",
-      supportsBundler: true,
-      goldRushChainName: "arb-mainnet"
+      explorerBaseURL: "https://arbiscan.io"
     ),
     .init(
       chainID: 421_614,
@@ -171,9 +129,7 @@ public enum ChainRegistry {
       assetName: "arbitrum",
       keywords: ["arb", "testnet"],
       rpcURL: nil,
-      explorerBaseURL: "https://sepolia.arbiscan.io",
-      supportsBundler: true,
-      goldRushChainName: "arbitrum-sepolia"
+      explorerBaseURL: "https://sepolia.arbiscan.io"
     ),
     .init(
       chainID: 10,
@@ -182,8 +138,7 @@ public enum ChainRegistry {
       assetName: "optimism",
       keywords: ["op"],
       rpcURL: nil,
-      explorerBaseURL: "https://optimistic.etherscan.io",
-      supportsBundler: true
+      explorerBaseURL: "https://optimistic.etherscan.io"
     ),
     .init(
       chainID: 137,
@@ -192,10 +147,7 @@ public enum ChainRegistry {
       assetName: "polygon",
       keywords: ["matic", "pol"],
       rpcURL: nil,
-      explorerBaseURL: "https://polygonscan.com",
-      supportsBundler: true,
-      supportsPaymaster: true,
-      goldRushChainName: "matic-mainnet"
+      explorerBaseURL: "https://polygonscan.com"
     ),
     .init(
       chainID: 56,
@@ -337,6 +289,19 @@ public enum ChainRegistry {
   private static let knownByChainID: [UInt64: ChainDefinition] = Dictionary(
     uniqueKeysWithValues: known.map { ($0.chainID, $0) }
   )
+  private static let zerionChainIDsByChainID: [UInt64: String] = [
+    1: "ethereum",
+    11_155_111: "sepolia",
+    8_453: "base",
+    84_532: "base_sepolia",
+    42_161: "arbitrum",
+    421_614: "arbitrum_sepolia",
+    10: "optimism",
+    137: "polygon",
+  ]
+  private static let chainIDsByZerionChainID: [String: UInt64] = Dictionary(
+    uniqueKeysWithValues: zerionChainIDsByChainID.map { ($0.value, $0.key) }
+  )
 
   public static func resolve(chainID: UInt64) -> ChainDefinition? {
     knownByChainID[chainID]
@@ -363,6 +328,14 @@ public enum ChainRegistry {
     let configuredChainIDs = ChainSupportRuntime.resolveSupportedChainIDs(bundle: bundle)
     guard !configuredChainIDs.isEmpty else { return [] }
     return configuredChainIDs.map(resolveOrFallback(chainID:))
+  }
+
+  public static func zerionChainID(chainID: UInt64) -> String? {
+    zerionChainIDsByChainID[chainID]
+  }
+
+  public static func chainID(zerionChainID: String) -> UInt64? {
+    chainIDsByZerionChainID[zerionChainID.lowercased()]
   }
 }
 

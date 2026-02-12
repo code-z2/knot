@@ -10,22 +10,6 @@ final class AATests: XCTestCase {
     _ = AAClient()
   }
 
-  func testLegacyExecuteSingleEncoding() throws {
-    let call = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "0")
-    let encoded = try SmartAccount.ExecuteSingle.encodeCall(call)
-
-    let expectedSelector = Data("execute(address,uint256,bytes)".utf8).sha3(.keccak256).prefix(4)
-    XCTAssertEqual(encoded.prefix(4), expectedSelector)
-  }
-
-  func testLegacyExecuteBatchEncoding() throws {
-    let callA = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "0")
-    let callB = Call(to: "0x0000000000000000000000000000000000000002", dataHex: "0x", valueWei: "0")
-    let encoded = try SmartAccount.ExecuteBatch.encodeCall([callA, callB])
-    let expectedSelector = Data("executeBatch((address,uint256,bytes)[])".utf8).sha3(.keccak256).prefix(4)
-    XCTAssertEqual(encoded.prefix(4), expectedSelector)
-  }
-
   func testExecuteAuthorizedSingleHashVariesByNonceAndDeadline() throws {
     let call = Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0xabcdef", valueWei: "42")
     let account = "0x0000000000000000000000000000000000000abc"

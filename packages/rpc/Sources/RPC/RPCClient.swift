@@ -1,118 +1,70 @@
 import BigInt
+import CryptoKit
 import Foundation
 import web3swift
 
 public actor RPCClient {
-  private let endpointsByChain: [UInt64: ChainEndpoints]
+  private let endpointResolver: any RPCEndpointResolving
+  private let relayConfig: RelayProxyConfig
+  private let transport: any JSONRPCTransporting
   private var requestID: Int = 1
 
   public init(
-    endpointsByChain: [UInt64: ChainEndpoints]? = nil,
-    jsonRPCAPIKey: String? = nil,
-    bundlerAPIKey: String? = nil,
-    paymasterAPIKey: String? = nil,
-    walletAPIKey: String? = nil,
-    addressActivityAPIKey: String? = nil
+    environment: RPCEnvironment,
+    transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
   ) {
-    if let endpointsByChain {
-      self.endpointsByChain = endpointsByChain
-      return
-    }
+    self.endpointResolver = environment.makeResolver()
+    self.relayConfig = environment.relayConfig
+    self.transport = transport
+  }
 
-    let resolvedJSONRPCAPIKey =
-      jsonRPCAPIKey
-      ?? Self.resolveSetting(
-        infoPlistKey: RPCSecrets.jsonRPCKeyInfoPlistKey
-      )
-    let resolvedBundlerAPIKey =
-      bundlerAPIKey
-      ?? Self.resolveSetting(
-        infoPlistKey: RPCSecrets.bundlerKeyInfoPlistKey
-      )
-    let resolvedPaymasterAPIKey =
-      paymasterAPIKey
-      ?? Self.resolveSetting(
-        infoPlistKey: RPCSecrets.paymasterKeyInfoPlistKey
-      )
-    let resolvedWalletAPIKey =
-      walletAPIKey
-      ?? Self.resolveSetting(
-        infoPlistKey: RPCSecrets.walletAPIKeyInfoPlistKey
-      )
-    let resolvedAddressActivityAPIKey =
-      addressActivityAPIKey
-      ?? Self.resolveSetting(
-        infoPlistKey: RPCSecrets.addressActivityAPIKeyInfoPlistKey
-      )
-    let endpointConfig = RPCEndpointBuilderConfig(
-      jsonRPCAPIKey: resolvedJSONRPCAPIKey,
-      bundlerAPIKey: resolvedBundlerAPIKey,
-      paymasterAPIKey: resolvedPaymasterAPIKey,
-      walletAPIKey: resolvedWalletAPIKey,
-      addressActivityAPIKey: resolvedAddressActivityAPIKey,
-      jsonRPCURLTemplate: RPCSecrets.jsonRPCURLTemplate,
-      bundlerURLTemplate: RPCSecrets.bundlerURLTemplate,
-      paymasterURLTemplate: RPCSecrets.paymasterURLTemplate,
-      walletAPIURLTemplate: RPCSecrets.walletAPIURLTemplate,
-      addressActivityAPIURLTemplate: RPCSecrets.addressActivityAPIURLTemplate
-    )
-    let defaultEndpoints = makeRPCDefaultEndpoints(
-      config: endpointConfig
-    )
-    self.endpointsByChain = Self.applyChainSupportMode(defaultEndpoints)
+  public init(
+    resolver: any RPCEndpointResolving,
+    relayConfig: RelayProxyConfig = .init(),
+    transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
+  ) {
+    self.endpointResolver = resolver
+    self.relayConfig = relayConfig
+    self.transport = transport
+  }
+
+  public init(
+    bundle: Bundle = .main,
+    transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
+  ) {
+    let environment = Self.makeEnvironment(bundle: bundle)
+    self.endpointResolver = environment.makeResolver()
+    self.relayConfig = environment.relayConfig
+    self.transport = transport
   }
 
   public func getRpcUrl(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
+    let endpoints = try endpointResolver.endpoints(for: chainId)
     return endpoints.rpcURL
   }
 
-  public func getBundlerUrl(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
-    return endpoints.bundlerURL
-  }
-
-  public func getPaymasterUrl(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
-    return endpoints.paymasterURL
-  }
-
   public func getWalletApiUrl(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
+    let endpoints = try endpointResolver.endpoints(for: chainId)
     return endpoints.walletAPIURL
   }
 
   public func getWalletApiBearerToken(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
+    let endpoints = try endpointResolver.endpoints(for: chainId)
     return endpoints.walletAPIBearerToken
   }
 
   public func getAddressActivityApiUrl(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
+    let endpoints = try endpointResolver.endpoints(for: chainId)
     return endpoints.addressActivityAPIURL
   }
 
   public func getAddressActivityApiBearerToken(chainId: UInt64) throws -> String {
-    guard let endpoints = endpointsByChain[chainId] else {
-      throw RPCError.unsupportedChain(chainId)
-    }
+    let endpoints = try endpointResolver.endpoints(for: chainId)
     return endpoints.addressActivityAPIBearerToken
   }
 
   public func getSupportedChains() -> [UInt64] {
-    Array(endpointsByChain.keys).sorted()
+    endpointResolver.supportedChains()
   }
 
   public func getWeb3Client(chainId: UInt64) async throws -> Web3 {
@@ -138,36 +90,6 @@ public actor RPCClient {
     )
   }
 
-  public func makeBundlerRpcCall<Response: Decodable>(
-    chainId: UInt64,
-    method: String,
-    params: [AnyCodable] = [],
-    responseType: Response.Type = Response.self
-  ) async throws -> Response {
-    let bundler = try getBundlerUrl(chainId: chainId)
-    return try await makeJSONRPCCall(
-      urlString: bundler,
-      method: method,
-      params: params,
-      responseType: responseType
-    )
-  }
-
-  public func makePaymasterRpcCall<Response: Decodable>(
-    chainId: UInt64,
-    method: String,
-    params: [AnyCodable] = [],
-    responseType: Response.Type = Response.self
-  ) async throws -> Response {
-    let paymaster = try getPaymasterUrl(chainId: chainId)
-    return try await makeJSONRPCCall(
-      urlString: paymaster,
-      method: method,
-      params: params,
-      responseType: responseType
-    )
-  }
-
   public func getCode(chainId: UInt64, address: String, block: String = "latest") async throws
     -> String
   {
@@ -179,81 +101,322 @@ public actor RPCClient {
     )
   }
 
+  public func relaySubmit(
+    account: String,
+    supportMode: RelaySupportMode,
+    priorityTxs: [RelayTx],
+    txs: [RelayTx],
+    paymentOptions: [RelayPaymentOption] = []
+  ) async throws -> RelaySubmitResult {
+    let payload = RelaySubmitRequest(
+      account: account,
+      supportMode: supportMode.rawValue,
+      priorityTxs: priorityTxs.map(RelaySubmitTxPayload.init),
+      txs: txs.map(RelaySubmitTxPayload.init),
+      paymentOptions: paymentOptions
+    )
+
+    return try await relayCall(
+      path: "/v1/relay/submit",
+      method: "POST",
+      body: payload,
+      responseType: RelaySubmitResult.self
+    )
+  }
+
+  public func relayStatus(chainId: UInt64, id: String) async throws -> RelayStatus {
+    let response: RelayStatusResponse = try await relayCall(
+      path: "/v1/relay/status",
+      method: "GET",
+      queryItems: [
+        URLQueryItem(name: "chainId", value: String(chainId)),
+        URLQueryItem(name: "id", value: id),
+      ],
+      responseType: RelayStatusResponse.self
+    )
+    return response.status
+  }
+
+  public func relayCredit(
+    account: String,
+    supportMode: RelaySupportMode
+  ) async throws -> RelayCreditResult {
+    try await relayCall(
+      path: "/v1/relay/credit",
+      method: "GET",
+      queryItems: [
+        URLQueryItem(name: "account", value: account),
+        URLQueryItem(name: "supportMode", value: supportMode.rawValue),
+      ],
+      responseType: RelayCreditResult.self
+    )
+  }
+
+  public func relayFaucetFund(
+    eoaAddress: String
+  ) async throws -> RelayFaucetFundResult {
+    let payload = RelayFaucetFundRequestPayload(eoaAddress: eoaAddress)
+    return try await relayCall(
+      path: "/v1/faucet/fund",
+      method: "POST",
+      body: payload,
+      responseType: RelayFaucetFundResult.self
+    )
+  }
+
+  public func relayCreateImageUploadSession(
+    eoaAddress: String,
+    fileName: String,
+    contentType: String
+  ) async throws -> RelayImageUploadSession {
+    let payload = RelayImageUploadSessionRequestPayload(
+      eoaAddress: eoaAddress,
+      fileName: fileName,
+      contentType: contentType
+    )
+
+    let bodyData: Data
+    do {
+      bodyData = try JSONEncoder().encode(payload)
+    } catch {
+      throw RPCError.relayRequestEncodingFailed(error)
+    }
+
+    return try await relayCall(
+      path: "/v1/images/direct-upload",
+      method: "POST",
+      queryItems: [],
+      bodyData: bodyData,
+      responseType: RelayImageUploadSession.self,
+      endpointBaseURL: try uploadProxyBaseURL()
+    )
+  }
+
+  public func relayCall<Response: Decodable, Body: Encodable>(
+    path: String,
+    method: String,
+    queryItems: [URLQueryItem] = [],
+    body: Body,
+    responseType: Response.Type = Response.self
+  ) async throws -> Response {
+    let bodyData: Data
+    do {
+      bodyData = try JSONEncoder().encode(body)
+    } catch {
+      throw RPCError.relayRequestEncodingFailed(error)
+    }
+
+    return try await relayCall(
+      path: path,
+      method: method,
+      queryItems: queryItems,
+      bodyData: bodyData,
+      responseType: responseType
+    )
+  }
+
+  public func relayCall<Response: Decodable>(
+    path: String,
+    method: String,
+    queryItems: [URLQueryItem] = [],
+    responseType: Response.Type = Response.self
+  ) async throws -> Response {
+    try await relayCall(
+      path: path,
+      method: method,
+      queryItems: queryItems,
+      bodyData: Data(),
+      responseType: responseType
+    )
+  }
+
   private func makeJSONRPCCall<Response: Decodable>(
     urlString: String,
     method: String,
     params: [AnyCodable] = [],
     responseType: Response.Type = Response.self
   ) async throws -> Response {
-    guard let url = URL(string: urlString), !urlString.isEmpty else {
-      throw RPCError.invalidURL(urlString)
-    }
-
     let id = requestID
     requestID += 1
 
-    let payload = JSONRPCRequest(id: id, method: method, params: params)
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.httpBody = try JSONEncoder().encode(payload)
+    return try await transport.send(
+      urlString: urlString,
+      method: method,
+      params: params,
+      requestID: id,
+      responseType: responseType
+    )
+  }
 
-    let (data, _) = try await URLSession.shared.data(for: request)
-
-    // Debug decoding errors
-    do {
-      let decoded = try JSONDecoder().decode(JSONRPCResponse<Response>.self, from: data)
-      if let error = decoded.error {
-        print(
-          "[RPC] ❌ Error for \(method) to \(urlString): code=\(error.code), msg=\(error.message)")
-        throw RPCError.rpcError(code: error.code, message: error.message)
-      }
-
-      guard let result = decoded.result else {
-        let rawString = String(data: data, encoding: .utf8) ?? "decoding_failed"
-        print("[RPC] ⚠️ Missing result for \(method) to \(urlString)")
-        print("[RPC] Raw Response: \(rawString)")
-        throw RPCError.missingResult
-      }
-      return result
-    } catch {
-      if let rpcError = error as? RPCError { throw rpcError }
-      let rawString = String(data: data, encoding: .utf8) ?? "decoding_failed"
-      print("[RPC] 🚨 JSON Decoding failed for \(method) to \(urlString)")
-      print("[RPC] Raw Response: \(rawString)")
-      print("[RPC] Error: \(error)")
-      throw error
+  private func relayCall<Response: Decodable>(
+    path: String,
+    method: String,
+    queryItems: [URLQueryItem],
+    bodyData: Data,
+    responseType: Response.Type,
+    endpointBaseURL: URL? = nil
+  ) async throws -> Response {
+    let token = try relayClientToken()
+    let baseURL = try (endpointBaseURL ?? relayBaseURL())
+    let endpointBase = relayEndpoint(baseURL: baseURL, path: path)
+    var components = URLComponents(
+      url: endpointBase,
+      resolvingAgainstBaseURL: false
+    )
+    if !queryItems.isEmpty {
+      components?.queryItems = queryItems
     }
+    guard let endpoint = components?.url else {
+      throw RPCError.invalidRelayProxyBaseURL(baseURL.absoluteString + path)
+    }
+
+    var request = URLRequest(url: endpoint)
+    request.httpMethod = method
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = bodyData.isEmpty ? nil : bodyData
+    applyRelaySignatureHeaders(&request, bodyData: bodyData)
+
+    let (data, response) = try await URLSession.shared.data(for: request)
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw RPCError.relayServerError(status: -1, message: "No HTTP response")
+    }
+
+    if httpResponse.statusCode == 402 {
+      do {
+        let paymentRequired = try JSONDecoder().decode(RelayPaymentRequired.self, from: data)
+        throw RPCError.relayPaymentRequired(paymentRequired)
+      } catch let error as RPCError {
+        throw error
+      } catch {
+        throw RPCError.relayResponseDecodingFailed(error)
+      }
+    }
+
+    guard (200...299).contains(httpResponse.statusCode) else {
+      let message = String(data: data, encoding: .utf8) ?? "Unknown relay proxy error"
+      throw RPCError.relayServerError(status: httpResponse.statusCode, message: message)
+    }
+
+    do {
+      return try JSONDecoder().decode(responseType, from: data)
+    } catch {
+      throw RPCError.relayResponseDecodingFailed(error)
+    }
+  }
+
+  private func relayBaseURL() throws -> URL {
+    let configured = relayConfig.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let fallback = RPCSecrets.relayProxyBaseURLDefault
+    let resolved = configured.isEmpty ? fallback : configured
+    let urlString = resolved.contains("://") ? resolved : "https://\(resolved)"
+    guard let url = URL(string: urlString), let host = url.host, !host.isEmpty else {
+      throw RPCError.invalidRelayProxyBaseURL(resolved)
+    }
+    return url
+  }
+
+  private func uploadProxyBaseURL() throws -> URL {
+    let configured = relayConfig.uploadBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    if configured.isEmpty {
+      throw RPCError.invalidRelayProxyBaseURL("UPLOAD_PROXY_BASE_URL is not configured.")
+    }
+
+    let urlString = configured.contains("://") ? configured : "https://\(configured)"
+    guard let url = URL(string: urlString), let host = url.host, !host.isEmpty else {
+      throw RPCError.invalidRelayProxyBaseURL(configured)
+    }
+    return url
+  }
+
+  private func relayEndpoint(baseURL: URL, path: String) -> URL {
+    path
+      .split(separator: "/")
+      .reduce(baseURL) { partialResult, segment in
+        partialResult.appendingPathComponent(String(segment), isDirectory: false)
+      }
+  }
+
+  private func relayClientToken() throws -> String {
+    let token = relayConfig.clientToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !token.isEmpty else {
+      throw RPCError.missingRelayProxyToken
+    }
+    return token
+  }
+
+  private func applyRelaySignatureHeaders(_ request: inout URLRequest, bodyData: Data) {
+    let timestamp = String(Int(Date().timeIntervalSince1970))
+    request.setValue(timestamp, forHTTPHeaderField: "X-Relay-Timestamp")
+
+    let hmacSecret = relayConfig.hmacSecret.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !hmacSecret.isEmpty else {
+      return
+    }
+
+    let payload = "\(timestamp).\(String(data: bodyData, encoding: .utf8) ?? "")"
+    let key = SymmetricKey(data: Data(hmacSecret.utf8))
+    let mac = HMAC<SHA256>.authenticationCode(for: Data(payload.utf8), using: key)
+    let signature = mac.map { String(format: "%02x", $0) }.joined()
+    request.setValue(signature, forHTTPHeaderField: "X-Relay-Signature")
+  }
+
+  private static func makeEnvironment(
+    bundle: Bundle = .main
+  ) -> RPCEnvironment {
+    let endpointConfig = RPCEndpointBuilderConfig(
+      jsonRPCAPIKey: resolveSetting(
+        infoPlistKeys: [RPCSecrets.jsonRPCKeyInfoPlistKey],
+        bundle: bundle
+      ),
+      walletAPIKey: resolveSetting(
+        infoPlistKeys: [RPCSecrets.walletAPIKeyInfoPlistKey],
+        bundle: bundle
+      ),
+      addressActivityAPIKey: resolveSetting(
+        infoPlistKeys: [RPCSecrets.addressActivityAPIKeyInfoPlistKey],
+        bundle: bundle
+      ),
+      jsonRPCURLTemplate: RPCSecrets.jsonRPCURLTemplate,
+      walletAPIURLTemplate: RPCSecrets.walletAPIURLTemplate,
+      addressActivityAPIURLTemplate: RPCSecrets.addressActivityAPIURLTemplate,
+      relayProxyBaseURL: resolveSetting(
+        infoPlistKeys: [RPCSecrets.relayProxyBaseURLInfoPlistKey],
+        bundle: bundle,
+        defaultValue: RPCSecrets.relayProxyBaseURLDefault
+      ),
+      uploadProxyBaseURL: resolveSetting(
+        infoPlistKeys: [RPCSecrets.uploadProxyBaseURLInfoPlistKey],
+        bundle: bundle,
+        defaultValue: RPCSecrets.uploadProxyBaseURLDefault
+      ),
+      relayProxyClientToken: resolveSetting(
+        infoPlistKeys: [RPCSecrets.relayProxyClientTokenInfoPlistKey],
+        bundle: bundle
+      ),
+      relayProxyHmacSecret: resolveSetting(
+        infoPlistKeys: [RPCSecrets.relayProxyHmacSecretInfoPlistKey],
+        bundle: bundle
+      )
+    )
+    let mode = ChainSupportRuntime.resolveMode(bundle: bundle)
+    let chainIDs = ChainSupportRuntime.resolveSupportedChainIDs(mode: mode, bundle: bundle)
+    return RPCEnvironment(mode: mode, chainIDs: chainIDs, endpointConfig: endpointConfig)
   }
 
   private static func resolveSetting(
-    infoPlistKey: String,
+    infoPlistKeys: [String],
+    bundle: Bundle,
     defaultValue: String = ""
   ) -> String {
-    if let plist = Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String {
-      let trimmed = plist.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !trimmed.isEmpty {
-        return trimmed
+    for infoPlistKey in infoPlistKeys {
+      if let plist = bundle.object(forInfoDictionaryKey: infoPlistKey) as? String {
+        let trimmed = plist.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+          return trimmed
+        }
       }
     }
-
     return defaultValue
-  }
-
-  private static func resolveChainSupportConfig() -> ChainSupportConfig? {
-    let config = ChainSupportRuntime.resolveConfig()
-    guard !config.chainIDs.isEmpty else { return nil }
-    return config
-  }
-
-  private static func applyChainSupportMode(_ endpointsByChain: [UInt64: ChainEndpoints])
-    -> [UInt64: ChainEndpoints]
-  {
-    guard let config = resolveChainSupportConfig() else {
-      return endpointsByChain
-    }
-
-    let allowed = Set(config.chainIDs)
-    return endpointsByChain.filter { allowed.contains($0.key) }
   }
 }
