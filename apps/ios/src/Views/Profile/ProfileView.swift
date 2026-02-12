@@ -808,9 +808,9 @@ struct ProfileView: View {
   }
 
   private func waitForRevealWindowStart(for job: PendingENSRevealJob) async throws -> Date {
-    let commitIncludedAt = try await aaExecutionService.waitForUserOperationInclusion(
+    let commitIncludedAt = try await aaExecutionService.waitForRelayInclusion(
       chainId: job.chainId,
-      userOperationHash: job.submissionHash
+      relayTaskID: job.submissionHash
     )
     return commitIncludedAt.addingTimeInterval(TimeInterval(job.minCommitmentAgeSeconds))
   }

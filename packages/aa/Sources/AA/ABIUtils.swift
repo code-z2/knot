@@ -3,6 +3,11 @@ import Foundation
 import Transactions
 import web3swift
 
+public enum ABIArgument {
+  case word(Data)
+  case dynamic(Data)
+}
+
 public enum ABIWord {
   public static func address(_ value: String) throws -> Data {
     let clean = value.lowercased().replacingOccurrences(of: "0x", with: "")
@@ -69,6 +74,27 @@ public enum ABIEncoder {
       head.append(ABIWord.uint(BigUInt(dynamicOffset)))
       tail.append(encoded)
       dynamicOffset += encoded.count
+    }
+
+    return selector + head + tail
+  }
+
+  /// ABI-encodes a function call with arguments in source order, supporting mixed static/dynamic params.
+  public static func functionCallOrdered(signature: String, arguments: [ABIArgument]) -> Data {
+    let selector = Data(signature.utf8).sha3(.keccak256).prefix(4)
+    let headLength = arguments.count * 32
+
+    var head = Data()
+    var tail = Data()
+
+    for argument in arguments {
+      switch argument {
+      case .word(let value):
+        head.append(value)
+      case .dynamic(let encoded):
+        head.append(ABIWord.uint(BigUInt(headLength + tail.count)))
+        tail.append(encoded)
+      }
     }
 
     return selector + head + tail

@@ -729,7 +729,7 @@ public actor RouteComposer {
       allChainCalls.append(ChainCalls(chainId: chain.chainID, calls: chainCallsList))
     }
 
-    // Add destination chain entry (registerJob is injected by SmartAccount prelude)
+    // Add destination chain entry so relay execution can prioritize destination init/validation.
     allChainCalls.append(ChainCalls(chainId: destChainId, calls: []))
 
     let finalOutput = weiToAmount(destMinOutputWei, decimals: destTokenDecimals)

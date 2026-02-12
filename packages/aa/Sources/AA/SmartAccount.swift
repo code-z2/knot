@@ -3,7 +3,6 @@ import Foundation
 import Passkey
 import RPC
 import Transactions
-import Web3Core
 import web3swift
 
 public enum SmartAccountError: Error {
@@ -16,7 +15,32 @@ public enum SmartAccountError: Error {
   case emptyCalls
 }
 
+public struct OnchainCrossChainOrder: Sendable, Equatable {
+  public let orderDataType: Data
+  public let fillDeadline: UInt32
+  public let orderData: Data
+
+  public init(orderDataType: Data, fillDeadline: UInt32, orderData: Data) {
+    self.orderDataType = orderDataType
+    self.fillDeadline = fillDeadline
+    self.orderData = orderData
+  }
+}
+
+public struct InitializationConfig: Sendable, Equatable {
+  public let accumulatorFactory: String
+  public let wrappedNativeToken: String
+  public let spokePool: String
+
+  public init(accumulatorFactory: String, wrappedNativeToken: String, spokePool: String) {
+    self.accumulatorFactory = accumulatorFactory
+    self.wrappedNativeToken = wrappedNativeToken
+    self.spokePool = spokePool
+  }
+}
+
 public enum SmartAccount {
+  /// Legacy entrypoint/self route. Kept for compatibility where sender is account itself.
   public enum ExecuteSingle {
     public static func encodeCall(_ call: Call) throws -> Data {
       let target = try ABIWord.address(call.to)
@@ -30,16 +54,7 @@ public enum SmartAccount {
     }
   }
 
-  public enum Execute {
-    public static func encodeCall(_ calls: [Call]) throws -> Data {
-      guard !calls.isEmpty else { throw SmartAccountError.emptyCalls }
-      if calls.count == 1, let call = calls.first {
-        return try ExecuteSingle.encodeCall(call)
-      }
-      return try ExecuteBatch.encodeCall(calls)
-    }
-  }
-
+  /// Legacy entrypoint/self route. Kept for compatibility where sender is account itself.
   public enum ExecuteBatch {
     public static func encodeCall(_ calls: [Call]) throws -> Data {
       let encodedArray = try ABIEncoder.encodeCallTupleArray(calls)
@@ -51,58 +66,159 @@ public enum SmartAccount {
     }
   }
 
-  public enum ExecuteChainCalls {
-    public static func encodeCall(chainCallsBlob: Data) -> Data {
-      let selector = Data("executeChainCalls(bytes)".utf8).sha3(.keccak256).prefix(4)
-      let payload = Data(selector) + chainCallsBlob
-      return ABIEncoder.functionCall(
-        signature: "executeChainCalls(bytes)",
-        words: [],
-        dynamic: [ABIEncoder.encodeBytes(payload)]
+  /// Explicit-signature account execution helpers.
+  public enum ExecuteAuthorized {
+    public static func hashSingle(
+      account: String,
+      chainId: UInt64,
+      call: Call,
+      nonce: UInt64,
+      deadline: UInt64
+    ) throws -> Data {
+      let targetWord = try ABIWord.address(call.to)
+      let valueWord = try ABIWord.uint(call.valueWei)
+      let data = try AAUtils.hexToData(call.dataHex)
+      let dataHashWord = try ABIWord.bytes32(Data(data.sha3(.keccak256)))
+      let nonceWord = ABIWord.uint(BigUInt(nonce))
+      let deadlineWord = ABIWord.uint(BigUInt(deadline))
+
+      let structHash = Data(
+        (AAUtils.executeTypeHash + targetWord + valueWord + dataHashWord + nonceWord + deadlineWord).sha3(
+          .keccak256))
+      let domain = try AAUtils.accountDomainSeparator(chainId: chainId, account: account)
+      return AAUtils.hashTypedDataV4(domainSeparator: domain, structHash: structHash)
+    }
+
+    public static func hashBatch(
+      account: String,
+      chainId: UInt64,
+      calls: [Call],
+      nonce: UInt64,
+      deadline: UInt64
+    ) throws -> Data {
+      let callsEncoded = try ABIEncoder.encodeCallTupleArray(calls)
+      let callsHashWord = try ABIWord.bytes32(Data(callsEncoded.sha3(.keccak256)))
+      let nonceWord = ABIWord.uint(BigUInt(nonce))
+      let deadlineWord = ABIWord.uint(BigUInt(deadline))
+
+      let structHash = Data(
+        (AAUtils.executeBatchTypeHash + callsHashWord + nonceWord + deadlineWord).sha3(.keccak256))
+      let domain = try AAUtils.accountDomainSeparator(chainId: chainId, account: account)
+      return AAUtils.hashTypedDataV4(domainSeparator: domain, structHash: structHash)
+    }
+
+    public static func encodeSingle(
+      call: Call,
+      nonce: UInt64,
+      deadline: UInt64,
+      signature: Data
+    ) throws -> Data {
+      let callTuple = try ABIEncoder.encodeCallTuple(call)
+      let nonceWord = ABIWord.uint(BigUInt(nonce))
+      let deadlineWord = ABIWord.uint(BigUInt(deadline))
+      let signatureBytes = ABIEncoder.encodeBytes(signature)
+
+      return ABIEncoder.functionCallOrdered(
+        signature: "execute((address,uint256,bytes),uint256,uint256,bytes)",
+        arguments: [
+          .dynamic(callTuple),
+          .word(nonceWord),
+          .word(deadlineWord),
+          .dynamic(signatureBytes),
+        ]
       )
     }
 
-    public static func encodeCall(chainCalls: [ChainCalls]) throws -> Data {
-      let blob = try ABIEncoder.encodeChainCallsArray(chainCalls)
-      return encodeCall(chainCallsBlob: blob)
+    public static func encodeBatch(
+      calls: [Call],
+      nonce: UInt64,
+      deadline: UInt64,
+      signature: Data
+    ) throws -> Data {
+      let callsArray = try ABIEncoder.encodeCallTupleArray(calls)
+      let nonceWord = ABIWord.uint(BigUInt(nonce))
+      let deadlineWord = ABIWord.uint(BigUInt(deadline))
+      let signatureBytes = ABIEncoder.encodeBytes(signature)
+
+      return ABIEncoder.functionCallOrdered(
+        signature: "executeBatch((address,uint256,bytes)[],uint256,uint256,bytes)",
+        arguments: [
+          .dynamic(callsArray),
+          .word(nonceWord),
+          .word(deadlineWord),
+          .dynamic(signatureBytes),
+        ]
+      )
     }
   }
 
-  public enum RegisterJob {
-    public static func encodeCall(jobId: Data, accumulator: String) throws -> Data {
-      let jobIdWord = try ABIWord.bytes32(jobId)
-      let accumulatorWord = try ABIWord.address(accumulator)
-      return ABIEncoder.functionCall(
-        signature: "registerJob(bytes32,address)",
-        words: [jobIdWord, accumulatorWord],
-        dynamic: []
+  public enum CrossChainOrder {
+    public static func encodeCall(order: OnchainCrossChainOrder, signature: Data) throws -> Data {
+      let orderTuple = try encodeOrderTuple(order)
+      let signatureBytes = ABIEncoder.encodeBytes(signature)
+      return ABIEncoder.functionCallOrdered(
+        signature: "executeCrossChainOrder((bytes32,uint32,bytes),bytes)",
+        arguments: [
+          .dynamic(orderTuple),
+          .dynamic(signatureBytes),
+        ]
       )
     }
 
-    public static func asCall(account: String, jobId: Data, accumulator: String) throws -> Call {
-      Call(
-        to: account,
-        dataHex: "0x" + (try encodeCall(jobId: jobId, accumulator: accumulator)).toHexString(),
-        valueWei: "0"
-      )
+    private static func encodeOrderTuple(_ order: OnchainCrossChainOrder) throws -> Data {
+      let orderType = try ABIWord.bytes32(order.orderDataType)
+      let fillDeadline = ABIWord.uint(BigUInt(order.fillDeadline))
+      let orderDataOffset = ABIWord.uint(BigUInt(96))
+      let orderData = ABIEncoder.encodeBytes(order.orderData)
+      return orderType + fillDeadline + orderDataOffset + orderData
     }
   }
 
   public enum Initialize {
-    public static func encodeCall(passkeyPublicKey: PasskeyPublicKey) throws -> Data {
+    public static func initSignatureDigest(
+      account: String,
+      chainId: UInt64,
+      passkeyPublicKey: PasskeyPublicKey,
+      config: InitializationConfig
+    ) throws -> Data {
+      let chainWord = ABIWord.uint(BigUInt(chainId))
+      let accountWord = try ABIWord.address(account)
       let qx = try ABIWord.bytes32(passkeyPublicKey.x)
       let qy = try ABIWord.bytes32(passkeyPublicKey.y)
+      let accumulatorFactory = try ABIWord.address(config.accumulatorFactory)
+      let wrappedNativeToken = try ABIWord.address(config.wrappedNativeToken)
+      let spokePool = try ABIWord.address(config.spokePool)
+      return Data((chainWord + accountWord + qx + qy + accumulatorFactory + wrappedNativeToken + spokePool).sha3(.keccak256))
+    }
+
+    public static func encodeCall(
+      passkeyPublicKey: PasskeyPublicKey,
+      config: InitializationConfig,
+      initSignature: Data
+    ) throws -> Data {
+      let qx = try ABIWord.bytes32(passkeyPublicKey.x)
+      let qy = try ABIWord.bytes32(passkeyPublicKey.y)
+      let accumulatorFactory = try ABIWord.address(config.accumulatorFactory)
+      let wrappedNativeToken = try ABIWord.address(config.wrappedNativeToken)
+      let spokePool = try ABIWord.address(config.spokePool)
+      let signatureBytes = ABIEncoder.encodeBytes(initSignature)
+
       return ABIEncoder.functionCall(
-        signature: "initialize(bytes32,bytes32)",
-        words: [qx, qy],
-        dynamic: []
+        signature: "initialize(bytes32,bytes32,address,address,address,bytes)",
+        words: [qx, qy, accumulatorFactory, wrappedNativeToken, spokePool],
+        dynamic: [signatureBytes]
       )
     }
 
-    public static func asCall(account: String, passkeyPublicKey: PasskeyPublicKey) throws -> Call {
+    public static func asCall(
+      account: String,
+      passkeyPublicKey: PasskeyPublicKey,
+      config: InitializationConfig,
+      initSignature: Data
+    ) throws -> Call {
       Call(
         to: account,
-        dataHex: "0x" + (try encodeCall(passkeyPublicKey: passkeyPublicKey)).toHexString(),
+        dataHex: "0x" + (try encodeCall(passkeyPublicKey: passkeyPublicKey, config: config, initSignature: initSignature)).toHexString(),
         valueWei: "0"
       )
     }
@@ -114,37 +230,6 @@ public enum SmartAccount {
       return ABIEncoder.functionCall(
         signature: "computeAddress(address)",
         words: [userWord],
-        dynamic: []
-      )
-    }
-
-    public static func encodeDeployCall(messenger: String) throws -> Data {
-      let messengerWord = try ABIWord.address(messenger)
-      return ABIEncoder.functionCall(
-        signature: "deploy(address)",
-        words: [messengerWord],
-        dynamic: []
-      )
-    }
-
-    public static func deployCall(factory: String, messenger: String) throws -> Call {
-      Call(
-        to: factory,
-        dataHex: "0x" + (try encodeDeployCall(messenger: messenger)).toHexString(),
-        valueWei: "0"
-      )
-    }
-  }
-
-  public enum GetNonce {
-    public static func encodeCall() -> Data {
-      ABIEncoder.functionCall(signature: "getNonce()", words: [], dynamic: [])
-    }
-
-    public static func encodeCall(key: UInt64) -> Data {
-      ABIEncoder.functionCall(
-        signature: "getNonce(uint192)",
-        words: [ABIWord.uint(BigUInt(key))],
         dynamic: []
       )
     }
@@ -177,14 +262,15 @@ public actor SmartAccountClient {
     return normalized != "0x" && normalized != "0x0"
   }
 
-  public func getNonce(account: String, chainId: UInt64) async throws -> BigUInt {
-    try await ethCallBigUInt(
-      account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall())
-  }
-
-  public func getNonce(account: String, chainId: UInt64, key: UInt64) async throws -> BigUInt {
-    try await ethCallBigUInt(
-      account: account, chainId: chainId, data: SmartAccount.GetNonce.encodeCall(key: key))
+  public func getTransactionCount(account: String, chainId: UInt64, blockTag: String = "pending") async throws -> UInt64 {
+    let nonceHex: String = try await rpcClient.makeRpcCall(
+      chainId: chainId,
+      method: "eth_getTransactionCount",
+      params: [AnyCodable(account), AnyCodable(blockTag)],
+      responseType: String.self
+    )
+    let clean = nonceHex.replacingOccurrences(of: "0x", with: "")
+    return UInt64(clean, radix: 16) ?? 0
   }
 
   public func isValidSignature(
@@ -211,145 +297,48 @@ public actor SmartAccountClient {
     return try ABIUtils.decodeAddressFromABIWord(response)
   }
 
-  public func buildExecutePayload(
+  public func simulateCall(
     account: String,
     chainId: UInt64,
-    passkeyPublicKey: PasskeyPublicKey,
-    calls: [Call]
-  ) async throws -> ExecuteBuildResult {
-    guard !calls.isEmpty else { throw SmartAccountError.emptyCalls }
-    let accumulatorFactory = AAConstants.accumulatorFactoryAddress
-    let messenger = try AAConstants.messengerAddress(chainId: chainId)
-
-    var prelude: [Call] = []
-
-    async let accountDeployedTask = isDeployed(account: account, chainId: chainId)
-    async let accumulatorAddressTask = computeAccumulatorAddress(
-      account: account,
-      chainId: chainId
-    )
-    let accountDeployed = try await accountDeployedTask
-    let accumulatorAddress = try await accumulatorAddressTask
-
-    if !accountDeployed {
-      prelude.insert(
-        try SmartAccount.Initialize.asCall(account: account, passkeyPublicKey: passkeyPublicKey),
-        at: 0)
-    }
-
-    if try await !isDeployed(account: accumulatorAddress, chainId: chainId) {
-      prelude.append(
-        try SmartAccount.AccumulatorFactory.deployCall(
-          factory: accumulatorFactory,
-          messenger: messenger
-        )
-      )
-    }
-
-    let finalCalls = prelude + calls
-    let payload = try SmartAccount.Execute.encodeCall(finalCalls)
-    return ExecuteBuildResult(payload: payload, calls: finalCalls)
-  }
-
-  public func execute(
-    account: String,
-    chainId: UInt64,
-    passkeyPublicKey: PasskeyPublicKey,
-    calls: [Call]
-  ) async throws -> ExecuteBuildResult {
-    try await buildExecutePayload(
-      account: account,
+    from: String,
+    data: Data,
+    valueHex: String = "0x0"
+  ) async throws {
+    let txObject: [String: Any] = [
+      "to": account,
+      "from": from,
+      "data": "0x" + data.toHexString(),
+      "value": AAUtils.normalizeHexQuantity(valueHex),
+    ]
+    let _: String = try await rpcClient.makeRpcCall(
       chainId: chainId,
-      passkeyPublicKey: passkeyPublicKey,
-      calls: calls
+      method: "eth_call",
+      params: [AnyCodable(txObject), AnyCodable("latest")],
+      responseType: String.self
     )
   }
 
-  public func buildExecuteChainCallsPayload(
+  public func estimateGas(
     account: String,
-    destinationChainId: UInt64,
-    jobId: Data,
-    passkeyPublicKey: PasskeyPublicKey,
-    chainCalls: [ChainCalls]
-  ) async throws -> ExecuteChainCallsBuildResult {
-    guard !chainCalls.isEmpty else { throw SmartAccountError.emptyCalls }
-
-    let rebuiltBundles = try await withThrowingTaskGroup(of: ChainCalls.self) { group in
-      for bundle in chainCalls {
-        group.addTask {
-          try await self.buildBundleWithPrelude(
-            account: account,
-            bundle: bundle,
-            destinationChainId: destinationChainId,
-            jobId: jobId,
-            passkeyPublicKey: passkeyPublicKey
-          )
-        }
-      }
-
-      var output: [ChainCalls] = []
-      output.reserveCapacity(chainCalls.count)
-      for try await bundle in group {
-        output.append(bundle)
-      }
-      return output
-    }
-
-    var destination: ChainCalls?
-    var others: [ChainCalls] = []
-
-    for rebuilt in rebuiltBundles {
-      if rebuilt.chainId == destinationChainId {
-        destination = rebuilt
-      } else {
-        others.append(rebuilt)
-      }
-    }
-
-    if destination == nil {
-      // If destination chain isn't provided, create one with only required destination prelude.
-      destination = try await buildBundleWithPrelude(
-        account: account,
-        bundle: ChainCalls(chainId: destinationChainId, calls: []),
-        destinationChainId: destinationChainId,
-        jobId: jobId,
-        passkeyPublicKey: passkeyPublicKey
-      )
-    }
-
-    guard let destination else {
-      throw SmartAccountError.malformedRPCResponse("Failed to build destination chain bundle")
-    }
-
-    let allChainCalls = [destination] + others
-    let payload = try SmartAccount.ExecuteChainCalls.encodeCall(chainCalls: allChainCalls)
-    return ExecuteChainCallsBuildResult(
-      payload: payload,
-      chainCalls: allChainCalls
+    chainId: UInt64,
+    from: String,
+    data: Data,
+    valueHex: String = "0x0"
+  ) async throws -> UInt64 {
+    let txObject: [String: Any] = [
+      "to": account,
+      "from": from,
+      "data": "0x" + data.toHexString(),
+      "value": AAUtils.normalizeHexQuantity(valueHex),
+    ]
+    let gasHex: String = try await rpcClient.makeRpcCall(
+      chainId: chainId,
+      method: "eth_estimateGas",
+      params: [AnyCodable(txObject)],
+      responseType: String.self
     )
-  }
-
-  public func executeChainCalls(
-    account: String,
-    destinationChainId: UInt64,
-    jobId: Data,
-    passkeyPublicKey: PasskeyPublicKey,
-    chainCalls: [ChainCalls]
-  ) async throws -> ExecuteChainCallsBuildResult {
-    try await buildExecuteChainCallsPayload(
-      account: account,
-      destinationChainId: destinationChainId,
-      jobId: jobId,
-      passkeyPublicKey: passkeyPublicKey,
-      chainCalls: chainCalls
-    )
-  }
-
-  private func ethCallBigUInt(account: String, chainId: UInt64, data: Data) async throws -> BigUInt
-  {
-    let response = try await ethCallHex(account: account, chainId: chainId, data: data)
-    let valueHex = response.replacingOccurrences(of: "0x", with: "")
-    return BigUInt(valueHex, radix: 16) ?? .zero
+    let clean = gasHex.replacingOccurrences(of: "0x", with: "")
+    return UInt64(clean, radix: 16) ?? 0
   }
 
   private func ethCallHex(account: String, chainId: UInt64, data: Data) async throws -> String {
@@ -364,77 +353,5 @@ public actor SmartAccountClient {
       responseType: String.self
     )
     return response
-  }
-
-  private func buildBundleWithPrelude(
-    account: String,
-    bundle: ChainCalls,
-    destinationChainId: UInt64,
-    jobId: Data,
-    passkeyPublicKey: PasskeyPublicKey
-  ) async throws -> ChainCalls {
-    var prelude: [Call] = []
-    let isDestinationChain = bundle.chainId == destinationChainId
-    async let accountDeployedTask = isDeployed(account: account, chainId: bundle.chainId)
-
-    if try await !accountDeployedTask {
-      // initialize must remain the first prelude call whenever included.
-      prelude.insert(
-        try SmartAccount.Initialize.asCall(account: account, passkeyPublicKey: passkeyPublicKey),
-        at: 0
-      )
-    }
-
-    if isDestinationChain {
-      let accumulatorFactory = AAConstants.accumulatorFactoryAddress
-      let messenger = try AAConstants.messengerAddress(chainId: bundle.chainId)
-      let accumulatorAddress = try await computeAccumulatorAddress(
-        account: account, chainId: bundle.chainId)
-      async let accumulatorDeployedTask = isDeployed(
-        account: accumulatorAddress,
-        chainId: bundle.chainId
-      )
-
-      if try await !accumulatorDeployedTask {
-        prelude.append(
-          try SmartAccount.AccumulatorFactory.deployCall(
-            factory: accumulatorFactory,
-            messenger: messenger
-          )
-        )
-      }
-
-      // Destination chain must always register the job before business calls.
-      prelude.append(
-        try SmartAccount.RegisterJob.asCall(
-          account: account,
-          jobId: jobId,
-          accumulator: accumulatorAddress
-        )
-      )
-    }
-
-    return ChainCalls(chainId: bundle.chainId, calls: prelude + bundle.calls)
-  }
-
-}
-
-public struct ExecuteBuildResult: Sendable, Equatable {
-  public let payload: Data
-  public let calls: [Call]
-
-  public init(payload: Data, calls: [Call]) {
-    self.payload = payload
-    self.calls = calls
-  }
-}
-
-public struct ExecuteChainCallsBuildResult: Sendable, Equatable {
-  public let payload: Data
-  public let chainCalls: [ChainCalls]
-
-  public init(payload: Data, chainCalls: [ChainCalls]) {
-    self.payload = payload
-    self.chainCalls = chainCalls
   }
 }
