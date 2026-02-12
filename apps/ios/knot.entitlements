@@ -4,11 +4,11 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>webcredentials:peteranyaogu.com</string>
+		<string>webcredentials:knot.fi</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.peteranyaogu.metu.shared</string>
+		<string>$(AppIdentifierPrefix)fi.knot.shared</string>
 	</array>
 </dict>
 </plist>

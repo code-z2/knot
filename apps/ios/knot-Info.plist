@@ -14,34 +14,26 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>JSONRPC_API_KEY</key>
-	<string>$(JSONRPC_API_KEY)</string>
-	<key>BUNDLER_API_KEY</key>
-	<string>$(BUNDLER_API_KEY)</string>
-	<key>PAYMASTER_API_KEY</key>
-	<string>$(PAYMASTER_API_KEY)</string>
-	<key>ZERION_API_KEY</key>
-	<string>$(ZERION_API_KEY)</string>
-	<key>PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL</key>
-	<string>$(PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL)</string>
-	<key>PROFILE_IMAGE_UPLOAD_CLIENT_TOKEN</key>
-	<string>$(PROFILE_IMAGE_UPLOAD_CLIENT_TOKEN)</string>
-	<key>RELAY_PROXY_BASE_URL</key>
-	<string>$(RELAY_PROXY_BASE_URL)</string>
-	<key>RELAY_PROXY_CLIENT_TOKEN</key>
-	<string>$(RELAY_PROXY_CLIENT_TOKEN)</string>
-	<key>RELAY_PROXY_HMAC_SECRET</key>
-	<string>$(RELAY_PROXY_HMAC_SECRET)</string>
 	<key>CHAIN_SUPPORT_MODE</key>
 	<string>$(CHAIN_SUPPORT_MODE)</string>
-	<key>SUPPORTED_CHAINS_LIMITED_TESTNET</key>
-	<string>$(SUPPORTED_CHAINS_LIMITED_TESTNET)</string>
-	<key>SUPPORTED_CHAINS_LIMITED_MAINNET</key>
-	<string>$(SUPPORTED_CHAINS_LIMITED_MAINNET)</string>
-	<key>SUPPORTED_CHAINS_FULL_MAINNET</key>
-	<string>$(SUPPORTED_CHAINS_FULL_MAINNET)</string>
+	<key>JSONRPC_API_KEY</key>
+	<string>$(JSONRPC_API_KEY)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan QR codes to capture wallet addresses for Send Money.</string>
+	<key>CLIENT_TOKEN</key>
+	<string>$(CLIENT_TOKEN)</string>
+	<key>RELAY_PROXY_BASE_URL</key>
+	<string>$(RELAY_PROXY_BASE_URL)</string>
+	<key>UPLOAD_PROXY_BASE_URL</key>
+	<string>$(UPLOAD_PROXY_BASE_URL)</string>
+	<key>RELAY_PROXY_HMAC_SECRET</key>
+	<string>$(RELAY_PROXY_HMAC_SECRET)</string>
+	<key>SUPPORTED_CHAINS_FULL_MAINNET</key>
+	<string>$(SUPPORTED_CHAINS_FULL_MAINNET)</string>
+	<key>SUPPORTED_CHAINS_LIMITED_MAINNET</key>
+	<string>$(SUPPORTED_CHAINS_LIMITED_MAINNET)</string>
+	<key>SUPPORTED_CHAINS_LIMITED_TESTNET</key>
+	<string>$(SUPPORTED_CHAINS_LIMITED_TESTNET)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>InterVariable.ttf</string>
@@ -72,9 +64,11 @@
 		<string>RobotoMono-SemiBold.ttf</string>
 		<string>RobotoMono-Thin.ttf</string>
 	</array>
-	<key>UIStatusBarHidden</key>
-	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<key>ZERION_API_KEY</key>
+	<string>$(ZERION_API_KEY)</string>
 </dict>
 </plist>
