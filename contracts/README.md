@@ -1,32 +1,44 @@
 Hack Money Contracts
 
-Sequence Diagram (Scatter → Gather → Execute)
+Architecture Diagram (Scatter → Gather → Execute)
 ```mermaid
 sequenceDiagram
     autonumber
     actor User
     participant App as iOS App
     participant UA as UnifiedTokenAccount
+    participant D as Dispatcher (in UA)
     participant AF as AccumulatorFactory
-    participant M as Across Messenger
+    participant SP as Across SpokePool
+    participant R as Across Relayer
     participant ACC as Accumulator (Destination)
     participant DEX as Swap Router
-    participant TRE as Treasury
-    actor Receiver
+    actor RCPT as Recipient
 
-    User->>App: Approve intent (passkey)
-    App->>UA: executeChainCalls(bundle)
-    UA->>AF: deploy(messenger)  (dest chain)
-    UA->>ACC: approve(intentHash)  (registerJob)
-    UA->>M: bridge inputToken (from each source)
+    Note over UA: initialize() (one-time): validates init signature and deploys deterministic ACC via AF
+    UA->>AF: deploy(spokePool)
 
-    M->>ACC: handleMessage(fromChain, amount, payload)
-    ACC->>ACC: accumulate amount until minInput
-    ACC->>UA: wait for approval (if not yet approved)
+    User->>App: Sign UniversalIntent + fillDeadline
+    App->>UA: executeCrossChainOrder(order, signature)
+    UA->>UA: Validate typehash/signature/deadline window
+    UA->>D: Resolve chain inputs + source/dest calls
+    D->>D: Mark jobId dispatched (replay protection)
+    D->>D: Execute source-chain preflight calls (optional)
+    D->>SP: deposit(... recipient = ACC, message = encoded intent)
 
-    ACC->>DEX: swapCalls (optional)
-    ACC->>Receiver: transfer outputToken (<= minOutput)
-    ACC->>TRE: sweep (manual, optional)
+    R->>SP: Fill on destination chain
+    SP->>ACC: handleV3AcrossMessage(tokenSent, amount, message)
+    ACC->>ACC: Validate caller + depositor(owner) and derive fillId
+    ACC->>ACC: Accumulate until received >= sumOutput (minimum threshold)
 
-    Note over ACC,UA: If approval arrives late (after accumulation), ACC refunds to UA.
+    alt Before deadline and threshold reached
+        ACC->>DEX: Execute dest calls (optional)
+        ACC->>RCPT: Transfer up to finalMinOutput in finalOutputToken
+        ACC->>UA: Return any unreserved remainder/excess
+        ACC->>ACC: Emit FillExecuted(fillId,...)
+    else Deadline passed
+        ACC->>UA: Auto-refund accumulated input
+        ACC->>UA: Auto-refund late arrival amount
+        ACC->>ACC: Mark fill Stale and emit FillStale/FillRefunded
+    end
 ```

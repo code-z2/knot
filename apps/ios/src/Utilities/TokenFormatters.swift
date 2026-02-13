@@ -6,10 +6,23 @@ enum TokenFormatters {
     guard let value = Decimal(string: clean) else { return "0" }
     let divisor = Decimal(string: "1000000000000000000") ?? 1
     let eth = value / divisor
+    let cappedFractionDigits = max(0, min(maximumFractionDigits, 4))
+    let truncatedEth = truncate(eth, fractionDigits: cappedFractionDigits)
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = maximumFractionDigits
+    formatter.maximumFractionDigits = cappedFractionDigits
     formatter.minimumFractionDigits = 0
-    return formatter.string(from: eth as NSDecimalNumber) ?? "\(eth)"
+    return formatter.string(from: truncatedEth as NSDecimalNumber) ?? "\(truncatedEth)"
+  }
+
+  private static func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 }

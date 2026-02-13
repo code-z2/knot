@@ -183,7 +183,7 @@ final class PreferencesStore {
     }
 
     private static func normalizeCurrencyCode(_ code: String, supported: [CurrencyOption]) -> String {
-        let normalized = normalizeLegacyCurrencyCode(code.uppercased())
+        let normalized = code.uppercased()
         if supported.map(\.code).contains(normalized) { return normalized }
         return supported.first?.code ?? "USD"
     }
@@ -258,17 +258,6 @@ final class PreferencesStore {
             return normalizeCurrencyCode(mapped, supported: supported)
         }
         return normalizeCurrencyCode("USD", supported: supported)
-    }
-
-    private static func normalizeLegacyCurrencyCode(_ code: String) -> String {
-        switch code {
-        case "YEN":
-            return "JPY"
-        case "SUR":
-            return "RUB"
-        default:
-            return code
-        }
     }
 
     private func autoApplyCurrencyFromLanguageIfNeeded() {

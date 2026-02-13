@@ -1,22 +1,29 @@
-import XCTest
-@testable import ENS
 import Web3Core
+import XCTest
+
+@testable import ENS
 
 final class ENSTests: XCTestCase {
   func testDefaultConfigurationIsSepolia() {
     let client = ENSClient()
-    XCTAssertEqual(client.configuration.chainID, 11155111)
-    XCTAssertEqual(client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
-    XCTAssertEqual(client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
-    XCTAssertEqual(client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
+    XCTAssertEqual(client.configuration.chainID, 11_155_111)
+    XCTAssertEqual(
+      client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
+    XCTAssertEqual(
+      client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
+    XCTAssertEqual(
+      client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
   }
 
   func testExplicitSepoliaConfigurationMatchesDefault() {
     let client = ENSClient(configuration: .sepolia)
-    XCTAssertEqual(client.configuration.chainID, 11155111)
-    XCTAssertEqual(client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
-    XCTAssertEqual(client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
-    XCTAssertEqual(client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
+    XCTAssertEqual(client.configuration.chainID, 11_155_111)
+    XCTAssertEqual(
+      client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968")
+    XCTAssertEqual(
+      client.configuration.publicResolverAddress, "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5")
+    XCTAssertEqual(
+      client.configuration.universalResolverAddress, "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe")
   }
 
   func testEthLabelRemovesSuffix() {
@@ -33,7 +40,7 @@ final class ENSTests: XCTestCase {
   }
 
   func testDNSEncodedName() {
-    let encoded = ENSClient.dnsEncodedName("metu.eth")
-    XCTAssertEqual(encoded?.toHexString(), "046d6574750365746800")
+    let encoded = ENSClient.dnsEncodedName("vitalik.eth")
+    XCTAssertEqual(encoded?.toHexString(), "07766974616c696b0365746800")
   }
 }

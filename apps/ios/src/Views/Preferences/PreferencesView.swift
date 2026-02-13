@@ -1,10 +1,21 @@
 import Observation
 import SwiftUI
 
-private enum PreferencesModal {
+private enum PreferencesModal: String, Identifiable {
   case appearance
   case currency
   case language
+
+  var id: String { rawValue }
+
+  var sheetKind: AppSheetKind {
+    switch self {
+    case .appearance:
+      return .height(260)
+    case .currency, .language:
+      return .full
+    }
+  }
 }
 
 struct PreferencesView: View {
@@ -58,20 +69,24 @@ struct PreferencesView: View {
         onBack: onBack
       )
     }
-    .overlay(alignment: .bottom) {
-      SlideModal(
-        isPresented: activeModal != nil,
-        kind: modalKind,
-        onDismiss: dismissModal
-      ) {
-        modalContent
+    .sheet(item: $activeModal) { modal in
+      AppSheet(kind: modal.sheetKind) {
+        modalContent(for: modal)
       }
     }
   }
 
   @ViewBuilder
-  private var modalContent: some View {
-    switch activeModal {
+  private func modalContent(for modal: PreferencesModal) -> some View {
+    switch modal {
+    case .appearance:
+      AppearancePickerModal(
+        selectedAppearance: preferencesStore.appearance,
+        onSelect: { appearance in
+          preferencesStore.appearance = appearance
+          dismissModal()
+        }
+      )
     case .currency:
       CurrencyPickerModal(
         title: "sheet_currency_title",
@@ -79,7 +94,7 @@ struct PreferencesView: View {
         selectedCode: preferencesStore.selectedCurrencyCode,
         onSelect: { code in
           preferencesStore.selectedCurrencyCode = code
-          dismissModalAnimated()
+          dismissModal()
         }
       )
     case .language:
@@ -89,30 +104,9 @@ struct PreferencesView: View {
         selectedCode: preferencesStore.languageCode,
         onSelect: { code in
           preferencesStore.languageCode = code
-          dismissModalAnimated()
+          dismissModal()
         }
       )
-    case .appearance:
-      AppearancePickerModal(
-        selectedAppearance: preferencesStore.appearance,
-        onSelect: { appearance in
-          preferencesStore.appearance = appearance
-          dismissModalAnimated()
-        }
-      )
-    case .none:
-      EmptyView()
-    }
-  }
-
-  private var modalKind: SlideModalKind {
-    switch activeModal {
-    case .appearance:
-      return .compact(maxHeight: 281, horizontalInset: 0)
-    case .currency, .language:
-      return .fullHeight(topInset: 12)
-    case .none:
-      return .fullHeight(topInset: 12)
     }
   }
 
@@ -121,10 +115,6 @@ struct PreferencesView: View {
   }
 
   private func dismissModal() {
-    activeModal = nil
-  }
-
-  private func dismissModalAnimated() {
     activeModal = nil
   }
 }
@@ -405,14 +395,10 @@ private struct AppearancePreviewCard: View {
     case .dark:
       AppThemeColor.grayBlack
     case .system:
-      LinearGradient(
-        colors: [
-          AppThemeColor.grayBlack, AppThemeColor.grayBlack, AppThemeColor.grayWhite,
-          AppThemeColor.grayWhite,
-        ],
-        startPoint: .leading,
-        endPoint: .trailing
-      )
+      HStack(spacing: 0) {
+        AppThemeColor.grayBlack
+        AppThemeColor.grayWhite
+      }
     case .light:
       AppThemeColor.grayWhite
     }

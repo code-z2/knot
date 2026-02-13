@@ -26,13 +26,12 @@ contract DeployMainnet is Script {
     bytes32 constant GY = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5;
 
     function run() external {
-        address treasury = vm.envAddress("TREASURY_ADDRESS");
         console.log("Deploying to chain ID:", block.chainid);
 
         vm.startBroadcast();
 
         // 1. Accumulator Factory
-        bytes memory accInitCode = abi.encodePacked(type(AccumulatorFactory).creationCode, abi.encode(treasury));
+        bytes memory accInitCode = type(AccumulatorFactory).creationCode;
         address accFactory = CREATEX.deployCreate2(ACCUMULATOR_SALT, accInitCode);
         console.log("AccumulatorFactory deployed at:", accFactory);
 

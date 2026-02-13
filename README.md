@@ -1,5 +1,17 @@
 Hack Money
 
+Architecture Diagram
+```mermaid
+flowchart LR
+    U["User (Passkey / EOA)"] --> APP["iOS App"]
+    APP --> UA["UnifiedTokenAccount (EIP-7702)"]
+    UA --> AF["AccumulatorFactory (CREATE2)"]
+    UA --> SP["Across SpokePool.deposit"]
+    SP --> ACC["Accumulator (destination)"]
+    ACC --> RCPT["Recipient"]
+    ACC --> UA
+```
+
 Implementation Checklist
 - Define UniversalIntent + ChainAction schema (chainId-scoped actions).
 - Implement Simple7702Account with intent verification + chain-scoped execution.

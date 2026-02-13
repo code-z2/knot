@@ -39,7 +39,7 @@ final class BeneficiaryStore {
   private let service: String
   private let accountPrefix = "beneficiaries.v1"
 
-  init(service: String = "com.peteranyaogu.metu") {
+  init(service: String = "fi.knot.beneficiaries") {
     self.service = service
   }
 

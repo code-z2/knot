@@ -17,7 +17,7 @@ final class QRScannerController: NSObject, ObservableObject {
   var onCodeDetected: ((String) -> Bool)?
   private let metadataDelegate = QRScannerMetadataDelegate()
 
-  private let sessionQueue = DispatchQueue(label: "com.peteranyaogu.metu.qr-scanner")
+  private let sessionQueue = DispatchQueue(label: "fi.knot.qr-scanner")
   private var isConfigured = false
   private var isProcessing = false
 
@@ -130,7 +130,8 @@ final class QRScannerController: NSObject, ObservableObject {
   private func setTorch(enabled: Bool) {
     sessionQueue.async { [weak self] in
       guard let self else { return }
-      guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+      guard
+        let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
         camera.hasTorch
       else { return }
 
@@ -164,9 +165,22 @@ final class QRScannerController: NSObject, ObservableObject {
 }
 
 private final class QRScannerMetadataDelegate: NSObject, AVCaptureMetadataOutputObjectsDelegate {
-  nonisolated(unsafe) var onCodeDetected: ((String) -> Void)?
+  private let callbackLock = NSLock()
+  private var callback: ((String) -> Void)?
 
-  nonisolated
+  var onCodeDetected: ((String) -> Void)? {
+    get {
+      callbackLock.lock()
+      defer { callbackLock.unlock() }
+      return callback
+    }
+    set {
+      callbackLock.lock()
+      callback = newValue
+      callbackLock.unlock()
+    }
+  }
+
   func metadataOutput(
     _ output: AVCaptureMetadataOutput,
     didOutput metadataObjects: [AVMetadataObject],

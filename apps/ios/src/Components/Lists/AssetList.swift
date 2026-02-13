@@ -193,7 +193,7 @@ private struct AssetItem: View {
     let percentText = (formatter.string(from: absPercent as NSDecimalNumber) ?? "0.00") + "%"
     return PriceChange(
       direction: ratio >= 0 ? .up : .down,
-      percentageText: percentText
+      percentageText: ratio >= 0 ? "+\(percentText)" : "-\(percentText)"
     )
   }
 }
@@ -221,7 +221,7 @@ private struct AssetPriceChange: View {
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .frame(width: 8, height: 8)
+            .frame(width: 12, height: 12)
             .foregroundStyle(accentColor)
         }
 

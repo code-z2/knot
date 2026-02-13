@@ -183,12 +183,8 @@ struct SendMoneyView: View {
         onCodeScanned: handleScannedCode
       )
     }
-    .overlay(alignment: .bottom) {
-      SlideModal(
-        isPresented: isShowingSpendAssetPicker,
-        kind: .fullHeight(topInset: 12),
-        onDismiss: { isShowingSpendAssetPicker = false }
-      ) {
+    .sheet(isPresented: $isShowingSpendAssetPicker) {
+      AppSheet(kind: .full) {
         spendAssetModal
       }
     }
@@ -287,7 +283,7 @@ struct SendMoneyView: View {
 
       VStack(spacing: 56) {
         VStack(spacing: 48) {
-          MetuSuccessCheckmark()
+          SuccessCheckmark()
             .frame(width: 127, height: 123)
 
           VStack(spacing: 24) {
@@ -865,16 +861,12 @@ struct SendMoneyView: View {
     guard !trimmed.isEmpty else { return }
 
     let snapshot = trimmed
-    addressDetectionTask = Task(priority: .userInitiated) {
-      let detection = await Task.detached(priority: .userInitiated) {
-        AddressInputParser.detectCandidate(snapshot)
-      }.value
+    addressDetectionTask = Task(priority: .userInitiated) { @MainActor in
+      let detection = AddressInputParser.detectCandidate(snapshot)
 
       guard !Task.isCancelled else { return }
 
-      await MainActor.run {
-        applyAddressDetectionResult(detection, sourceInput: snapshot)
-      }
+      applyAddressDetectionResult(detection, sourceInput: snapshot)
     }
   }
 
@@ -1103,14 +1095,13 @@ struct SendMoneyView: View {
         let account = try await accountService.restoreSession(eoaAddress: eoaAddress)
         print("[SendMoney] Session restored for \(account.eoaAddress)")
 
-        if let jobId = route.jobId {
+        if route.jobId != nil {
           // Multi-chain: executeChainCalls
           print("[SendMoney] Executing multi-chain calls...")
           let result = try await aaExecutionService.executeChainCalls(
             accountService: accountService,
             account: account,
             destinationChainId: route.destinationChainId,
-            jobId: jobId,
             chainCalls: route.chainCalls
           )
           print(
@@ -1268,12 +1259,26 @@ struct SendMoneyView: View {
     minFractionDigits: Int,
     maxFractionDigits: Int
   ) -> String {
+    let cappedMaxFractionDigits = max(0, min(maxFractionDigits, 4))
+    let cappedMinFractionDigits = min(max(0, minFractionDigits), cappedMaxFractionDigits)
+    let truncatedValue = truncate(value, fractionDigits: cappedMaxFractionDigits)
     let formatter = NumberFormatter()
     formatter.locale = Locale.current
     formatter.numberStyle = .decimal
-    formatter.minimumFractionDigits = minFractionDigits
-    formatter.maximumFractionDigits = maxFractionDigits
-    return formatter.string(from: value as NSDecimalNumber) ?? "0.0"
+    formatter.minimumFractionDigits = cappedMinFractionDigits
+    formatter.maximumFractionDigits = cappedMaxFractionDigits
+    return formatter.string(from: truncatedValue as NSDecimalNumber) ?? "0.0"
+  }
+
+  private func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 
   private func usdRate(for asset: TokenBalance) -> Decimal {
@@ -1293,7 +1298,7 @@ struct SendMoneyView: View {
   }
 }
 
-private struct MetuSuccessCheckmark: View {
+private struct SuccessCheckmark: View {
   var body: some View {
     GeometryReader { proxy in
       Image("LogoMark")

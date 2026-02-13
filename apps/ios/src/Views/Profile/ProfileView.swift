@@ -2,10 +2,15 @@ import ENS
 import PhotosUI
 import SwiftUI
 import Transactions
-import UniformTypeIdentifiers
 import UIKit
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
+  private enum FocusedField: Hashable {
+    case ensName
+    case bio
+  }
+
   let eoaAddress: String
   let accountService: AccountSetupService
   let ensService: ENSService
@@ -17,6 +22,7 @@ struct ProfileView: View {
   @State private var ensName = ""
   @State private var avatarURL = ""
   @State private var bio = ""
+  @State private var isEditingProfile = false
   @State private var isNameLocked = false
   @State private var isCheckingName = false
   @State private var lastQuotedName = ""
@@ -27,6 +33,7 @@ struct ProfileView: View {
   @State private var errorMessage: String?
   @State private var successMessage: String?
   @State private var preparedPayloads = 0
+  @State private var initialENSName = ""
   @State private var initialAvatarURL = ""
   @State private var initialBio = ""
   @State private var localAvatarImage: UIImage?
@@ -37,6 +44,7 @@ struct ProfileView: View {
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var quoteTask: Task<Void, Never>?
   @State private var avatarUploadTask: Task<Void, Never>?
+  @FocusState private var focusedField: FocusedField?
   private let quoteWorker: ENSQuoteWorker
 
   init(
@@ -68,7 +76,7 @@ struct ProfileView: View {
             .padding(.top, 46)
             .padding(.bottom, 44)
 
-          if let nameInfoText, !isNameLocked {
+          if let nameInfoText, !isNameLocked, isEditingProfile {
             infoText(nameInfoText, tone: nameInfoTone)
               .padding(.horizontal, 20)
               .padding(.bottom, 12)
@@ -78,6 +86,12 @@ struct ProfileView: View {
         }
       }
       .scrollIndicators(.hidden)
+      .scrollDismissesKeyboard(.interactively)
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          focusedField = nil
+        }
+      )
       .padding(.top, AppHeaderMetrics.contentTopPadding)
 
       if let errorMessage {
@@ -94,22 +108,13 @@ struct ProfileView: View {
           .padding(.bottom, 24)
       }
     }
-    .safeAreaInset(edge: .top, spacing: 0) {
-      AppHeader(
-        title: "profile_title",
-        titleFont: .custom("Roboto-Bold", size: 22),
-        titleColor: AppThemeColor.labelSecondary,
-        onBack: onBack
-      ) {
-        saveButton
-      }
-    }
+    .safeAreaInset(edge: .top, spacing: 0) { profileHeader }
     .task {
       await loadProfile()
       await resumePendingCommitRevealIfNeeded()
     }
     .onChange(of: ensName) { _, newValue in
-      guard !isNameLocked else { return }
+      guard !isNameLocked, isEditingProfile else { return }
       scheduleQuoteLookup(for: newValue)
     }
     .onChange(of: selectedPhotoItem) { _, newItem in
@@ -124,7 +129,9 @@ struct ProfileView: View {
       Button(String(localized: "profile_photo_library")) { showPhotoPicker = true }
       Button(String(localized: "profile_files")) { showFileImporter = true }
       if localAvatarImage != nil || !avatarURL.isEmpty {
-        Button(String(localized: "profile_remove_photo"), role: .destructive) { clearAvatarSelection() }
+        Button(String(localized: "profile_remove_photo"), role: .destructive) {
+          clearAvatarSelection()
+        }
       }
       Button(String(localized: "profile_cancel"), role: .cancel) {}
     }
@@ -149,9 +156,45 @@ struct ProfileView: View {
     }
   }
 
+  private var profileHeader: some View {
+    ZStack {
+      Text("profile_title")
+        .font(.custom("Roboto-Bold", size: 22))
+        .foregroundStyle(AppThemeColor.labelSecondary)
+        .lineLimit(1)
+        .frame(maxWidth: .infinity)
+
+      HStack(spacing: 0) {
+        if isEditingProfile {
+          cancelButton
+        } else {
+          BackNavigationButton(tint: AppThemeColor.labelSecondary, action: onBack)
+        }
+        Spacer(minLength: 0)
+        profileActionButton
+      }
+    }
+    .frame(height: AppHeaderMetrics.height)
+    .padding(.horizontal, 16)
+  }
+
+  private var cancelButton: some View {
+    Button(action: {
+      cancelEditing()
+    }) {
+      Text("profile_cancel")
+        .font(.custom("Roboto-Medium", size: 15))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+
+    }
+    .foregroundStyle(AppThemeColor.labelPrimary)
+    .modifier(ProfileGlassCapsuleButtonModifier())
+  }
+
   private var avatarSection: some View {
     VStack(spacing: 0) {
-      ZStack(alignment: .bottomTrailing) {
+      VStack(spacing: 14) {
         avatarPreview
           .frame(width: 104, height: 104)
           .clipShape(Circle())
@@ -162,23 +205,17 @@ struct ProfileView: View {
         Button {
           showPhotoSourceDialog = true
         } label: {
-          Circle()
-            .fill(AppThemeColor.backgroundSecondary)
-            .frame(width: 24, height: 24)
-            .overlay(
-              Circle().stroke(AppThemeColor.separatorOpaque, lineWidth: 1)
-            )
-            .overlay {
-              Image("Icons/gallery_01")
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 12, height: 12)
-                .foregroundStyle(AppThemeColor.glyphPrimary)
-            }
+          Text("Edit Photo")
+            .font(.custom("Roboto-Medium", size: 14))
+            .foregroundStyle(AppThemeColor.labelPrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
-        .offset(x: -4, y: -2)
+        .disabled(!canEditProfileFields)
+        .opacity(canEditProfileFields ? 1 : 0.55)
+        .background(AppThemeColor.fillSecondary)
+        .clipShape(Capsule())
       }
     }
     .frame(maxWidth: .infinity)
@@ -222,94 +259,137 @@ struct ProfileView: View {
   }
 
   private var formSection: some View {
-    VStack(spacing: 0) {
-      separator
-
-      HStack(spacing: 10) {
-        TextField(
-          "",
-          text: $ensName,
-          prompt: Text("profile_enter_name_placeholder")
-            .font(.custom("Roboto-Medium", size: 14))
-            .foregroundStyle(AppThemeColor.labelSecondary)
-        )
-          .font(.custom("Roboto-Medium", size: 14))
-          .foregroundStyle(AppThemeColor.labelPrimary)
-          .textInputAutocapitalization(.never)
-          .autocorrectionDisabled(true)
-          .disabled(isNameLocked)
-          .opacity(isNameLocked ? 0.9 : 1)
-
-        Spacer(minLength: 8)
-
-        HStack(spacing: 6) {
-          Text(".eth")
+    VStack(alignment: .leading, spacing: 14) {
+      VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(spacing: 10) {
+            TextField(
+              "",
+              text: $ensName,
+              prompt: Text("profile_enter_name_placeholder")
+                .font(.custom("Roboto-Medium", size: 14))
+                .foregroundStyle(AppThemeColor.labelSecondary)
+            )
             .font(.custom("Roboto-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+            .focused($focusedField, equals: .ensName)
+            .disabled(nameFieldIsLocked)
+            .opacity(nameFieldIsLocked ? 0.72 : 1)
 
-          if isNameLocked {
-            Image("Icons/lock_01")
-              .renderingMode(.template)
-              .resizable()
-              .aspectRatio(contentMode: .fit)
-              .frame(width: 14, height: 14)
-              .foregroundStyle(AppThemeColor.accentBrown)
+            Spacer(minLength: 8)
+
+            HStack(spacing: 6) {
+              Text(".eth")
+                .font(.custom("Roboto-Medium", size: 14))
+                .foregroundStyle(AppThemeColor.labelPrimary)
+
+              if isNameLocked {
+                Image("Icons/lock_01")
+                  .renderingMode(.template)
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 14, height: 14)
+                  .foregroundStyle(AppThemeColor.accentBrown)
+              }
+            }
           }
         }
-      }
-      .padding(.horizontal, 24)
-      .frame(height: 48)
+        .padding(16)
 
-      separator
+        Rectangle()
+          .fill(AppThemeColor.separatorOpaque.opacity(0.7))
+          .frame(height: 1)
+          .padding(.horizontal, 12)
 
-      ZStack(alignment: .topLeading) {
-        TextEditor(text: $bio)
-          .font(.custom("Roboto-Medium", size: 14))
-          .foregroundStyle(AppThemeColor.labelPrimary)
-          .scrollContentBackground(.hidden)
-          .padding(.horizontal, 20)
-          .padding(.vertical, 12)
-          .frame(minHeight: 164)
+        VStack(alignment: .leading, spacing: 8) {
+          ZStack(alignment: .topLeading) {
+            TextEditor(text: $bio)
+              .font(.custom("Roboto-Medium", size: 14))
+              .foregroundStyle(AppThemeColor.labelPrimary)
+              .focused($focusedField, equals: .bio)
+              .scrollContentBackground(.hidden)
+              .disabled(!canEditProfileFields)
+              .opacity(canEditProfileFields ? 1 : 0.72)
 
-        if bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-          Text("profile_bio_optional")
-            .font(.custom("Roboto-Medium", size: 14))
-            .foregroundStyle(AppThemeColor.labelSecondary)
-            .padding(.top, 18)
-            .padding(.leading, 24)
-            .allowsHitTesting(false)
+            if bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+              Text("profile_bio_optional")
+                .font(.custom("Roboto-Medium", size: 14))
+                .foregroundStyle(AppThemeColor.labelSecondary)
+                .padding(.top, 8)
+                .padding(.leading, 4)
+                .allowsHitTesting(false)
+                .opacity(canEditProfileFields ? 1 : 0.72)
+            }
+          }
         }
+        .padding(16)
       }
-      .frame(maxWidth: .infinity, minHeight: 164, alignment: .topLeading)
+      .background(AppThemeColor.backgroundSecondary)
+      .clipShape(.rect(cornerRadius: 16))
+
+      Text(
+        "Your ENS name is visible on the blockchain. Including your text records, i.e photo and bio."
+      )
+      .font(.custom("Roboto-Regular", size: 12))
+      .foregroundStyle(AppThemeColor.labelSecondary)
+      .multilineTextAlignment(.center)
+      .padding(.horizontal, 12)
     }
+    .padding(.horizontal, 20)
     .padding(.top, 24)
   }
 
-  private var separator: some View {
-    Rectangle()
-      .fill(AppThemeColor.separatorOpaque)
-      .frame(height: 1)
-      .frame(maxWidth: .infinity)
+  private var canEditProfileFields: Bool {
+    isEditingProfile && !isSaving
+  }
+
+  private var nameFieldIsLocked: Bool {
+    !isEditingProfile || isNameLocked
+  }
+
+  private var profileActionButton: some View {
+    Group {
+      if isEditingProfile {
+        saveButton
+      } else {
+        editButton
+      }
+    }
+  }
+
+  private var editButton: some View {
+    Button(action: {
+      enterEditMode()
+    }) {
+      Text("Edit")
+        .font(.custom("Roboto-Medium", size: 15))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+    }
+    .foregroundStyle(AppThemeColor.labelPrimary)
+    .disabled(isSaving)
+    .opacity(isSaving ? 0.45 : 1)
+    .modifier(ProfileGlassCapsuleButtonModifier())
   }
 
   private var saveButton: some View {
-    AppButton(
-      label: isSaving ? "profile_saving" : "profile_save",
-      variant: .outline,
-      size: .compact,
-      showIcon: false,
-      underlinedLabel: true,
-      foregroundColorOverride: AppThemeColor.accentBrown,
-      backgroundColorOverride: .clear
-    ) {
+    Button(action: {
       Task { await saveProfile() }
+    }) {
+      Text(isSaving ? "profile_saving" : "profile_save")
+        .font(.custom("Roboto-Medium", size: 15))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
     .disabled(!canSave)
     .opacity(canSave ? 1 : 0.45)
+    .modifier(ProfileProminentActionButtonModifier())
   }
 
   private var canSave: Bool {
-    guard !isSaving, !isCheckingName else { return false }
+    guard isEditingProfile, !isSaving, !isCheckingName else { return false }
     return hasSavableChanges
   }
 
@@ -380,6 +460,8 @@ struct ProfileView: View {
       nameInfoText = nil
     }
 
+    isEditingProfile = false
+    initialENSName = ensName
     initialAvatarURL = avatarURL
     initialBio = bio
   }
@@ -404,7 +486,10 @@ struct ProfileView: View {
         try await Task.sleep(for: .milliseconds(420))
         try Task.checkCancellation()
 
-        let shouldContinue = !self.isNameLocked && self.normalizeENSLabel(self.ensName) == normalized
+        let shouldContinue =
+          !self.isNameLocked
+          && self.isEditingProfile
+          && self.normalizeENSLabel(self.ensName) == normalized
         guard shouldContinue else { return }
 
         self.isCheckingName = true
@@ -531,6 +616,7 @@ struct ProfileView: View {
 
       guard commitCall != nil || !postCommitCalls.isEmpty else {
         showSuccess(String(localized: "profile_no_changes_to_save"))
+        isEditingProfile = false
         return
       }
 
@@ -590,11 +676,13 @@ struct ProfileView: View {
 
       initialAvatarURL = avatarURL
       initialBio = bio
+      initialENSName = ensName
       let message = String.localizedStringWithFormat(
         NSLocalizedString("profile_saved_changes", comment: ""),
         preparedPayloads
       )
       showSuccess(message)
+      isEditingProfile = false
     } catch {
       showError(error)
     }
@@ -631,7 +719,8 @@ struct ProfileView: View {
   @MainActor
   private func preparePendingAvatarUpload(from imageData: Data) throws {
     guard let image = UIImage(data: imageData),
-      let jpegData = image.jpegData(compressionQuality: 0.86) else {
+      let jpegData = image.jpegData(compressionQuality: 0.86)
+    else {
       throw URLError(.cannotDecodeRawData)
     }
 
@@ -734,6 +823,40 @@ struct ProfileView: View {
   }
 
   @MainActor
+  private func enterEditMode() {
+    guard !isSaving else { return }
+    isEditingProfile = true
+    errorMessage = nil
+    successMessage = nil
+
+    if !isNameLocked {
+      scheduleQuoteLookup(for: ensName)
+    }
+  }
+
+  @MainActor
+  private func cancelEditing() {
+    quoteTask?.cancel()
+    quoteTask = nil
+    avatarUploadTask?.cancel()
+    avatarUploadTask = nil
+    isUploadingAvatar = false
+
+    ensName = initialENSName
+    avatarURL = initialAvatarURL
+    bio = initialBio
+    localAvatarImage = nil
+    pendingAvatarUpload = nil
+    selectedPhotoItem = nil
+
+    isCheckingName = false
+    nameInfoText = nil
+    nameInfoTone = .info
+    lastQuotedName = normalizeENSLabel(initialENSName)
+    isEditingProfile = false
+  }
+
+  @MainActor
   private func showError(_ error: Error) {
     successMessage = nil
     errorMessage = error.localizedDescription
@@ -808,9 +931,9 @@ struct ProfileView: View {
   }
 
   private func waitForRevealWindowStart(for job: PendingENSRevealJob) async throws -> Date {
-    let commitIncludedAt = try await aaExecutionService.waitForUserOperationInclusion(
+    let commitIncludedAt = try await aaExecutionService.waitForRelayInclusion(
       chainId: job.chainId,
-      userOperationHash: job.submissionHash
+      relayTaskID: job.submissionHash
     )
     return commitIncludedAt.addingTimeInterval(TimeInterval(job.minCommitmentAgeSeconds))
   }
@@ -862,6 +985,37 @@ private enum NameInfoTone {
   case info
   case success
   case error
+}
+
+private struct ProfileGlassCapsuleButtonModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    if #available(iOS 26.0, *) {
+      content
+        .buttonStyle(.glass)
+    } else {
+      content
+        .background(
+          Capsule()
+            .fill(AppThemeColor.fillPrimary)
+        )
+    }
+  }
+}
+
+private struct ProfileProminentActionButtonModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    if #available(iOS 26.0, *) {
+      content
+        .buttonStyle(.glassProminent)
+    } else {
+      content
+        .foregroundStyle(AppThemeColor.backgroundPrimary)
+        .background(
+          Capsule()
+            .fill(Color.blue)
+        )
+    }
+  }
 }
 
 #Preview {

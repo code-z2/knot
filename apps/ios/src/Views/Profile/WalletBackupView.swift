@@ -42,8 +42,9 @@ struct WalletBackupView: View {
 
               if !isMnemonicRevealed {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                  .fill(.ultraThinMaterial)
-                  .frame(height: 154)
+                   .glassEffect(.clear.interactive(), in:  .rect)
+                   .clipShape(.rect(cornerRadius: 16))
+                   .frame(height: 154)
                   .overlay {
                     Button {
                       withAnimation(.easeInOut(duration: 0.2)) {

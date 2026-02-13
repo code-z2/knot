@@ -2,8 +2,17 @@ import Balance
 import SwiftUI
 import UIKit
 
-private enum HomeModal {
+private enum HomeModal: String, Identifiable {
   case assets
+
+  var id: String { rawValue }
+
+  var sheetKind: AppSheetKind {
+    switch self {
+    case .assets:
+      return .full
+    }
+  }
 }
 
 struct HomeView: View {
@@ -13,9 +22,6 @@ struct HomeView: View {
   let onSignOut: () -> Void
   let onAddMoney: () -> Void
   let onSendMoney: () -> Void
-  let onHomeTap: () -> Void
-  let onTransactionsTap: () -> Void
-  let onSessionKeyTap: () -> Void
   let onProfileTap: () -> Void
   let onPreferencesTap: () -> Void
   let onWalletBackupTap: () -> Void
@@ -29,9 +35,6 @@ struct HomeView: View {
     onSignOut: @escaping () -> Void,
     onAddMoney: @escaping () -> Void = {},
     onSendMoney: @escaping () -> Void = {},
-    onHomeTap: @escaping () -> Void = {},
-    onTransactionsTap: @escaping () -> Void = {},
-    onSessionKeyTap: @escaping () -> Void = {},
     onProfileTap: @escaping () -> Void = {},
     onPreferencesTap: @escaping () -> Void = {},
     onWalletBackupTap: @escaping () -> Void = {},
@@ -44,9 +47,6 @@ struct HomeView: View {
     self.onSignOut = onSignOut
     self.onAddMoney = onAddMoney
     self.onSendMoney = onSendMoney
-    self.onHomeTap = onHomeTap
-    self.onTransactionsTap = onTransactionsTap
-    self.onSessionKeyTap = onSessionKeyTap
     self.onProfileTap = onProfileTap
     self.onPreferencesTap = onPreferencesTap
     self.onWalletBackupTap = onWalletBackupTap
@@ -85,22 +85,10 @@ struct HomeView: View {
         titleColor: AppThemeColor.labelPrimary
       )
     }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      BottomNavigation(
-        activeTab: .home,
-        onHomeTap: onHomeTap,
-        onTransactionsTap: onTransactionsTap,
-        onSessionKeyTap: onSessionKeyTap
-      )
-    }
     .task {}
-    .overlay(alignment: .bottom) {
-      SlideModal(
-        isPresented: activeModal != nil,
-        kind: .fullHeight(topInset: 12),
-        onDismiss: dismissModal
-      ) {
-        assetsModal
+    .sheet(item: $activeModal) { modal in
+      AppSheet(kind: modal.sheetKind) {
+        modalContent(for: modal)
       }
     }
   }
@@ -193,7 +181,7 @@ struct HomeView: View {
   }
 
   private var contentSection: some View {
-    VStack(alignment: .leading, spacing: 32) {
+    VStack(alignment: .leading, spacing: 28) {
       balanceSection
         .frame(maxWidth: .infinity)
         .padding(.bottom, 22)
@@ -210,21 +198,27 @@ struct HomeView: View {
       spaceSection
         .padding(.horizontal, 20)
 
+      logoutSection
+        .padding(.horizontal, 20)
+
       Spacer(minLength: 0)
     }
-    .padding(.bottom, 50)
+    .padding(.bottom, 36)
   }
 
   private var assetsSection: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 15) {
       Text("home_assets_title")
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
 
-      Button(action: presentAssetsModal) {
-        HStack(spacing: 16) {
-          IconBadge(style: .defaultStyle) {
+      HomeSettingsCard {
+        HomeSettingsRow(
+          title: Text(assetsSummaryText),
+          action: presentAssetsModal
+        ) {
+            IconBadge(style: .neutral) {
             Image("Icons/coins_03")
               .renderingMode(.template)
               .resizable()
@@ -232,139 +226,127 @@ struct HomeView: View {
               .frame(width: 21, height: 21)
               .foregroundStyle(AppThemeColor.glyphPrimary)
           }
+        }        .padding(.vertical, 2)
 
-          VStack(alignment: .leading, spacing: 2) {
-            Text(assetsSummaryText)
-              .font(.custom("RobotoMono-Medium", size: 15))
-              .foregroundStyle(AppThemeColor.labelSecondary)
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-
-          Image("Icons/chevron_right")
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 12, height: 12)
-            .foregroundStyle(AppThemeColor.glyphSecondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 12)
-        }
-        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
       }
-      .buttonStyle(.plain)
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
   }
 
   private var spaceSection: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 15) {
       Text("home_space_title")
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
 
-      VStack(alignment: .leading, spacing: 36) {
-        VStack(spacing: 12) {
-          MenuRow(
-            title: "home_profile",
-            action: onProfileTap,
-            leading: {
-              IconBadge(style: .defaultStyle) {
-                Image("Icons/user_01")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 21, height: 21)
-                  .foregroundColor(AppThemeColor.glyphPrimary)
-              }
-            }
-          )
-          MenuRow(
-            title: "home_preferences",
-            action: onPreferencesTap,
-            leading: {
-              IconBadge(style: .defaultStyle) {
-                Image("Icons/hexagon_01")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 21, height: 21)
-                  .foregroundColor(AppThemeColor.glyphPrimary)
-              }
-            }
-          )
-          if showWalletBackup {
-            MenuRow(
-              title: "home_wallet_backup",
-              action: onWalletBackupTap,
-              leading: {
-                IconBadge(style: .defaultStyle) {
-                  Image("Icons/wallet_04")
-                    .renderingMode(.template)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 21, height: 21)
-                    .foregroundColor(AppThemeColor.glyphPrimary)
-                }
-              }
-            )
+      HomeSettingsCard {
+        HomeSettingsRow(
+          title: Text("home_profile"),
+          action: onProfileTap
+        ) {
+          IconBadge(style: .defaultStyle) {
+            Image("Icons/user_01")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 21, height: 21)
+              .foregroundStyle(AppThemeColor.glyphPrimary)
           }
-          MenuRow(
-            title: "home_address_book",
-            action: onAddressBookTap,
-            leading: {
-              IconBadge(style: .defaultStyle) {
-                Image("Icons/users_01")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 21, height: 21)
-                  .foregroundColor(AppThemeColor.glyphPrimary)
-              }
-            }
-          )
-          MenuRow(
-            title: "home_ai_agent",
-            leading: {
-              IconBadge(style: .defaultStyle) {
-                Image("Icons/cpu_chip_02")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 21, height: 21)
-                  .foregroundColor(AppThemeColor.glyphPrimary)
-              }
-            }
-          )
         }
+        .padding(.top, 2)
+        HomeSettingsRowDivider()
 
-        Button(action: onSignOut) {
-          HStack(spacing: 16) {
-            IconBadge(style: .destructive) {
-              Image("Icons/log_out_02")
+        HomeSettingsRow(
+          title: Text("home_preferences"),
+          action: onPreferencesTap
+        ) {
+          IconBadge(style: .defaultStyle) {
+            Image("Icons/hexagon_01")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 21, height: 21)
+              .foregroundStyle(AppThemeColor.glyphPrimary)
+          }
+        }
+        if showWalletBackup {
+          HomeSettingsRowDivider()
+          HomeSettingsRow(
+            title: Text("home_wallet_backup"),
+            action: onWalletBackupTap
+          ) {
+            IconBadge(style: .defaultStyle) {
+              Image("Icons/wallet_04")
                 .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 21, height: 21)
-                .foregroundColor(AppThemeColor.accentRed)
+                .foregroundStyle(AppThemeColor.glyphPrimary)
             }
-
-            Text("home_logout")
-              .font(.custom("Roboto-Medium", size: 15))
-              .foregroundStyle(AppThemeColor.accentRed)
           }
         }
-        .buttonStyle(.plain)
-        .padding(.top, 24)
+        HomeSettingsRowDivider()
+        HomeSettingsRow(
+          title: Text("home_address_book"),
+          action: onAddressBookTap
+        ) {
+          IconBadge(style: .defaultStyle) {
+            Image("Icons/users_01")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 21, height: 21)
+              .foregroundStyle(AppThemeColor.glyphPrimary)
+          }
+        }
+        HomeSettingsRowDivider()
+        HomeSettingsRow(
+          title: Text("home_ai_agent"),
+          action: nil,
+          showsChevron: false
+        ) {
+          IconBadge(style: .defaultStyle) {
+            Image("Icons/cpu_chip_02")
+              .renderingMode(.template)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 21, height: 21)
+              .foregroundStyle(AppThemeColor.glyphPrimary)
+          }
+        }
+        .padding(.bottom, 2)
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
+  }
+
+  private var logoutSection: some View {
+    HomeSettingsCard {
+      HomeSettingsRow(
+        title: Text("home_logout"),
+        action: onSignOut,
+        showsChevron: false,
+        isDestructive: true
+      ) {
+        IconBadge(style: .destructive) {
+          Image("Icons/log_out_02")
+            .renderingMode(.template)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 21, height: 21)
+            .foregroundStyle(AppThemeColor.accentRed)
+        }
+      }
+      .padding(.vertical, 2)
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
   }
 
   @ViewBuilder
-  private var assetsModal: some View {
-    if activeModal == .assets {
+  private func modalContent(for modal: HomeModal) -> some View {
+    switch modal {
+    case .assets:
       AssetsListModal(
         query: $assetSearchText,
         state: assetListState,
@@ -372,17 +354,11 @@ struct HomeView: View {
         displayLocale: preferencesStore.locale,
         usdToSelectedRate: currencyRateStore.rateFromUSD(to: preferencesStore.selectedCurrencyCode)
       )
-    } else {
-      EmptyView()
     }
   }
 
   private func presentAssetsModal() {
     activeModal = .assets
-  }
-
-  private func dismissModal() {
-    activeModal = nil
   }
 
   // MARK: - Pull-to-refresh
@@ -411,17 +387,48 @@ struct HomeView: View {
 
 }
 
-private struct MenuRow<Leading: View>: View {
-  let title: LocalizedStringKey
+private struct HomeSettingsCard<Content: View>: View {
+  @ViewBuilder let content: () -> Content
+
+  var body: some View {
+    if #available(iOS 26.0, *) {
+      VStack(spacing: 2) {
+        content()
+      }
+      .background(AppThemeColor.backgroundSecondary)
+      .clipShape(.rect(cornerRadius: 22))
+    } else {
+      VStack(spacing: 2) {
+        content()
+      }
+      .background(AppThemeColor.backgroundSecondary)
+      .clipShape(.rect(cornerRadius: 22))
+      .overlay {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+          .stroke(AppThemeColor.separatorNonOpaque, lineWidth: 1)
+      }
+    }
+  }
+}
+
+private struct HomeSettingsRow<Leading: View>: View {
+  let title: Text
   let action: (() -> Void)?
+  let showsChevron: Bool
+  let isDestructive: Bool
   let leading: () -> Leading
 
   init(
-    title: LocalizedStringKey, action: (() -> Void)? = nil,
+    title: Text,
+    action: (() -> Void)? = nil,
+    showsChevron: Bool = true,
+    isDestructive: Bool = false,
     @ViewBuilder leading: @escaping () -> Leading
   ) {
     self.title = title
     self.action = action
+    self.showsChevron = showsChevron
+    self.isDestructive = isDestructive
     self.leading = leading
   }
 
@@ -437,29 +444,42 @@ private struct MenuRow<Leading: View>: View {
   }
 
   private var rowContent: some View {
-    HStack {
+    HStack(spacing: 12) {
       HStack(spacing: 16) {
         leading()
-        Text(title)
+
+        title
           .font(.custom("Roboto-Medium", size: 15))
-          .foregroundStyle(AppThemeColor.labelPrimary)
+          .foregroundStyle(isDestructive ? AppThemeColor.accentRed : AppThemeColor.labelPrimary)
       }
 
       Spacer(minLength: 0)
 
-      HStack(alignment: .center, spacing: 10) {
-        Image("Icons/chevron_right")
-          .renderingMode(.template)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .frame(width: 12, height: 12)
-          .foregroundColor(AppThemeColor.glyphSecondary)
+      if showsChevron {
+        HStack(alignment: .center, spacing: 10) {
+          Image("Icons/chevron_right")
+            .renderingMode(.template)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 12, height: 12)
+            .foregroundStyle(AppThemeColor.glyphSecondary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 12)
       }
-      .padding(.horizontal, 6)
-      .padding(.vertical, 12)
-      .cornerRadius(15)
     }
-    .frame(maxWidth: .infinity, minHeight: 48)
+    .padding(.horizontal, 14)
+    .frame(maxWidth: .infinity, minHeight: 54)
+    .contentShape(Rectangle())
+  }
+}
+
+private struct HomeSettingsRowDivider: View {
+  var body: some View {
+    Rectangle()
+      .fill(AppThemeColor.separatorOpaque)
+      .frame(height: 1)
+      .padding(.leading, 58)
   }
 }
 

@@ -2,57 +2,57 @@ import Foundation
 
 public enum RPCSecrets {
   public static let jsonRPCKeyInfoPlistKey = "JSONRPC_API_KEY"
-  public static let bundlerKeyInfoPlistKey = "BUNDLER_API_KEY"
-  public static let paymasterKeyInfoPlistKey = "PAYMASTER_API_KEY"
-  public static let walletAPIKeyInfoPlistKey = "WALLET_API_KEY"
-  public static let addressActivityAPIKeyInfoPlistKey = "TRANSACTIONS_API_KEY"
+  public static let walletAPIKeyInfoPlistKey = "ZERION_API_KEY"
+  public static let addressActivityAPIKeyInfoPlistKey = "ZERION_API_KEY"
+  public static let relayProxyBaseURLInfoPlistKey = "RELAY_PROXY_BASE_URL"
+  public static let uploadProxyBaseURLInfoPlistKey = "UPLOAD_PROXY_BASE_URL"
+  public static let relayProxyClientTokenInfoPlistKey = "CLIENT_TOKEN"
+  public static let relayProxyHmacSecretInfoPlistKey = "RELAY_PROXY_HMAC_SECRET"
 
   // Hardcoded URL templates: edit here to swap providers globally.
   public static let jsonRPCURLTemplate = "https://{slug}.g.alchemy.com/v2/{apiKey}"
-  public static let bundlerURLTemplate = "https://api.gelato.cloud/rpc/{chainId}?apiKey={apiKey}"
-  public static let paymasterURLTemplate = "https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}"
   public static let walletAPIURLTemplate =
-    "https://api.covalenthq.com/v1/allchains/address/{walletAddress}/balances/"
+    "https://api.zerion.io/v1/wallets/{walletAddress}/positions/"
   public static let addressActivityAPIURLTemplate =
-    "https://api.covalenthq.com/v1/address/{walletAddress}/activity/"
-  public static let allchainsTransactionsURLBase =
-    "https://api.covalenthq.com/v1/allchains/transactions/"
+    "https://api.zerion.io/v1/wallets/{walletAddress}/transactions/"
+  public static let relayProxyBaseURLDefault = "https://relay.knot.fi"
+  public static let uploadProxyBaseURLDefault = "https://upload.knot.fi"
 }
 
 public struct RPCEndpointBuilderConfig: Sendable, Equatable {
   public let jsonRPCAPIKey: String
-  public let bundlerAPIKey: String
-  public let paymasterAPIKey: String
   public let walletAPIKey: String
   public let addressActivityAPIKey: String
   public let jsonRPCURLTemplate: String
-  public let bundlerURLTemplate: String
-  public let paymasterURLTemplate: String
   public let walletAPIURLTemplate: String
   public let addressActivityAPIURLTemplate: String
+  public let relayProxyBaseURL: String
+  public let uploadProxyBaseURL: String
+  public let relayProxyClientToken: String
+  public let relayProxyHmacSecret: String
 
   public init(
     jsonRPCAPIKey: String,
-    bundlerAPIKey: String,
-    paymasterAPIKey: String,
     walletAPIKey: String,
     addressActivityAPIKey: String,
     jsonRPCURLTemplate: String,
-    bundlerURLTemplate: String,
-    paymasterURLTemplate: String,
     walletAPIURLTemplate: String,
-    addressActivityAPIURLTemplate: String
+    addressActivityAPIURLTemplate: String,
+    relayProxyBaseURL: String,
+    uploadProxyBaseURL: String,
+    relayProxyClientToken: String,
+    relayProxyHmacSecret: String
   ) {
     self.jsonRPCAPIKey = jsonRPCAPIKey
-    self.bundlerAPIKey = bundlerAPIKey
-    self.paymasterAPIKey = paymasterAPIKey
     self.walletAPIKey = walletAPIKey
     self.addressActivityAPIKey = addressActivityAPIKey
     self.jsonRPCURLTemplate = jsonRPCURLTemplate
-    self.bundlerURLTemplate = bundlerURLTemplate
-    self.paymasterURLTemplate = paymasterURLTemplate
     self.walletAPIURLTemplate = walletAPIURLTemplate
     self.addressActivityAPIURLTemplate = addressActivityAPIURLTemplate
+    self.relayProxyBaseURL = relayProxyBaseURL
+    self.uploadProxyBaseURL = uploadProxyBaseURL
+    self.relayProxyClientToken = relayProxyClientToken
+    self.relayProxyHmacSecret = relayProxyHmacSecret
   }
 }
 

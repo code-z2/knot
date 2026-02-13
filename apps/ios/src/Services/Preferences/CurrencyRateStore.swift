@@ -132,15 +132,7 @@ final class CurrencyRateStore {
   }
 
   private func normalizeCode(_ code: String) -> String {
-    let normalized = code.uppercased()
-    switch normalized {
-    case "YEN":
-      return "JPY"
-    case "SUR":
-      return "RUB"
-    default:
-      return normalized
-    }
+    code.uppercased()
   }
 
   private func persistCache() {
