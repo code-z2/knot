@@ -165,10 +165,10 @@ final class QRScannerController: NSObject, ObservableObject {
 }
 
 private final class QRScannerMetadataDelegate: NSObject, AVCaptureMetadataOutputObjectsDelegate {
-  private let callbackLock = NSLock()
-  private var callback: ((String) -> Void)?
+    private let callbackLock = NSLock()
+  nonisolated(unsafe) private var callback: ((String) -> Void)?
 
-  var onCodeDetected: ((String) -> Void)? {
+  nonisolated var onCodeDetected: ((String) -> Void)? {
     get {
       callbackLock.lock()
       defer { callbackLock.unlock() }
@@ -181,7 +181,7 @@ private final class QRScannerMetadataDelegate: NSObject, AVCaptureMetadataOutput
     }
   }
 
-  func metadataOutput(
+  nonisolated func metadataOutput(
     _ output: AVCaptureMetadataOutput,
     didOutput metadataObjects: [AVMetadataObject],
     from connection: AVCaptureConnection
