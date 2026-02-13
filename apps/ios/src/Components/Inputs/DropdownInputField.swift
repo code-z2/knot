@@ -310,7 +310,7 @@ struct DropdownInputField<DropdownContent: View>: View {
       .padding(.horizontal, 10)
       .padding(.vertical, 6)
       .background(
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
       )
     } else {
@@ -319,13 +319,15 @@ struct DropdownInputField<DropdownContent: View>: View {
         AppIconTextBadge(
           text: badge.text,
           icon: .symbol("Icons/check_verified_01"),
-          textColor: .green
+          textColor: AppThemeColor.labelPrimary,
+          iconColor: AppThemeColor.accentGreen
         )
       case .invalid:
         AppIconTextBadge(
           text: badge.text,
           icon: .symbol("Icons/x_close"),
-          textColor: .red
+          textColor: AppThemeColor.labelPrimary,
+          iconColor: AppThemeColor.accentRed
         )
       case .validating:
         HStack(spacing: 6) {

@@ -14,21 +14,22 @@ struct BackNavigationButton: View {
         .frame(width: hitSize, height: hitSize)
         .contentShape(.circle)
     }
+    .clipShape(.circle)
+    .modifier(BackNavigationBackgroundModifier())
+    .frame(width: visualSize, height: visualSize)
     .buttonStyle(.plain)
-    .background(glassBackground)
     .accessibilityLabel("Back")
   }
+}
 
-  @ViewBuilder
-  private var glassBackground: some View {
+private struct BackNavigationBackgroundModifier: ViewModifier {
+  func body(content: Content) -> some View {
     if #available(iOS 26.0, *) {
-      Circle()
-        .frame(width: visualSize, height: visualSize)
+      content
         .glassEffect(.regular.interactive(), in: .circle)
     } else {
-      Circle()
-        .fill(.ultraThinMaterial)
-        .frame(width: visualSize, height: visualSize)
+      content
+        .background(AppThemeColor.fillPrimary)
     }
   }
 }

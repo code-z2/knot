@@ -1,4 +1,5 @@
 import AccountSetup
+import AA
 import Foundation
 import Passkey
 import RPC
@@ -46,7 +47,7 @@ final class AccountSetupService {
 
   init(
     service: AccountSetup.AccountSetupService? = nil,
-    delegateAddress: String = "0x919FB6f181DC306825Dc8F570A1BDF8c456c56Da",
+    delegateAddress: String = AAConstants.delegateImplementationAddress,
     supportedChainIDs: [UInt64] = ChainSupportRuntime.resolveSupportedChainIDs(),
     rpcClient: RPCClient? = nil
   ) {

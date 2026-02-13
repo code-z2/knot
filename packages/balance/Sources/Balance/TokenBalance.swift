@@ -89,11 +89,24 @@ extension TokenBalance {
 
   /// Formatted human-readable balance (e.g., "36.42").
   public var formattedBalance: String {
+    let cappedFractionDigits = max(2, min(decimals, 4))
+    let truncatedBalance = truncate(totalBalance, fractionDigits: cappedFractionDigits)
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
     formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = max(2, min(decimals, 8))
+    formatter.maximumFractionDigits = cappedFractionDigits
     formatter.groupingSeparator = ""
-    return formatter.string(from: totalBalance as NSDecimalNumber) ?? "0"
+    return formatter.string(from: truncatedBalance as NSDecimalNumber) ?? "0"
+  }
+
+  private func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 }

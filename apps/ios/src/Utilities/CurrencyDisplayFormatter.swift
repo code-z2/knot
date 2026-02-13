@@ -5,6 +5,7 @@ enum CurrencyDisplayFormatter {
     "NGN": "₦",
     "ETH": "Ξ",
   ]
+  private static let maxSupportedFractionDigits = 4
 
   static func format(
     amount: Decimal,
@@ -21,9 +22,13 @@ enum CurrencyDisplayFormatter {
     if let symbol = symbolOverrides[normalizedCode] {
       formatter.currencySymbol = symbol
     }
-    formatter.minimumFractionDigits = minimumFractionDigits
-    formatter.maximumFractionDigits = maximumFractionDigits
-    return formatter.string(from: amount as NSDecimalNumber) ?? "\(amount)"
+    let cappedMaxFractionDigits = max(0, min(maximumFractionDigits, maxSupportedFractionDigits))
+    let cappedMinFractionDigits = min(max(0, minimumFractionDigits), cappedMaxFractionDigits)
+    formatter.minimumFractionDigits = cappedMinFractionDigits
+    formatter.maximumFractionDigits = cappedMaxFractionDigits
+
+    let truncatedAmount = truncate(amount, fractionDigits: cappedMaxFractionDigits)
+    return formatter.string(from: truncatedAmount as NSDecimalNumber) ?? "\(truncatedAmount)"
   }
 
   static func symbol(currencyCode: String, locale: Locale) -> String {
@@ -36,5 +41,16 @@ enum CurrencyDisplayFormatter {
       formatter.currencySymbol = symbol
     }
     return formatter.currencySymbol ?? currencyCode.uppercased()
+  }
+
+  private static func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 }

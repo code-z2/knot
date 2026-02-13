@@ -4,12 +4,15 @@ import Balance
 import Compose
 import RPC
 import SwiftUI
+import SwiftData
 import Transactions
 
 @MainActor
 struct AppRootView: View {
+  @Environment(\.modelContext) private var modelContext
   @Environment(\.scenePhase) private var scenePhase
   @State private var route: Route = .splash
+  @State private var selectedMainTab: MainTab = .home
   @State private var currentEOA: String?
   @State private var isWorking = false
   @State private var hasLocalWalletMaterial = false
@@ -20,7 +23,7 @@ struct AppRootView: View {
   @State private var transactionStore = TransactionStore(
     accumulatorConfig: AccumulatorConfig(
       factoryAddress: AAConstants.accumulatorFactoryAddress,
-      messengerByChain: AAConstants.messengerByChain
+      spokePoolByChain: AAConstants.spokePoolByChain
     )
   )
   private let beneficiaryStore = BeneficiaryStore()
@@ -34,15 +37,19 @@ struct AppRootView: View {
   enum Route {
     case splash
     case onboarding
-    case home
-    case transactions
+    case main
     case profile
     case preferences
     case addressBook
     case receive
     case sendMoney
-    case sessionKey
     case walletBackup
+  }
+
+  enum MainTab: Hashable {
+    case home
+    case transactions
+    case sessionKey
   }
 
   var body: some View {
@@ -62,12 +69,13 @@ struct AppRootView: View {
             if let restored = try? await accountService.restoreSession(eoaAddress: activeEOA) {
               hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(
                 for: restored.eoaAddress)
+              restoreCachedWalletState(walletAddress: restored.eoaAddress)
               withAnimation(.easeInOut(duration: 0.18)) {
                 currentEOA = restored.eoaAddress
-                route = .home
+                selectedMainTab = .home
+                route = .main
               }
-              Task { await balanceStore.refresh(walletAddress: restored.eoaAddress) }
-              Task { await transactionStore.refresh(walletAddress: restored.eoaAddress) }
+              Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
             } else {
               sessionStore.clearActiveSession()
               hasLocalWalletMaterial = false
@@ -82,62 +90,44 @@ struct AppRootView: View {
           onLogin: { Task { await signInFromOnboarding() } }
         )
         .disabled(isWorking)
-      case .home:
-        HomeView(
-          balanceStore: balanceStore,
-          preferencesStore: preferencesStore,
-          currencyRateStore: currencyRateStore,
-          onSignOut: {
-            sessionStore.clearActiveSession()
-            currentEOA = nil
-            hasLocalWalletMaterial = false
-            route = .onboarding
-          },
-          onAddMoney: { route = .receive },
-          onSendMoney: { route = .sendMoney },
-          onHomeTap: { route = .home },
-          onTransactionsTap: { route = .transactions },
-          onSessionKeyTap: { route = .sessionKey },
-          onProfileTap: { route = .profile },
-          onPreferencesTap: { route = .preferences },
-          onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
-          onAddressBookTap: { route = .addressBook },
-          showWalletBackup: hasLocalWalletMaterial
-        )
-      case .transactions:
-        TransactionsView(
-          balanceStore: balanceStore,
-          transactionStore: transactionStore,
-          preferencesStore: preferencesStore,
-          currencyRateStore: currencyRateStore,
-          onHomeTap: { route = .home },
-          onTransactionsTap: { route = .transactions },
-          onSessionKeyTap: { route = .sessionKey }
-        )
+      case .main:
+        mainTabView
       case .profile:
         ProfileView(
           eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
           accountService: accountService,
           ensService: ensService,
           aaExecutionService: aaExecutionService,
-          onBack: { route = .home }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       case .preferences:
         PreferencesView(
           preferencesStore: preferencesStore,
-          onBack: { route = .home }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       case .addressBook:
         AddressBookView(
           eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
           store: beneficiaryStore,
           ensService: ensService,
-          onBack: { route = .home }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       case .receive:
         ReceiveView(
           address: currentEOA ?? "0x0000000000000000000000000000000000000000",
-          onBack: { route = .home }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       case .sendMoney:
         SendMoneyView(
@@ -150,18 +140,18 @@ struct AppRootView: View {
           aaExecutionService: aaExecutionService,
           accountService: accountService,
           ensService: ensService,
-          onBack: { route = .home }
-        )
-      case .sessionKey:
-        SessionKeyView(
-          onHomeTap: { route = .home },
-          onTransactionsTap: { route = .transactions },
-          onSessionKeyTap: { route = .sessionKey }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       case .walletBackup:
         WalletBackupView(
           mnemonic: walletBackupMnemonic,
-          onBack: { route = .home }
+          onBack: {
+            selectedMainTab = .home
+            route = .main
+          }
         )
       }
     }
@@ -174,8 +164,7 @@ struct AppRootView: View {
       await currencyRateStore.refreshIfNeeded()
       await currencyRateStore.ensureRate(for: preferencesStore.selectedCurrencyCode)
       if let eoa = currentEOA {
-        Task { await balanceStore.refresh(walletAddress: eoa) }
-        Task { await transactionStore.refresh(walletAddress: eoa) }
+        Task { await refreshWalletData(walletAddress: eoa) }
       }
     }
     .onChange(of: scenePhase) { _, newPhase in
@@ -183,8 +172,7 @@ struct AppRootView: View {
       Task {
         await currencyRateStore.refreshIfNeeded()
         if let eoa = currentEOA {
-          await balanceStore.refresh(walletAddress: eoa)
-          await transactionStore.refresh(walletAddress: eoa)
+          await refreshWalletData(walletAddress: eoa)
         }
       }
     }
@@ -199,9 +187,95 @@ struct AppRootView: View {
     switch route {
     case .profile, .preferences, .addressBook, .receive, .sendMoney, .walletBackup:
       return true
-    case .splash, .onboarding, .home, .transactions, .sessionKey:
+    case .splash, .onboarding, .main:
       return false
     }
+  }
+
+  @ViewBuilder
+  private var mainTabView: some View {
+    if #available(iOS 26.0, *) {
+      mainTabs
+        .tabBarMinimizeBehavior(.onScrollDown)
+    } else {
+      mainTabs
+    }
+  }
+
+  private var mainTabs: some View {
+    TabView(selection: $selectedMainTab) {
+      Tab(value: MainTab.home) {
+        HomeView(
+          balanceStore: balanceStore,
+          preferencesStore: preferencesStore,
+          currencyRateStore: currencyRateStore,
+          onSignOut: {
+            sessionStore.clearActiveSession()
+            currentEOA = nil
+            hasLocalWalletMaterial = false
+            selectedMainTab = .home
+            route = .onboarding
+          },
+          onAddMoney: {
+            selectedMainTab = .home
+            route = .receive
+          },
+          onSendMoney: {
+            selectedMainTab = .home
+            route = .sendMoney
+          },
+          onProfileTap: {
+            selectedMainTab = .home
+            route = .profile
+          },
+          onPreferencesTap: {
+            selectedMainTab = .home
+            route = .preferences
+          },
+          onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
+          onAddressBookTap: {
+            selectedMainTab = .home
+            route = .addressBook
+          },
+          showWalletBackup: hasLocalWalletMaterial
+        )
+      } label: {
+        Label {
+          Text("bottom_nav_home")
+        } icon: {
+          Image("Icons/home_02")
+            .renderingMode(.template)
+        }
+      }
+
+      Tab(value: MainTab.transactions) {
+        TransactionsView(
+          balanceStore: balanceStore,
+          transactionStore: transactionStore,
+          preferencesStore: preferencesStore,
+          currencyRateStore: currencyRateStore
+        )
+      } label: {
+        Label {
+          Text("bottom_nav_transactions")
+        } icon: {
+          Image("Icons/receipt")
+            .renderingMode(.template)
+        }
+      }
+
+      Tab(value: MainTab.sessionKey) {
+        SessionKeyView()
+      } label: {
+        Label {
+          Text("bottom_nav_session_key")
+        } icon: {
+          Image("Icons/key_01")
+            .renderingMode(.template)
+        }
+      }
+    }
+    .tint(AppThemeColor.accentBrown)
   }
 
   @MainActor
@@ -214,19 +288,20 @@ struct AppRootView: View {
       currentEOA = restored.eoaAddress
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
       hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
-      route = .home
+      selectedMainTab = .home
+      route = .main
 
       // Fire-and-forget: fund new account with testnet USDC + ETH.
       if ChainSupportRuntime.resolveMode() == .limitedTestnet {
         let address = restored.eoaAddress
         let faucet = faucetService
-        Task.detached(priority: .utility) {
+        Task(priority: .utility) {
           await faucet.fundAccount(eoaAddress: address)
         }
       }
 
-      Task { await balanceStore.refresh(walletAddress: restored.eoaAddress) }
-      Task { await transactionStore.refresh(walletAddress: restored.eoaAddress) }
+      restoreCachedWalletState(walletAddress: restored.eoaAddress)
+      Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
     }
   }
 
@@ -240,9 +315,10 @@ struct AppRootView: View {
       currentEOA = restored.eoaAddress
       sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
       hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
-      route = .home
-      Task { await balanceStore.refresh(walletAddress: restored.eoaAddress) }
-      Task { await transactionStore.refresh(walletAddress: restored.eoaAddress) }
+      restoreCachedWalletState(walletAddress: restored.eoaAddress)
+      selectedMainTab = .home
+      route = .main
+      Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
     }
   }
 
@@ -276,9 +352,83 @@ struct AppRootView: View {
       }
     }
   }
+
+  private func refreshWalletData(walletAddress: String) async {
+    await balanceStore.refresh(walletAddress: walletAddress)
+    await transactionStore.refresh(walletAddress: walletAddress)
+    persistCachedWalletState(walletAddress: walletAddress)
+  }
+
+  private func restoreCachedWalletState(walletAddress: String) {
+    let cacheID = cacheKey(walletAddress: walletAddress)
+    let descriptor = FetchDescriptor<WalletActivityCache>(
+      predicate: #Predicate { $0.id == cacheID }
+    )
+
+    guard let cacheEntry = try? modelContext.fetch(descriptor).first else {
+      return
+    }
+
+    let decoder = JSONDecoder()
+
+    if let balanceSnapshot = cacheEntry.balanceSnapshot,
+      let decodedBalance = try? decoder.decode(BalanceStoreSnapshot.self, from: balanceSnapshot)
+    {
+      balanceStore.restore(from: decodedBalance)
+    }
+
+    if let transactionSnapshot = cacheEntry.transactionSnapshot,
+      let decodedTransactions = try? decoder.decode(
+        TransactionStoreSnapshot.self,
+        from: transactionSnapshot
+      )
+    {
+      transactionStore.restore(from: decodedTransactions)
+    }
+  }
+
+  private func persistCachedWalletState(walletAddress: String) {
+    let encoder = JSONEncoder()
+    let balanceData = try? encoder.encode(balanceStore.snapshot())
+    let transactionData = try? encoder.encode(transactionStore.snapshot())
+
+    let cacheID = cacheKey(walletAddress: walletAddress)
+    let supportMode = ChainSupportRuntime.resolveMode().rawValue
+    let descriptor = FetchDescriptor<WalletActivityCache>(
+      predicate: #Predicate { $0.id == cacheID }
+    )
+
+    let entry: WalletActivityCache
+    if let existing = try? modelContext.fetch(descriptor).first {
+      entry = existing
+    } else {
+      entry = WalletActivityCache(
+        id: cacheID,
+        walletAddress: walletAddress.lowercased(),
+        supportMode: supportMode,
+        balanceSnapshot: nil,
+        transactionSnapshot: nil,
+        updatedAt: Date()
+      )
+      modelContext.insert(entry)
+    }
+
+    entry.balanceSnapshot = balanceData
+    entry.transactionSnapshot = transactionData
+    entry.updatedAt = Date()
+    entry.supportMode = supportMode
+
+    try? modelContext.save()
+  }
+
+  private func cacheKey(walletAddress: String) -> String {
+    let mode = ChainSupportRuntime.resolveMode().rawValue.lowercased()
+    return "\(mode):\(walletAddress.lowercased())"
+  }
 }
 
 #Preview {
   AppRootView()
     .preferredColorScheme(.dark)
+    .modelContainer(for: [WalletActivityCache.self], inMemory: true)
 }

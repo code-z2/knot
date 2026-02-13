@@ -54,6 +54,9 @@ struct ReceiveView: View {
     }
     .sheet(isPresented: $showShareSheet) {
       ActivitySheet(items: [address])
+        .presentationDetents([.height(320)])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(28)
     }
   }
 
@@ -105,7 +108,14 @@ private struct ActivitySheet: UIViewControllerRepresentable {
   let items: [Any]
 
   func makeUIViewController(context: Context) -> UIActivityViewController {
-    UIActivityViewController(activityItems: items, applicationActivities: nil)
+    let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+    controller.modalPresentationStyle = .pageSheet
+    if let sheet = controller.sheetPresentationController {
+      sheet.detents = [.medium()]
+      sheet.prefersGrabberVisible = true
+      sheet.preferredCornerRadius = 28
+    }
+    return controller
   }
 
   func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

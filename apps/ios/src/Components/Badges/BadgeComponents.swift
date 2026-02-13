@@ -31,10 +31,11 @@ struct AppIconTextBadge: View {
   let icon: AppBadgeIcon
   var textColor: Color = AppThemeColor.labelPrimary
   var backgroundColor: Color = AppThemeColor.fillTertiary
+  var iconColor: Color? = nil
 
   var body: some View {
     HStack(spacing: 6) {
-      badgeIconView(icon)
+      badgeIconView(icon, color: iconColor)
 
       Text(text)
         .font(.custom("RobotoMono-Regular", size: 14))
@@ -50,7 +51,7 @@ struct AppIconTextBadge: View {
   }
 
   @ViewBuilder
-  private func badgeIconView(_ icon: AppBadgeIcon) -> some View {
+  private func badgeIconView(_ icon: AppBadgeIcon, color: Color?) -> some View {
     switch icon {
     case .symbol(let iconName):
       Image(iconName)
@@ -58,7 +59,7 @@ struct AppIconTextBadge: View {
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: 16, height: 16)
-        .foregroundStyle(textColor)
+        .foregroundStyle(color ?? textColor)
     case .network(let assetName):
       Image(assetName)
         .resizable()

@@ -7,6 +7,7 @@ struct AddressBookView: View {
   var onBack: () -> Void = {}
 
   @State private var searchText = ""
+  @State private var isSearchFocused = false
   @State private var beneficiaries: [Beneficiary] = []
   @State private var showAddScreen = false
   @State private var errorMessage: String?
@@ -55,22 +56,32 @@ struct AddressBookView: View {
 
   private var headerTools: some View {
     HStack(spacing: 12) {
-      SearchInput(text: $searchText, placeholderKey: "search_placeholder", width: 285)
-
-      Button {
-        showAddScreen = true
-      } label: {
-        Image("Icons/plus")
-          .renderingMode(.template)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .frame(width: 24, height: 24)
-          .foregroundStyle(AppThemeColor.accentBrown)
-          .frame(width: 66, height: 50)
+      SearchInput(
+        text: $searchText,
+        placeholderKey: "search_placeholder",
+        width: isSearchFocused ? nil : 285
+      ) { focused in
+        isSearchFocused = focused
       }
-      .buttonStyle(.plain)
+
+      if !isSearchFocused {
+        Button {
+          showAddScreen = true
+        } label: {
+          Image("Icons/plus")
+            .renderingMode(.template)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 24, height: 24)
+            .foregroundStyle(AppThemeColor.accentBrown)
+            .frame(width: 66, height: 50)
+        }
+        .buttonStyle(.plain)
+        .transition(.move(edge: .trailing).combined(with: .opacity))
+      }
     }
     .frame(width: 351, height: 50)
+    .animation(.spring(response: 0.26, dampingFraction: 0.82), value: isSearchFocused)
   }
 
   private var listState: some View {
@@ -558,16 +569,12 @@ private struct AddAddressView: View {
     let snapshot = trimmed
     let mode = addressValidationMode
 
-    addressDetectionTask = Task(priority: .userInitiated) {
-      let detection = await Task.detached(priority: .userInitiated) {
-        AddressInputParser.detectCandidate(snapshot, mode: mode)
-      }.value
+    addressDetectionTask = Task(priority: .userInitiated) { @MainActor in
+      let detection = AddressInputParser.detectCandidate(snapshot, mode: mode)
 
       guard !Task.isCancelled else { return }
 
-      await MainActor.run {
-        applyAddressDetectionResult(detection, sourceInput: snapshot)
-      }
+      applyAddressDetectionResult(detection, sourceInput: snapshot)
     }
   }
 

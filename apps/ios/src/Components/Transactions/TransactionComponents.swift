@@ -203,17 +203,47 @@ extension TransactionRecord {
     }
   }
 
-  var uiFeeText: String {
-    if gasQuoteUSD < 0.01 {
-      return "<$0.01"
+  func uiFeeText(
+    displayCurrencyCode: String,
+    displayLocale: Locale,
+    usdToSelectedRate: Decimal
+  ) -> String {
+    let converted = gasQuoteUSD * usdToSelectedRate
+    if converted > 0, converted < 0.01 {
+      let minimumDisplay = CurrencyDisplayFormatter.format(
+        amount: 0.01,
+        currencyCode: displayCurrencyCode,
+        locale: displayLocale,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4
+      )
+      return "<\(minimumDisplay)"
     }
-    return "$\(gasQuoteUSD)"
+    return CurrencyDisplayFormatter.format(
+      amount: converted,
+      currencyCode: displayCurrencyCode,
+      locale: displayLocale,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    )
   }
 
-  var uiReceiptAmountText: String? {
+  func uiReceiptAmountText(
+    displayCurrencyCode: String,
+    displayLocale: Locale,
+    usdToSelectedRate: Decimal
+  ) -> String? {
     guard valueQuoteUSD != 0 else { return nil }
     let prefix = variant == .received ? "+" : "-"
-    return "\(prefix)$\(valueQuoteUSD)"
+    let converted = valueQuoteUSD * usdToSelectedRate
+    let formatted = CurrencyDisplayFormatter.format(
+      amount: converted,
+      currencyCode: displayCurrencyCode,
+      locale: displayLocale,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    )
+    return "\(prefix)\(formatted)"
   }
 
   private func abbreviateAddress(_ address: String) -> String {
@@ -254,12 +284,12 @@ struct AccountTransactionsList: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       ForEach(sections) { section in
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
           Text(section.title)
             .font(.custom("Roboto-Bold", size: 15))
             .foregroundStyle(AppThemeColor.labelPrimary)
 
-          VStack(alignment: .leading, spacing: 14) {
+          VStack(alignment: .leading, spacing: 16) {
             ForEach(section.transactions) { transaction in
               TransactionRow(
                 transaction: transaction,
@@ -296,7 +326,7 @@ struct TransactionRow: View {
                 .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 12, height: 12)
+                .frame(width: 16, height: 17)
                 .foregroundStyle(AppThemeColor.glyphPrimary)
             }
 
@@ -319,7 +349,7 @@ struct TransactionRow: View {
         if let change = transaction.uiAssetChange {
           VStack(alignment: .trailing, spacing: 4) {
             Text(formattedFiatText(change))
-              .font(.custom("RobotoMono-Medium", size: 12))
+              .font(.custom("RobotoMono-Medium", size: 14))
               .foregroundStyle(change.accentColor)
               .tracking(0.06)
 
@@ -387,6 +417,40 @@ struct MultiChainIconGroup: View {
 
 struct TransactionReceiptModal: View {
   let transaction: TransactionRecord
+  let displayCurrencyCode: String
+  let displayLocale: Locale
+  let usdToSelectedRate: Decimal
+  let onOpenExplorer: (URL) -> Void
+
+  init(
+    transaction: TransactionRecord,
+    displayCurrencyCode: String = "USD",
+    displayLocale: Locale = .current,
+    usdToSelectedRate: Decimal = 1,
+    onOpenExplorer: @escaping (URL) -> Void = { _ in }
+  ) {
+    self.transaction = transaction
+    self.displayCurrencyCode = displayCurrencyCode
+    self.displayLocale = displayLocale
+    self.usdToSelectedRate = usdToSelectedRate
+    self.onOpenExplorer = onOpenExplorer
+  }
+
+  private var receiptAmountText: String? {
+    transaction.uiReceiptAmountText(
+      displayCurrencyCode: displayCurrencyCode,
+      displayLocale: displayLocale,
+      usdToSelectedRate: usdToSelectedRate
+    )
+  }
+
+  private var receiptFeeText: String {
+    transaction.uiFeeText(
+      displayCurrencyCode: displayCurrencyCode,
+      displayLocale: displayLocale,
+      usdToSelectedRate: usdToSelectedRate
+    )
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -398,7 +462,7 @@ struct TransactionReceiptModal: View {
       )
       .padding(.top, 22)
 
-      if let amount = transaction.uiReceiptAmountText {
+      if let amount = receiptAmountText {
         VStack(spacing: 9) {
           Text(amount)
             .font(.custom("RobotoMono-Bold", size: 20))
@@ -429,7 +493,7 @@ struct TransactionReceiptModal: View {
         }
 
         receiptField(label: "transaction_receipt_fee") {
-          Text(transaction.uiFeeText)
+          Text(receiptFeeText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
         }
@@ -448,12 +512,10 @@ struct TransactionReceiptModal: View {
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.top, transaction.uiReceiptAmountText == nil ? 74 : 36)
-
-      Spacer(minLength: 52)
+      .padding(.top, receiptAmountText == nil ? 74 : 36)
 
       actionRow
-        .padding(.bottom, 24)
+        .padding(.top, 24)
     }
     .padding(.horizontal, 38)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -485,8 +547,6 @@ struct TransactionReceiptModal: View {
     }
   }
 
-  @Environment(\.openURL) private var openURL
-
   private func openExplorer() {
     let hash = transaction.txHash
     guard !hash.isEmpty,
@@ -495,7 +555,7 @@ struct TransactionReceiptModal: View {
     else {
       return
     }
-    openURL(url, prefersInApp: true)
+    onOpenExplorer(url)
   }
 }
 
