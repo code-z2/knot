@@ -79,9 +79,9 @@ enum TransactionRowTitle: Hashable {
     case .localized(let key):
       Text(LocalizedStringKey(key))
     case .sent(let assetSymbol):
-      Text("transaction_row_action_sent") + Text(verbatim: " \(assetSymbol)")
+      Text("\(Text("transaction_row_action_sent")) \(Text(verbatim: assetSymbol))")
     case .received(let assetSymbol):
-      Text("transaction_row_action_received") + Text(verbatim: " \(assetSymbol)")
+      Text("\(Text("transaction_row_action_received")) \(Text(verbatim: assetSymbol))")
     }
   }
 }
@@ -96,9 +96,9 @@ enum TransactionRowSubtitle: Hashable {
     case .localized(let key):
       Text(LocalizedStringKey(key))
     case .on(let networkName):
-      Text("transaction_row_prefix_on") + Text(verbatim: " \(networkName)")
+      Text("\(Text("transaction_row_prefix_on")) \(Text(verbatim: networkName))")
     case .from(let networkName):
-      Text("transaction_row_prefix_from") + Text(verbatim: " \(networkName)")
+      Text("\(Text("transaction_row_prefix_from")) \(Text(verbatim: networkName))")
     }
   }
 }
