@@ -1006,14 +1006,10 @@ private struct ProfileProminentActionButtonModifier: ViewModifier {
   func body(content: Content) -> some View {
     if #available(iOS 26.0, *) {
       content
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
         .buttonStyle(.glassProminent)
     } else {
       content
         .foregroundStyle(AppThemeColor.backgroundPrimary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
         .background(
           Capsule()
             .fill(Color.blue)

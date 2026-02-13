@@ -19,6 +19,7 @@ export interface Env {
   PINATA_JWT: string;
   PINATA_GATEWAY_BASE_URL: string;
   PINATA_GROUP_ID: string;
+  PINATA_GROUP_FIELD?: string;
   PINATA_SIGN_EXPIRES_SECONDS?: string;
   PINATA_MAX_FILE_SIZE_BYTES?: string;
   GELATO_RPC_TEMPLATE?: string;
@@ -468,6 +469,7 @@ async function createPinataSignedUploadURL(
 ): Promise<string> {
   const pinataJWT = resolveRequiredEnvValue(env.PINATA_JWT, "PINATA_JWT");
   const pinataGroupID = resolveRequiredEnvValue(env.PINATA_GROUP_ID, "PINATA_GROUP_ID");
+  const pinataGroupField = resolvePinataGroupField(env);
 
   const expires = parseBoundedInteger(
     env.PINATA_SIGN_EXPIRES_SECONDS ?? "120",
@@ -482,12 +484,11 @@ async function createPinataSignedUploadURL(
     10_485_760
   );
 
-  const body = {
+  const baseBody = {
     date: Math.floor(Date.now() / 1000),
     expires,
     max_file_size: maxFileSize,
     allow_mime_types: [request.contentType],
-    group_id: pinataGroupID,
     keyvalues: {
       app: "knot",
       kind: "profile_avatar",
@@ -497,6 +498,10 @@ async function createPinataSignedUploadURL(
     filename: request.fileName,
   };
 
+  const body: Record<string, unknown> = {
+    ...baseBody,
+    [pinataGroupField]: pinataGroupID,
+  };
   const response = await fetch("https://uploads.pinata.cloud/v3/files/sign", {
     method: "POST",
     headers: {
@@ -537,6 +542,14 @@ async function createPinataSignedUploadURL(
     throw new Error("Pinata sign response returned invalid URL.");
   }
   return signedURL;
+}
+
+function resolvePinataGroupField(env: Env): "group_id" | "group" {
+  const configured = (env.PINATA_GROUP_FIELD ?? "group_id").trim().toLowerCase();
+  if (configured === "group_id" || configured === "group") {
+    return configured;
+  }
+  throw new Error("PINATA_GROUP_FIELD must be either 'group_id' or 'group'.");
 }
 
 function resolvePinataGatewayBaseURL(env: Env): string {

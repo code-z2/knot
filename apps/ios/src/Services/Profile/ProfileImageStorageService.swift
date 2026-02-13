@@ -162,10 +162,6 @@ final class ProfileImageStorageService {
     var body = Data()
 
     body.append(Data("--\(boundary)\(lineBreak)".utf8))
-    body.append(Data("Content-Disposition: form-data; name=\"network\"\(lineBreak)\(lineBreak)".utf8))
-    body.append(Data("public\(lineBreak)".utf8))
-
-    body.append(Data("--\(boundary)\(lineBreak)".utf8))
     body.append(
       Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\(lineBreak)".utf8)
     )
