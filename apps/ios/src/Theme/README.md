@@ -1,8 +1,9 @@
-# Metu Theme Tokens
+# Knot Theme Tokens
 
 This theme is initialized from Figma variables with a dark-first default.
 
 Included semantic tokens:
+
 - Backgrounds/Primary
 - Labels/Primary
 - Labels/Secondary
@@ -23,5 +24,6 @@ Included semantic tokens:
 - Miscellaneous/Buttons/BG - Destructive
 
 Notes:
+
 - AI + onboarding screens are intentionally fixed to dark surface/text in both modes.
 - Vendor/network/coin logo colors are excluded from the app theme by design.

@@ -1,6 +1,6 @@
 //
 //  Config.xcconfig
-//  metu
+//  knot
 //
 //  Created by Peter Anyaogu on 2/4/26.
 //
@@ -8,12 +8,13 @@
 // Configuration settings file format documentation can be found at:
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 #include "Secrets.xcconfig"
-PROFILE_IMAGE_UPLOAD_WORKER_BASE_URL = upload.peteranyaogu.com
+RELAY_PROXY_BASE_URL = relay.knot.fi
+UPLOAD_PROXY_BASE_URL = upload.knot.fi
 
 // Chain support mode (active default for now)
 CHAIN_SUPPORT_MODE = LIMITED_MAINNET
 
 // Comma-separated chain ids
 SUPPORTED_CHAINS_LIMITED_TESTNET = 11155111,84532,421614
-SUPPORTED_CHAINS_LIMITED_MAINNET = 42161,8453,137
-SUPPORTED_CHAINS_FULL_MAINNET = 1,10,137,8453
+SUPPORTED_CHAINS_LIMITED_MAINNET = 1,42161,8453,137,10143
+SUPPORTED_CHAINS_FULL_MAINNET = 1,10,137,8453,10143,42161

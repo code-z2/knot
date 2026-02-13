@@ -3,8 +3,7 @@ import Foundation
 /// Canonical multichain token balance model.
 ///
 /// Tokens are grouped by ``symbol`` (case-insensitive) across chains.
-/// Spam tokens are excluded before grouping.
-public struct TokenBalance: Identifiable, Hashable, Sendable {
+public struct TokenBalance: Identifiable, Hashable, Sendable, Codable {
   /// Stable ID: lowercased `symbol`.
   public let id: String
   public let symbol: String
@@ -21,7 +20,7 @@ public struct TokenBalance: Identifiable, Hashable, Sendable {
   public let quoteRate: Decimal
   public let quoteRate24h: Decimal?
 
-  /// Remote logo URL from GoldRush.
+  /// Remote logo URL returned by the balance provider.
   public let logoURL: URL?
 
   /// Breakdown by chain.
@@ -56,7 +55,7 @@ public struct TokenBalance: Identifiable, Hashable, Sendable {
   }
 }
 
-public struct ChainBalance: Hashable, Sendable {
+public struct ChainBalance: Hashable, Sendable, Codable {
   public let chainID: UInt64
   public let chainName: String
   public let balance: Decimal
@@ -90,11 +89,24 @@ extension TokenBalance {
 
   /// Formatted human-readable balance (e.g., "36.42").
   public var formattedBalance: String {
+    let cappedFractionDigits = max(2, min(decimals, 4))
+    let truncatedBalance = truncate(totalBalance, fractionDigits: cappedFractionDigits)
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
     formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = max(2, min(decimals, 8))
+    formatter.maximumFractionDigits = cappedFractionDigits
     formatter.groupingSeparator = ""
-    return formatter.string(from: totalBalance as NSDecimalNumber) ?? "0"
+    return formatter.string(from: truncatedBalance as NSDecimalNumber) ?? "0"
+  }
+
+  private func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 }

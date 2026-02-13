@@ -2,7 +2,7 @@
   "name": "ios",
   "private": true,
   "scripts": {
-    "build": "xcodebuild -project metu.xcodeproj -scheme metu -configuration Debug -sdk iphonesimulator build",
-    "dev": "xcodebuild -project metu.xcodeproj -scheme metu -configuration Debug -sdk iphonesimulator build"
+    "build": "xcodebuild -project knot.xcodeproj -scheme knot -configuration Debug -sdk iphonesimulator build",
+    "dev": "xcodebuild -project knot.xcodeproj -scheme knot -configuration Debug -sdk iphonesimulator build"
   }
 }

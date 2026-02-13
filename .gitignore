@@ -45,3 +45,4 @@ dist/
 .agent/
 .venv-codex/
 *.mcp.json
+.wrangler

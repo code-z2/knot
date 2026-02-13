@@ -150,8 +150,8 @@ public actor AccountSetupService {
     passkeyService: PasskeyServicing,
     keychain: KeychainStoring = KeychainStore(),
     walletStore: WalletMaterialStoring = LocalWalletMaterialStore(),
-    keychainService: String = "com.peteranyaogu.metu",
-    relyingParty: PasskeyRelyingParty = .init(rpID: "peteranyaogu.com", rpName: "peteranyaogu")
+    keychainService: String = "fi.knot.keychain",
+    relyingParty: PasskeyRelyingParty = .init(rpID: "knot.fi", rpName: "Knot")
   ) {
     self.walletFactory = walletFactory
     self.passkeyService = passkeyService
@@ -172,7 +172,20 @@ public actor AccountSetupService {
     } catch {
       throw AccountSetupError.walletGenerationFailed(error)
     }
+    return try await createEOAAndPasskey(
+      wallet: wallet,
+      delegateAddress: delegateAddress,
+      chainId: chainId,
+      nonce: nonce
+    )
+  }
 
+  private func createEOAAndPasskey(
+    wallet: WalletMaterial,
+    delegateAddress: String,
+    chainId: UInt64,
+    nonce: UInt64
+  ) async throws -> CreatedAccount {
     let userID = Data(UUID().uuidString.utf8)
 
     let passkey: PasskeyPublicKey
@@ -342,6 +355,17 @@ public actor AccountSetupService {
     } catch {
       throw AccountSetupError.passkeyAssertionFailed(error)
     }
+  }
+
+  /// Signs a 32-byte digest using the stored EOA private key as an Ethereum signed message.
+  /// Signature format is 65-byte recoverable `[r || s || v]` with `v` in 27/28 domain.
+  public func signEthMessageDigestWithStoredWallet(
+    account: AccountIdentity,
+    digest32: Data
+  ) throws -> Data {
+    let wallet = try walletStore.read(for: account.eoaAddress)
+    let ethSignedDigest = try ECDSASignatureCodec.toEthSignedMessageHash(digest32)
+    return try ECDSASignatureCodec.signDigest(ethSignedDigest, privateKeyHex: wallet.privateKeyHex)
   }
 
   public func passkeyPublicKey(account: AccountIdentity) throws -> PasskeyPublicKey {

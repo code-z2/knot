@@ -35,6 +35,11 @@ public enum FlightAssets {
       .init(symbol: "WETH", contractAddress: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73", decimals: 18)
     ],
     // --- Limited Mainnet ---
+    // Ethereum
+    1: [
+      .init(symbol: "USDC", contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6),
+      .init(symbol: "WETH", contractAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18),
+    ],
     // Base
     8_453: [
       .init(symbol: "USDC", contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6),
@@ -49,6 +54,11 @@ public enum FlightAssets {
     10: [
       .init(symbol: "USDC", contractAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", decimals: 6),
       .init(symbol: "WETH", contractAddress: "0x4200000000000000000000000000000000000006", decimals: 18),
+    ],
+    // Polygon
+    137: [
+      .init(symbol: "USDC", contractAddress: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", decimals: 6),
+      .init(symbol: "WETH", contractAddress: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", decimals: 18),
     ],
   ]
 

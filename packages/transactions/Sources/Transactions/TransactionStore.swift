@@ -1,6 +1,19 @@
 import Foundation
 import RPC
 
+/// Serializable cache payload for `TransactionStore`.
+public struct TransactionStoreSnapshot: Codable, Sendable {
+  public let sections: [TransactionDateSection]
+  public let hasMore: Bool
+  public let lastRefreshed: Date?
+
+  public init(sections: [TransactionDateSection], hasMore: Bool, lastRefreshed: Date?) {
+    self.sections = sections
+    self.hasMore = hasMore
+    self.lastRefreshed = lastRefreshed
+  }
+}
+
 /// Observable store for multichain transaction history.
 ///
 /// Create once at the app root and pass down to views that need transaction data.
@@ -23,12 +36,12 @@ public final class TransactionStore {
   private let silentRefreshCooldown: TimeInterval = 15
   private var lastSilentRefreshTriggered: Date?
 
-  private let provider: GoldRushTransactionProvider
+  private let provider: ZerionTransactionProvider
   private let rpcClient: RPCClient
   private let accumulatorConfig: AccumulatorConfig
 
   public init(
-    provider: GoldRushTransactionProvider = .init(),
+    provider: ZerionTransactionProvider = .init(),
     rpcClient: RPCClient = .init(),
     accumulatorConfig: AccumulatorConfig = .default
   ) {
@@ -40,10 +53,9 @@ public final class TransactionStore {
   /// Full refresh — clears existing data, fetches page 1.
   public func refresh(walletAddress: String) async {
     guard !walletAddress.isEmpty else {
-      print("[TransactionStore] ⚠️ refresh called with empty wallet address")
       return
     }
-    print("[TransactionStore] refresh(walletAddress: \(walletAddress.prefix(10))…)")
+
     lastWalletAddress = walletAddress
     isLoading = true
     error = nil
@@ -88,27 +100,25 @@ public final class TransactionStore {
   private func performFetch(walletAddress: String, cursor: String?, replace: Bool) async {
     do {
       let chains = await rpcClient.getSupportedChains()
-      print("[TransactionStore] supportedChains = \(chains)")
       guard let firstChain = chains.first else {
-        print("[TransactionStore] ⚠️ no supported chains — aborting fetch")
         return
       }
 
       let apiKey = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
-      print("[TransactionStore] apiKey = \(apiKey.prefix(8))…")
-
-      let transactionsURLBase = RPCSecrets.allchainsTransactionsURLBase
-      print("[TransactionStore] transactionsURLBase = \(transactionsURLBase)")
+      let transactionsAPIURL = try await rpcClient.getAddressActivityApiUrl(chainId: firstChain)
+      let includeTestnets = chains.allSatisfy(Self.isKnownTestnetChain)
 
       // Resolve accumulator address (cached after first call)
       let accAddress = await resolveAccumulatorAddress(walletAddress: walletAddress)
-      print("[TransactionStore] accumulatorAddress = \(accAddress ?? "nil")")
 
       let page = try await provider.fetchTransactions(
         walletAddress: walletAddress,
         accumulatorAddress: accAddress,
-        transactionsURLBase: transactionsURLBase,
-        apiKey: apiKey
+        transactionsAPIURL: transactionsAPIURL,
+        apiKey: apiKey,
+        supportedChainIDs: Set(chains),
+        includeTestnets: includeTestnets,
+        cursorAfter: cursor
       )
 
       if replace {
@@ -120,11 +130,7 @@ public final class TransactionStore {
       currentCursor = page.cursorAfter
       hasMore = page.hasMore
       lastRefreshed = Date()
-
-      let totalTxCount = sections.reduce(0) { $0 + $1.transactions.count }
-      print("[TransactionStore] ✅ \(sections.count) section(s), \(totalTxCount) total tx(s), hasMore=\(hasMore)")
     } catch {
-      print("[TransactionStore] ❌ performFetch error: \(error)")
       self.error = error
     }
   }
@@ -135,16 +141,15 @@ public final class TransactionStore {
       return cached
     }
 
-    // If factory not configured or no messengers, skip accumulator resolution
     guard !accumulatorConfig.factoryAddress.isEmpty,
-      !accumulatorConfig.messengerByChain.isEmpty
+      !accumulatorConfig.spokePoolByChain.isEmpty
     else {
       return nil
     }
 
     // TODO: Call AccumulatorFactory.computeAddress(userAccount)
     // via eth_call once deterministic deployment is done.
-    // For now, return nil — transactions will only include EOA history.
+    _ = walletAddress
     return nil
   }
 
@@ -157,14 +162,13 @@ public final class TransactionStore {
       return
     }
 
-    // Check if the first new section's date matches the last existing section's date
     if let lastExisting = sections.last,
       let firstNew = newSections.first,
       lastExisting.id == firstNew.id
     {
       var merged = sections
-      let lastIdx = merged.count - 1
-      merged[lastIdx] = TransactionDateSection(
+      let lastIndex = merged.count - 1
+      merged[lastIndex] = TransactionDateSection(
         id: lastExisting.id,
         title: lastExisting.title,
         transactions: lastExisting.transactions + firstNew.transactions
@@ -174,5 +178,24 @@ public final class TransactionStore {
     } else {
       sections.append(contentsOf: newSections)
     }
+  }
+
+  public func snapshot() -> TransactionStoreSnapshot {
+    TransactionStoreSnapshot(
+      sections: sections,
+      hasMore: hasMore,
+      lastRefreshed: lastRefreshed
+    )
+  }
+
+  public func restore(from snapshot: TransactionStoreSnapshot) {
+    sections = snapshot.sections
+    hasMore = snapshot.hasMore
+    lastRefreshed = snapshot.lastRefreshed
+    error = nil
+  }
+
+  private static func isKnownTestnetChain(_ chainID: UInt64) -> Bool {
+    [11_155_111, 84_532, 421_614, 10_143, 20_143].contains(chainID)
   }
 }

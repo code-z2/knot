@@ -7,30 +7,22 @@ struct TransactionsView: View {
   let transactionStore: TransactionStore
   let preferencesStore: PreferencesStore
   let currencyRateStore: CurrencyRateStore
-  var onHomeTap: () -> Void = {}
-  var onTransactionsTap: () -> Void = {}
-  var onSessionKeyTap: () -> Void = {}
 
   init(
     balanceStore: BalanceStore,
     transactionStore: TransactionStore,
     preferencesStore: PreferencesStore,
-    currencyRateStore: CurrencyRateStore,
-    onHomeTap: @escaping () -> Void = {},
-    onTransactionsTap: @escaping () -> Void = {},
-    onSessionKeyTap: @escaping () -> Void = {}
+    currencyRateStore: CurrencyRateStore
   ) {
     self.balanceStore = balanceStore
     self.transactionStore = transactionStore
     self.preferencesStore = preferencesStore
     self.currencyRateStore = currencyRateStore
-    self.onHomeTap = onHomeTap
-    self.onTransactionsTap = onTransactionsTap
-    self.onSessionKeyTap = onSessionKeyTap
   }
 
   @State private var isBalanceHidden = false
   @State private var selectedTransaction: TransactionRecord?
+  @Environment(\.openURL) private var openURL
 
   var body: some View {
     ZStack {
@@ -91,24 +83,16 @@ struct TransactionsView: View {
         isBalanceHidden: $isBalanceHidden
       )
     }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      BottomNavigation(
-        activeTab: .transactions,
-        onHomeTap: onHomeTap,
-        onTransactionsTap: onTransactionsTap,
-        onSessionKeyTap: onSessionKeyTap
-      )
-    }
-    .overlay(alignment: .bottom) {
-      SlideModal(
-        isPresented: selectedTransaction != nil,
-        kind: .fullHeight(topInset: 12),
-        onDismiss: dismissReceipt
-      ) {
-        if let selectedTransaction {
-          TransactionReceiptModal(transaction: selectedTransaction)
-        } else {
-          EmptyView()
+    .sheet(item: $selectedTransaction) { transaction in
+      AppSheet(kind: .full) {
+        TransactionReceiptModal(
+          transaction: transaction,
+          displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+          displayLocale: preferencesStore.locale,
+          usdToSelectedRate: currencyRateStore.rateFromUSD(
+            to: preferencesStore.selectedCurrencyCode)
+        ) { url in
+          openExplorer(url)
         }
       }
     }
@@ -120,6 +104,14 @@ struct TransactionsView: View {
 
   private func dismissReceipt() {
     selectedTransaction = nil
+  }
+
+  private func openExplorer(_ url: URL) {
+    dismissReceipt()
+    Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(180))
+      openURL(url, prefersInApp: true)
+    }
   }
 }
 

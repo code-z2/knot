@@ -15,6 +15,17 @@ public enum ChainSupportMode: String, Sendable {
       return "SUPPORTED_CHAINS_FULL_MAINNET"
     }
   }
+
+  public var defaultChainIDs: [UInt64] {
+    switch self {
+    case .limitedTestnet:
+      return [11_155_111, 84_532, 421_614]
+    case .limitedMainnet:
+      return [1, 42_161, 8_453, 137, 10_143]
+    case .fullMainnet:
+      return [1, 10, 137, 8_453]
+    }
+  }
 }
 
 public struct ChainSupportConfig: Sendable, Equatable {
@@ -45,7 +56,7 @@ public enum ChainSupportRuntime {
   ) -> [UInt64] {
     let resolvedMode = mode ?? resolveMode(bundle: bundle)
     guard let rawValue = resolveSetting(key: resolvedMode.supportedChainsKey, bundle: bundle) else {
-      return []
+      return resolvedMode.defaultChainIDs
     }
 
     var output: [UInt64] = []
@@ -56,7 +67,7 @@ public enum ChainSupportRuntime {
         output.append(chainID)
       }
     }
-    return output
+    return output.isEmpty ? resolvedMode.defaultChainIDs : output
   }
 
   public static func resolveConfig(
