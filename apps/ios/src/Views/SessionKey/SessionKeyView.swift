@@ -1,10 +1,6 @@
 import SwiftUI
 
 struct SessionKeyView: View {
-    var onHomeTap: () -> Void = {}
-    var onTransactionsTap: () -> Void = {}
-    var onSessionKeyTap: () -> Void = {}
-
     var body: some View {
         ZStack {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
@@ -53,14 +49,6 @@ struct SessionKeyView: View {
                 title: "session_key_title",
                 titleFont: .custom("Roboto-Medium", size: 24),
                 titleColor: AppThemeColor.labelPrimary
-            )
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            BottomNavigation(
-                activeTab: .sessionKey,
-                onHomeTap: onHomeTap,
-                onTransactionsTap: onTransactionsTap,
-                onSessionKeyTap: onSessionKeyTap
             )
         }
     }

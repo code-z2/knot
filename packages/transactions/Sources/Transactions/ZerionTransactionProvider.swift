@@ -303,13 +303,25 @@ public actor ZerionTransactionProvider {
   }
 
   private func formatAmount(_ amount: Decimal, symbol: String) -> String {
+    let truncatedAmount = truncate(amount, fractionDigits: 4)
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = 6
+    formatter.maximumFractionDigits = 4
     formatter.minimumFractionDigits = 0
 
-    let formatted = formatter.string(from: amount as NSDecimalNumber) ?? "0"
+    let formatted = formatter.string(from: truncatedAmount as NSDecimalNumber) ?? "0"
     return "\(formatted) \(symbol)"
+  }
+
+  private func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
+    var source = value
+    var result = Decimal()
+    if source >= 0 {
+      NSDecimalRound(&result, &source, fractionDigits, .down)
+    } else {
+      NSDecimalRound(&result, &source, fractionDigits, .up)
+    }
+    return result
   }
 
   private static let iso8601: ISO8601DateFormatter = {

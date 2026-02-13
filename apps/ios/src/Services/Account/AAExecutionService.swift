@@ -14,6 +14,7 @@ enum AAExecutionServiceError: Error {
   case simulationFailed(chainId: UInt64, underlying: Error)
   case chainBundleFailed(chainId: UInt64, underlying: Error)
   case relayStatusFailed(chainId: UInt64, id: String, status: String, reason: String?)
+  case missingRelaySubmission(chainId: UInt64)
 }
 
 extension AAExecutionServiceError: LocalizedError {
@@ -36,6 +37,8 @@ extension AAExecutionServiceError: LocalizedError {
         return "Relay task \(id) failed on chain \(chainId) with status \(status): \(reason)"
       }
       return "Relay task \(id) failed on chain \(chainId) with status \(status)"
+    case .missingRelaySubmission(let chainId):
+      return "Relay submission missing for chain \(chainId)"
     }
   }
 }
@@ -43,18 +46,16 @@ extension AAExecutionServiceError: LocalizedError {
 @MainActor
 final class AAExecutionService {
   private let smartAccountClient: SmartAccountClient
-  private let aaClient: AAClient
   private let rpcClient: RPCClient
 
   private let executionDeadlineWindow: UInt64 = 15 * 60
+  private let defaultGasLimitHex = "0x0f4240"  // 1,000,000
 
   init(
     smartAccountClient: SmartAccountClient = SmartAccountClient(),
-    aaClient: AAClient = AAClient(),
     rpcClient: RPCClient = RPCClient()
   ) {
     self.smartAccountClient = smartAccountClient
-    self.aaClient = aaClient
     self.rpcClient = rpcClient
   }
 
@@ -70,51 +71,37 @@ final class AAExecutionService {
 
     do {
       let context = try await makeContext(accountService: accountService, account: account)
+      var priorityTxs: [RelayTx] = []
 
-      _ = try await ensureInitializedIfNeeded(
+      if let initRequest = try await buildInitializationRequestIfNeeded(
         accountService: accountService,
         context: context,
-        chainId: chainId,
-        waitForCompletion: true
-      )
-
-      let executionData = try await buildSignedExecutionData(
-        accountService: accountService,
-        context: context,
-        chainId: chainId,
-        calls: calls
-      )
-
-      do {
-        try await smartAccountClient.simulateCall(
-          account: context.account.eoaAddress,
-          chainId: chainId,
-          from: context.account.eoaAddress,
-          data: executionData
-        )
-      } catch {
-        throw AAExecutionServiceError.simulationFailed(chainId: chainId, underlying: error)
+        chainId: chainId
+      ) {
+        priorityTxs.append(RelayTx(chainId: chainId, request: initRequest))
       }
+      let needsInitialization = priorityTxs.contains(where: { $0.request.authorization != nil })
 
-      let gasLimit = try await estimateGasWithFallback(
+      let executionRequest = try await buildExecutionRequest(
+        accountService: accountService,
+        context: context,
         chainId: chainId,
-        from: context.account.eoaAddress,
-        to: context.account.eoaAddress,
-        data: executionData
+        calls: calls,
+        skipPreflight: needsInitialization
+      )
+      priorityTxs.append(RelayTx(chainId: chainId, request: executionRequest))
+
+      let submitResult = try await rpcClient.relaySubmit(
+        account: context.account.eoaAddress,
+        supportMode: currentSupportMode(),
+        priorityTxs: priorityTxs,
+        txs: []
       )
 
-      var request = RelayerTransactionRequest(
-        from: context.account.eoaAddress,
-        to: context.account.eoaAddress,
-        data: "0x" + hexString(executionData),
-        gasLimit: gasLimit,
-        isSponsored: true
-      )
-
-      _ = try? await aaClient.getFeeQuote(chainId: chainId, request: request)
-
-      let submission = try await aaClient.sendTransaction(chainId: chainId, request: request)
-      return submission.id
+      guard let executionSubmission = submitResult.prioritySubmissions.last(where: { $0.chainId == chainId }) else {
+        throw AAExecutionServiceError.missingRelaySubmission(chainId: chainId)
+      }
+      return executionSubmission.id
     } catch {
       if let handled = error as? AAExecutionServiceError {
         throw handled
@@ -140,39 +127,45 @@ final class AAExecutionService {
         ?? ChainCalls(chainId: destinationChainId, calls: [])
       let otherBundles = chainCalls.filter { $0.chainId != destinationChainId }
 
-      // Destination chain is hard-gated first. If destination needs init, it is relayed sync and waited.
-      let destinationSubmission = try await submitBundle(
+      var priorityTxs: [RelayTx] = []
+      var txs: [RelayTx] = []
+
+      try await appendBundleTransactions(
         accountService: accountService,
         context: context,
         bundle: destinationBundle,
-        syncSend: true,
-        waitForCompletion: true
+        target: &priorityTxs
       )
 
-      let otherSubmissions: [String] = try await withThrowingTaskGroup(of: String?.self) { group in
-        for bundle in otherBundles {
-          group.addTask {
-            try await self.submitBundle(
-              accountService: accountService,
-              context: context,
-              bundle: bundle,
-              syncSend: false,
-              waitForCompletion: false
-            )
-          }
-        }
-
-        var ids: [String] = []
-        for try await maybeID in group {
-          if let id = maybeID { ids.append(id) }
-        }
-        return ids
+      for bundle in otherBundles {
+        try await appendBundleTransactions(
+          accountService: accountService,
+          context: context,
+          bundle: bundle,
+          target: &txs
+        )
       }
 
-      return (
-        destinationSubmission: destinationSubmission ?? "noop",
-        otherSubmissions: otherSubmissions
+      let submitResult = try await rpcClient.relaySubmit(
+        account: context.account.eoaAddress,
+        supportMode: currentSupportMode(),
+        priorityTxs: priorityTxs,
+        txs: txs
       )
+
+      let destinationSubmissionID =
+        submitResult.prioritySubmissions.last(where: { $0.chainId == destinationChainId })?.id
+        ?? submitResult.submissions.last(where: { $0.chainId == destinationChainId })?.id
+
+      guard let destinationSubmissionID else {
+        throw AAExecutionServiceError.missingRelaySubmission(chainId: destinationChainId)
+      }
+
+      let otherSubmissionIDs = (submitResult.prioritySubmissions + submitResult.submissions)
+        .filter { $0.chainId != destinationChainId }
+        .map(\.id)
+
+      return (destinationSubmission: destinationSubmissionID, otherSubmissions: otherSubmissionIDs)
     } catch {
       if let handled = error as? AAExecutionServiceError {
         throw handled
@@ -191,10 +184,10 @@ final class AAExecutionService {
     let relayID = relayTaskID.trimmingCharacters(in: .whitespacesAndNewlines)
 
     while Date().timeIntervalSince(startedAt) < timeout {
-      let status = try await aaClient.getStatus(chainId: chainId, id: relayID)
+      let status = try await rpcClient.relayStatus(chainId: chainId, id: relayID)
 
-      switch status.state {
-      case .executed, .success:
+      switch status.state.lowercased() {
+      case "executed", "success":
         if let blockNumber = status.blockNumber {
           return try await resolveBlockTimestamp(chainId: chainId, blockNumber: blockNumber)
         }
@@ -202,14 +195,14 @@ final class AAExecutionService {
           return try await resolveTxTimestamp(chainId: chainId, txHash: txHash)
         }
         return Date()
-      case .failed, .reverted, .cancelled:
+      case "failed", "reverted", "cancelled":
         throw AAExecutionServiceError.relayStatusFailed(
           chainId: chainId,
           id: relayID,
           status: status.rawStatus,
           reason: status.failureReason
         )
-      case .pending, .waiting, .unknown:
+      default:
         break
       }
 
@@ -221,6 +214,41 @@ final class AAExecutionService {
     )
   }
 
+  private func appendBundleTransactions(
+    accountService: AccountSetupService,
+    context: ExecutionContext,
+    bundle: ChainCalls,
+    target: inout [RelayTx]
+  ) async throws {
+    do {
+      if let initRequest = try await buildInitializationRequestIfNeeded(
+        accountService: accountService,
+        context: context,
+        chainId: bundle.chainId
+      ) {
+        target.append(RelayTx(chainId: bundle.chainId, request: initRequest))
+      }
+      let needsInitialization = target.contains {
+        $0.chainId == bundle.chainId && $0.request.authorization != nil
+      }
+
+      guard !bundle.calls.isEmpty else {
+        return
+      }
+
+      let executionRequest = try await buildExecutionRequest(
+        accountService: accountService,
+        context: context,
+        chainId: bundle.chainId,
+        calls: bundle.calls,
+        skipPreflight: needsInitialization
+      )
+      target.append(RelayTx(chainId: bundle.chainId, request: executionRequest))
+    } catch {
+      throw AAExecutionServiceError.chainBundleFailed(chainId: bundle.chainId, underlying: error)
+    }
+  }
+
   private func makeContext(
     accountService: AccountSetupService,
     account: AccountIdentity
@@ -230,73 +258,52 @@ final class AAExecutionService {
     return ExecutionContext(account: sessionAccount, passkey: passkey)
   }
 
-  private func submitBundle(
+  private func buildExecutionRequest(
     accountService: AccountSetupService,
     context: ExecutionContext,
-    bundle: ChainCalls,
-    syncSend: Bool,
-    waitForCompletion: Bool
-  ) async throws -> String? {
-    do {
-      let initSubmission = try await ensureInitializedIfNeeded(
-        accountService: accountService,
-        context: context,
-        chainId: bundle.chainId,
-        waitForCompletion: true
-      )
+    chainId: UInt64,
+    calls: [Call],
+    skipPreflight: Bool = false
+  ) async throws -> RelayTransactionRequest {
+    let executionData = try await buildSignedExecutionData(
+      accountService: accountService,
+      context: context,
+      chainId: chainId,
+      calls: calls
+    )
 
-      guard !bundle.calls.isEmpty else {
-        return initSubmission
-      }
-
-      let executionData = try await buildSignedExecutionData(
-        accountService: accountService,
-        context: context,
-        chainId: bundle.chainId,
-        calls: bundle.calls
-      )
-
+    if !skipPreflight {
       do {
         try await smartAccountClient.simulateCall(
           account: context.account.eoaAddress,
-          chainId: bundle.chainId,
+          chainId: chainId,
           from: context.account.eoaAddress,
           data: executionData
         )
       } catch {
-        throw AAExecutionServiceError.simulationFailed(chainId: bundle.chainId, underlying: error)
+        throw AAExecutionServiceError.simulationFailed(chainId: chainId, underlying: error)
       }
+    }
 
-      let gasLimit = try await estimateGasWithFallback(
-        chainId: bundle.chainId,
+    let gasLimit: String
+    if skipPreflight {
+      gasLimit = defaultGasLimitHex
+    } else {
+      gasLimit = try await estimateGasWithFallback(
+        chainId: chainId,
         from: context.account.eoaAddress,
         to: context.account.eoaAddress,
         data: executionData
       )
-
-      let request = RelayerTransactionRequest(
-        from: context.account.eoaAddress,
-        to: context.account.eoaAddress,
-        data: "0x" + hexString(executionData),
-        gasLimit: gasLimit,
-        isSponsored: true
-      )
-
-      _ = try? await aaClient.getFeeQuote(chainId: bundle.chainId, request: request)
-
-      let submission = try await (syncSend
-        ? aaClient.sendTransactionSync(chainId: bundle.chainId, request: request)
-        : aaClient.sendTransaction(chainId: bundle.chainId, request: request)
-      )
-
-      if waitForCompletion {
-        _ = try await waitForTerminalRelayState(chainId: bundle.chainId, relayID: submission.id)
-      }
-
-      return submission.id
-    } catch {
-      throw AAExecutionServiceError.chainBundleFailed(chainId: bundle.chainId, underlying: error)
     }
+
+    return RelayTransactionRequest(
+      from: context.account.eoaAddress,
+      to: context.account.eoaAddress,
+      data: "0x" + hexString(executionData),
+      gasLimit: gasLimit,
+      isSponsored: true
+    )
   }
 
   private func buildSignedExecutionData(
@@ -329,6 +336,7 @@ final class AAExecutionService {
       } catch {
         throw AAExecutionServiceError.signingFailed(error)
       }
+
       return try SmartAccount.ExecuteAuthorized.encodeSingle(
         call: call,
         nonce: nonce,
@@ -362,12 +370,11 @@ final class AAExecutionService {
     )
   }
 
-  private func ensureInitializedIfNeeded(
+  private func buildInitializationRequestIfNeeded(
     accountService: AccountSetupService,
     context: ExecutionContext,
-    chainId: UInt64,
-    waitForCompletion: Bool
-  ) async throws -> String? {
+    chainId: UInt64
+  ) async throws -> RelayTransactionRequest? {
     let isDeployed = try await smartAccountClient.isDeployed(account: context.account.eoaAddress, chainId: chainId)
     if isDeployed {
       return nil
@@ -399,7 +406,7 @@ final class AAExecutionService {
       )
 
       let auth = try await accountService.storedSignedAuthorization(account: context.account, chainId: chainId)
-      let relayAuth = RelayerAuthorization(
+      let relayAuth = RelayAuthorization(
         address: auth.delegateAddress,
         chainId: "0x" + String(auth.chainId, radix: 16),
         nonce: "0x" + String(auth.nonce, radix: 16),
@@ -408,54 +415,16 @@ final class AAExecutionService {
         yParity: "0x" + String(auth.yParity, radix: 16)
       )
 
-      // First-touch tx: per product decision we skip gas estimation and sponsor initialize directly.
-      let request = RelayerTransactionRequest(
+      return RelayTransactionRequest(
         from: context.account.eoaAddress,
         to: context.account.eoaAddress,
         data: "0x" + hexString(initializeData),
         isSponsored: true,
         authorization: relayAuth
       )
-
-      let submission = try await aaClient.sendTransactionSync(chainId: chainId, request: request)
-      if waitForCompletion {
-        _ = try await waitForTerminalRelayState(chainId: chainId, relayID: submission.id)
-      }
-      return submission.id
     } catch {
       throw AAExecutionServiceError.initializationFailed(chainId: chainId, underlying: error)
     }
-  }
-
-  private func waitForTerminalRelayState(
-    chainId: UInt64,
-    relayID: String,
-    timeout: TimeInterval = 240,
-    pollInterval: TimeInterval = 2
-  ) async throws -> RelayerStatus {
-    let startedAt = Date()
-
-    while Date().timeIntervalSince(startedAt) < timeout {
-      let status = try await aaClient.getStatus(chainId: chainId, id: relayID)
-
-      switch status.state {
-      case .executed, .success:
-        return status
-      case .failed, .reverted, .cancelled:
-        throw AAExecutionServiceError.relayStatusFailed(
-          chainId: chainId,
-          id: relayID,
-          status: status.rawStatus,
-          reason: status.failureReason
-        )
-      case .pending, .waiting, .unknown:
-        try? await Task.sleep(for: .seconds(pollInterval))
-      }
-    }
-
-    throw AAExecutionServiceError.relayFailed(
-      RPCError.rpcError(code: -1, message: "Timed out waiting for relay task completion")
-    )
   }
 
   private func estimateGasWithFallback(
@@ -465,16 +434,16 @@ final class AAExecutionService {
     data: Data
   ) async throws -> String {
     do {
-      return try await aaClient.estimateGas(
+      let estimate = try await smartAccountClient.estimateGas(
+        account: to,
         chainId: chainId,
         from: from,
-        to: to,
-        data: "0x" + hexString(data),
-        value: "0x0"
+        data: data,
+        valueHex: "0x0"
       )
+      return "0x" + String(estimate, radix: 16)
     } catch {
-      // Conservative fallback for signature-validated account execute/executeBatch paths.
-      return "0x0f4240"  // 1,000,000
+      return defaultGasLimitHex
     }
   }
 
@@ -512,6 +481,17 @@ final class AAExecutionService {
       )
     }
     return Date(timeIntervalSince1970: TimeInterval(timestamp))
+  }
+
+  private func currentSupportMode() -> RelaySupportMode {
+    switch ChainSupportRuntime.resolveMode() {
+    case .limitedTestnet:
+      return .limitedTestnet
+    case .limitedMainnet:
+      return .limitedMainnet
+    case .fullMainnet:
+      return .fullMainnet
+    }
   }
 
   private func hexString(_ data: Data) -> String {

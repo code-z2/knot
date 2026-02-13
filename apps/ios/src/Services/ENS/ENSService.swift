@@ -1,5 +1,6 @@
 import Foundation
 import ENS
+import RPC
 import Transactions
 
 enum ENSServiceError: Error {
@@ -46,11 +47,21 @@ final class ENSService {
   }
 
   init(
-    configuration: ENSConfiguration = .sepolia,
+    configuration: ENSConfiguration? = nil,
     client: ENSClient? = nil
   ) {
-    self.configuration = configuration
-    self.client = client ?? ENSClient(configuration: configuration)
+    let resolvedConfiguration = configuration ?? ENSService.defaultConfiguration()
+    self.configuration = resolvedConfiguration
+    self.client = client ?? ENSClient(configuration: resolvedConfiguration)
+  }
+
+  private nonisolated static func defaultConfiguration() -> ENSConfiguration {
+    switch ChainSupportRuntime.resolveMode() {
+    case .limitedTestnet:
+      return .sepolia
+    case .limitedMainnet, .fullMainnet:
+      return .mainnet
+    }
   }
 
   func resolveName(name: String) async throws -> String {
