@@ -73,11 +73,16 @@ Request:
 
 ```json
 {
-  "eoaAddress": "0x..."
+  "eoaAddress": "0x...",
+  "supportMode": "LIMITED_TESTNET"
 }
 ```
 
-Response: `202 Accepted` with `{ "ok": true, "status": "funding_initiated" }`.
+Response statuses:
+- `202 Accepted` with `{ "ok": true, "status": "funding_initiated" }`
+- `202 Accepted` with `{ "ok": true, "status": "funding_pending" }`
+- `200 OK` with `{ "ok": true, "status": "already_funded" }`
+- `200 OK` with `{ "ok": true, "status": "skipped_non_testnet" }` for non-testnet modes
 
 ## Auth
 
@@ -118,6 +123,7 @@ Required:
 Optional:
 - `RELAY_AUTH_HMAC_SECRET`
 - `GELATO_RPC_TEMPLATE`
+- `FAUCET_FUNDING_KV` (Wrangler KV binding; falls back to `GAS_TANK_KV` if omitted)
 - `PINATA_SIGN_EXPIRES_SECONDS`
 - `PINATA_MAX_FILE_SIZE_BYTES`
 - `PINATA_GROUP_FIELD` (`group_id` or `group`, default: `group_id`)
@@ -177,9 +183,12 @@ wrangler deploy
 
 `POST /v1/faucet/fund` processing order:
 1. Verify bearer token (+ optional HMAC header).
-2. Validate faucet payload (`eoaAddress`).
-3. Queue testnet funding on configured chains (Sepolia, Base Sepolia, Arbitrum Sepolia).
-4. Return `202` immediately.
+2. Validate faucet payload (`eoaAddress`, `supportMode`).
+3. For `LIMITED_TESTNET`, check KV key `faucet-funded:<mode>:<account>`.
+4. If funded/pending, return immediately without resubmitting transfers.
+5. If not funded, mark pending and queue testnet funding on configured chains.
+   If faucet RPC vars are unset, worker falls back to Gelato RPC template per chain.
+6. On success, persist funded marker in KV. On failure, clear pending marker.
 
 ## Local Dev
 

@@ -1,19 +1,56 @@
 import Observation
+import RPC
 import SwiftUI
 
 private enum PreferencesModal: String, Identifiable {
   case appearance
-  case currency
-  case language
 
   var id: String { rawValue }
 
   var sheetKind: AppSheetKind {
+    .height(260)
+  }
+}
+
+private enum PreferencesPage {
+  case main
+  case currency
+  case language
+
+  var title: LocalizedStringKey {
     switch self {
-    case .appearance:
-      return .height(260)
-    case .currency, .language:
-      return .full
+    case .main:
+      return "preferences_title"
+    case .currency:
+      return "sheet_currency_title"
+    case .language:
+      return "sheet_language_title"
+    }
+  }
+}
+
+extension ChainSupportMode {
+  var localizedDisplayName: LocalizedStringKey {
+    switch self {
+    case .limitedMainnet:
+      return "preferences_network_mode_mainnet"
+    case .limitedTestnet:
+      return "preferences_network_mode_testnet"
+    case .fullMainnet:
+      return "preferences_network_mode_mainnet_plus"
+    }
+  }
+}
+
+extension AppAppearance {
+  var localizedDisplayName: LocalizedStringKey {
+    switch self {
+    case .dark:
+      return "preferences_appearance_dark"
+    case .system:
+      return "preferences_appearance_system"
+    case .light:
+      return "preferences_appearance_light"
     }
   }
 }
@@ -22,57 +59,99 @@ struct PreferencesView: View {
   @Bindable var preferencesStore: PreferencesStore
   var onBack: () -> Void = {}
   @State private var activeModal: PreferencesModal?
+  @State private var activePage: PreferencesPage = .main
 
   var body: some View {
     ZStack {
       AppThemeColor.backgroundPrimary.ignoresSafeArea()
-
-      VStack(spacing: 0) {
-        VStack(spacing: 12) {
-          PreferenceRow(
-            title: "preferences_appearance",
-            iconName: "Icons/lightbulb_02",
-            trailing: .valueChevron(preferencesStore.appearance.displayName),
-            action: { present(.appearance) }
-          )
-          PreferenceRow(
-            title: "preferences_haptics",
-            iconName: "Icons/vibration",
-            trailing: .toggle(isOn: $preferencesStore.hapticsEnabled)
-          )
-          PreferenceRow(
-            title: "preferences_currency",
-            iconName: "Icons/bank_note_03",
-            trailing: .valueChevron(preferencesStore.selectedCurrencyCode.uppercased()),
-            action: { present(.currency) }
-          )
-          PreferenceRow(
-            title: "preferences_language",
-            iconName: "Icons/translate_01",
-            trailing: .valueChevron(
-              preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode
-            ),
-            action: { present(.language) }
-          )
-        }
-        .padding(.top, AppHeaderMetrics.contentTopPadding)
-        .padding(.horizontal, 20)
-
-        Spacer()
-      }
+      pageContent
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
-        title: "preferences_title",
+        title: activePage.title,
         titleFont: .custom("Roboto-Bold", size: 22),
         titleColor: AppThemeColor.labelSecondary,
-        onBack: onBack
+        onBack: handleBack
       )
     }
     .sheet(item: $activeModal) { modal in
       AppSheet(kind: modal.sheetKind) {
         modalContent(for: modal)
       }
+    }
+  }
+
+  @ViewBuilder
+  private var pageContent: some View {
+    switch activePage {
+    case .main:
+      List {
+        Section {
+          PreferenceRow(
+            title: Text("preferences_appearance"),
+            iconName: "moonphase.first.quarter",
+            iconBackground: Color(hex: "#5E5CE6"),
+            trailing: .localizedValueChevron(preferencesStore.appearance.localizedDisplayName),
+            action: { present(.appearance) }
+          )
+          PreferenceRow(
+            title: Text("preferences_haptics"),
+            iconName: "iphone.radiowaves.left.and.right",
+            iconBackground: Color(hex: "#FF9F0A"),
+            trailing: .toggle(isOn: $preferencesStore.hapticsEnabled)
+          )
+          PreferenceRow(
+            title: Text("preferences_network_mode"),
+            iconName: "point.3.connected.trianglepath.dotted",
+            iconBackground: Color(hex: "#0A84FF"),
+            trailing: .custom(
+              AnyView(NetworkModePullDown(mode: $preferencesStore.chainSupportMode))
+            )
+          )
+          PreferenceRow(
+            title: Text("preferences_currency"),
+            iconName: "banknote",
+            iconBackground: Color(hex: "#34C759"),
+            trailing: .valueChevron(preferencesStore.selectedCurrencyCode.uppercased()),
+            action: {
+              withAnimation(.easeInOut(duration: 0.18)) {
+                activePage = .currency
+              }
+            }
+          )
+          PreferenceRow(
+            title: Text("preferences_language"),
+            iconName: "globe",
+            iconBackground: Color(hex: "#AF52DE"),
+            trailing: .valueChevron(
+              preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode
+            ),
+            action: {
+              withAnimation(.easeInOut(duration: 0.18)) {
+                activePage = .language
+              }
+            }
+          )
+        }
+      }
+      .listStyle(.insetGrouped)
+      .scrollDisabled(true)
+      .scrollContentBackground(.hidden)
+      .scrollIndicators(.hidden)
+    case .currency:
+      CurrencySelectionPage(
+        currencies: preferencesStore.supportedCurrencies,
+        selectedCode: preferencesStore.selectedCurrencyCode,
+        onSelect: { preferencesStore.selectedCurrencyCode = $0 }
+      )
+      .padding(.top, 16)
+    case .language:
+      LanguageSelectionPage(
+        languages: preferencesStore.supportedLanguages,
+        selectedCode: preferencesStore.languageCode,
+        onSelect: { preferencesStore.languageCode = $0 }
+      )
+      .padding(.top, 16)
     }
   }
 
@@ -87,26 +166,6 @@ struct PreferencesView: View {
           dismissModal()
         }
       )
-    case .currency:
-      CurrencyPickerModal(
-        title: "sheet_currency_title",
-        currencies: preferencesStore.supportedCurrencies,
-        selectedCode: preferencesStore.selectedCurrencyCode,
-        onSelect: { code in
-          preferencesStore.selectedCurrencyCode = code
-          dismissModal()
-        }
-      )
-    case .language:
-      LanguagePickerModal(
-        title: "sheet_language_title",
-        languages: preferencesStore.supportedLanguages,
-        selectedCode: preferencesStore.languageCode,
-        onSelect: { code in
-          preferencesStore.languageCode = code
-          dismissModal()
-        }
-      )
     }
   }
 
@@ -114,8 +173,37 @@ struct PreferencesView: View {
     activeModal = modal
   }
 
+  private func handleBack() {
+    if activePage == .main {
+      onBack()
+    } else {
+      withAnimation(.easeInOut(duration: 0.18)) {
+        activePage = .main
+      }
+    }
+  }
+
   private func dismissModal() {
     activeModal = nil
+  }
+}
+
+private struct NetworkModePullDown: View {
+  @Binding var mode: ChainSupportMode
+
+  var body: some View {
+    Picker(selection: $mode) {
+      Text("preferences_network_mode_mainnet")
+        .tag(ChainSupportMode.limitedMainnet)
+      Text("preferences_network_mode_testnet")
+        .tag(ChainSupportMode.limitedTestnet)
+    } label: {
+    }
+    .pickerStyle(.menu)
+    .tint(AppThemeColor.labelSecondary)
+    .accentColor(AppThemeColor.labelSecondary)
+    .foregroundStyle(AppThemeColor.labelSecondary)
+    .buttonStyle(.plain)
   }
 }
 
@@ -124,10 +212,13 @@ private struct PreferenceRow: View {
     case chevron
     case toggle(isOn: Binding<Bool>)
     case valueChevron(String)
+    case localizedValueChevron(LocalizedStringKey)
+    case custom(AnyView)
   }
 
-  let title: LocalizedStringKey
+  let title: Text
   let iconName: String
+  let iconBackground: Color
   let trailing: Trailing
   var action: (() -> Void)? = nil
 
@@ -144,17 +235,22 @@ private struct PreferenceRow: View {
 
   private var rowContent: some View {
     HStack {
-      HStack(spacing: 16) {
-        IconBadge(style: .defaultStyle) {
-          Image(iconName)
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 21, height: 21)
-            .foregroundStyle(AppThemeColor.glyphPrimary)
+      HStack(spacing: 12) {
+        IconBadge(
+          style: .solid(
+            background: iconBackground,
+            icon: AppThemeColor.grayWhite
+          ),
+          contentPadding: 6,
+          cornerRadius: 9,
+          borderWidth: 0
+        ) {
+          Image(systemName: iconName)
+            .font(.system(size: 14, weight: .medium))
+            .frame(width: 14, height: 14)
         }
 
-        Text(title)
+        title
           .font(.custom("Roboto-Medium", size: 15))
           .foregroundStyle(AppThemeColor.labelPrimary)
       }
@@ -163,161 +259,37 @@ private struct PreferenceRow: View {
 
       switch trailing {
       case .chevron:
-        chevron
+        Chevron()
       case .toggle(let isOn):
         ToggleSwitch(isOn: isOn)
-          .padding(.horizontal, 8)
       case .valueChevron(let value):
         HStack(spacing: 10) {
           Text(value)
-            .font(.custom("Roboto-Bold", size: 14))
-            .underline(true, color: AppThemeColor.labelSecondary)
+            .font(.custom("Roboto-Regular", size: 15))
             .foregroundStyle(AppThemeColor.labelSecondary)
-          chevron
+          Chevron()
         }
+      case .localizedValueChevron(let value):
+        HStack(spacing: 10) {
+          Text(value)
+            .font(.custom("Roboto-Regular", size: 15))
+            .foregroundStyle(AppThemeColor.labelSecondary)
+          Chevron()
+        }
+      case .custom(let view):
+        view
       }
     }
-    .frame(maxWidth: .infinity, minHeight: 48)
+    .frame(maxWidth: .infinity)
   }
+}
 
-  private var chevron: some View {
-    Image("Icons/chevron_right")
-      .renderingMode(.template)
-      .resizable()
-      .aspectRatio(contentMode: .fit)
+private struct Chevron: View {
+  var body: some View {
+    Image(systemName: "chevron.right")
+      .font(.system(size: 12, weight: .semibold))
       .frame(width: 12, height: 12)
       .foregroundStyle(AppThemeColor.glyphSecondary)
-      .padding(.horizontal, 8)
-  }
-}
-
-private struct ModalTitleBar: View {
-  let title: LocalizedStringKey
-
-  var body: some View {
-    HStack(spacing: 12) {
-      Text(title)
-        .font(.custom("Roboto-Bold", size: 15))
-        .foregroundStyle(AppThemeColor.labelSecondary)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.horizontal, 24)
-    .padding(.top, 14)
-    .padding(.bottom, 16)
-  }
-}
-
-private struct CurrencyPickerModal: View {
-  let title: LocalizedStringKey
-  let currencies: [CurrencyOption]
-  let selectedCode: String
-  let onSelect: (String) -> Void
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      ModalTitleBar(title: title)
-
-      Rectangle()
-        .fill(AppThemeColor.separatorOpaque)
-        .frame(height: 4)
-
-      ScrollView(showsIndicators: false) {
-        VStack(alignment: .leading, spacing: 20) {
-          ForEach(currencies) { currency in
-            CurrencyOptionRow(currency: currency, isSelected: currency.code == selectedCode) {
-              onSelect(currency.code)
-            }
-          }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 24)
-      }
-    }
-  }
-}
-
-private struct CurrencyOptionRow: View {
-  let currency: CurrencyOption
-  let isSelected: Bool
-  let onTap: () -> Void
-
-  var body: some View {
-    Button(action: onTap) {
-      HStack(spacing: 16) {
-        IconBadge(style: .neutral) {
-          Image(currency.iconAssetName)
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 14, height: 14)
-            .foregroundStyle(AppThemeColor.accentBrown)
-        }
-        .frame(width: 26, height: 26)
-
-        VStack(alignment: .leading, spacing: 2) {
-          Text(currency.code)
-            .font(.custom("Inter-Regular_Medium", size: 14))
-            .foregroundStyle(AppThemeColor.labelPrimary)
-          Text(currency.name)
-            .font(.custom("RobotoMono-Medium", size: 12))
-            .foregroundStyle(AppThemeColor.labelSecondary)
-        }
-
-        Spacer(minLength: 0)
-
-        if isSelected {
-          Image(systemName: "checkmark.circle.fill")
-            .foregroundStyle(AppThemeColor.accentBrown)
-        }
-      }
-      .padding(.horizontal, 10)
-      .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-    }
-    .buttonStyle(.plain)
-  }
-}
-
-private struct LanguagePickerModal: View {
-  let title: LocalizedStringKey
-  let languages: [LanguageOption]
-  let selectedCode: String
-  let onSelect: (String) -> Void
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      ModalTitleBar(title: title)
-
-      Rectangle()
-        .fill(AppThemeColor.separatorOpaque)
-        .frame(height: 4)
-
-      ScrollView(showsIndicators: false) {
-        VStack(alignment: .leading, spacing: 20) {
-          ForEach(languages) { language in
-            Button {
-              onSelect(language.code)
-            } label: {
-              HStack {
-                Text(language.listLabel)
-                  .font(.custom("Inter-Regular_Medium", size: 12))
-                  .foregroundStyle(AppThemeColor.labelPrimary)
-                  .frame(maxWidth: .infinity, alignment: .leading)
-
-                if language.code == selectedCode {
-                  Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppThemeColor.accentBrown)
-                }
-              }
-            }
-            .buttonStyle(.plain)
-          }
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 24)
-        .padding(.bottom, 24)
-      }
-    }
   }
 }
 
@@ -332,7 +304,7 @@ private struct AppearancePickerModal: View {
           onSelect(appearance)
         } label: {
           VStack(spacing: 8) {
-            Text(appearance.displayName)
+            Text(appearance.localizedDisplayName)
               .font(.custom("RobotoCondensed-Medium", size: 14))
               .foregroundStyle(AppThemeColor.labelPrimary)
               .frame(height: 16)

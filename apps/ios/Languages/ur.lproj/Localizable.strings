@@ -3,6 +3,13 @@
 "preferences_haptics" = "لمسی تاثر";
 "preferences_currency" = "کرنسی";
 "preferences_language" = "زبان";
+"preferences_network_mode" = "نیٹ ورک موڈ";
+"preferences_network_mode_mainnet" = "مین نیٹ";
+"preferences_network_mode_testnet" = "ٹیسٹ نیٹ";
+"preferences_network_mode_mainnet_plus" = "مین نیٹ+";
+"preferences_appearance_dark" = "تاریک";
+"preferences_appearance_system" = "سسٹم";
+"preferences_appearance_light" = "ہلکا";
 "preferences_business" = "کاروبار کے لیے Knot";
 "sheet_currency_title" = "کرنسی";
 "sheet_language_title" = "زبان";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "کوئی حالیہ سرگرمی نہیں";
 "transaction_empty_subtitle" = "رقم بھیجنے یا وصول کرنے کے بعد آپ کے لین دین یہاں ظاہر ہوں گے۔";
+"receive_wallet_address" = "Wallet Address";

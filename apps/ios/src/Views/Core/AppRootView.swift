@@ -28,7 +28,7 @@ struct AppRootView: View {
   )
   private let beneficiaryStore = BeneficiaryStore()
   private let accountService = AccountSetupService()
-  private let ensService = ENSService()
+  @State private var ensService = ENSService(mode: ChainSupportRuntime.resolveMode())
   private let aaExecutionService = AAExecutionService()
   private let routeComposer = RouteComposer()
   private let sessionStore = SessionStore()
@@ -181,6 +181,18 @@ struct AppRootView: View {
         await currencyRateStore.ensureRate(for: newCode)
       }
     }
+    .onChange(of: preferencesStore.chainSupportMode) { _, newMode in
+      withAnimation(.easeInOut(duration: 0.2)) {
+        selectedMainTab = .home
+      }
+      ensService = ENSService(mode: newMode)
+      guard let eoa = currentEOA else { return }
+      restoreCachedWalletState(walletAddress: eoa)
+      Task {
+        await refreshWalletData(walletAddress: eoa)
+        await triggerFaucetIfNeeded(walletAddress: eoa, mode: newMode)
+      }
+    }
   }
 
   private var shouldAnimateRoute: Bool {
@@ -243,8 +255,7 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_home")
         } icon: {
-          Image("Icons/home_02")
-            .renderingMode(.template)
+          Image(systemName: "house")
         }
       }
 
@@ -259,8 +270,7 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_transactions")
         } icon: {
-          Image("Icons/receipt")
-            .renderingMode(.template)
+          Image(systemName: "receipt")
         }
       }
 
@@ -270,8 +280,7 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_session_key")
         } icon: {
-          Image("Icons/key_01")
-            .renderingMode(.template)
+          Image(systemName: "key")
         }
       }
     }
@@ -292,13 +301,7 @@ struct AppRootView: View {
       route = .main
 
       // Fire-and-forget: fund new account with testnet USDC + ETH.
-      if ChainSupportRuntime.resolveMode() == .limitedTestnet {
-        let address = restored.eoaAddress
-        let faucet = faucetService
-        Task(priority: .utility) {
-          await faucet.fundAccount(eoaAddress: address)
-        }
-      }
+      await triggerFaucetIfNeeded(walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
 
       restoreCachedWalletState(walletAddress: restored.eoaAddress)
       Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
@@ -318,6 +321,7 @@ struct AppRootView: View {
       restoreCachedWalletState(walletAddress: restored.eoaAddress)
       selectedMainTab = .home
       route = .main
+      await triggerFaucetIfNeeded(walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
       Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
     }
   }
@@ -424,6 +428,11 @@ struct AppRootView: View {
   private func cacheKey(walletAddress: String) -> String {
     let mode = ChainSupportRuntime.resolveMode().rawValue.lowercased()
     return "\(mode):\(walletAddress.lowercased())"
+  }
+
+  private func triggerFaucetIfNeeded(walletAddress: String, mode: ChainSupportMode) async {
+    guard mode == .limitedTestnet else { return }
+    await faucetService.fundAccount(eoaAddress: walletAddress, mode: mode)
   }
 }
 

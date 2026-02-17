@@ -331,4 +331,5 @@ struct RelayImageUploadSessionRequestPayload: Encodable {
 
 struct RelayFaucetFundRequestPayload: Encodable {
   let eoaAddress: String
+  let supportMode: String
 }

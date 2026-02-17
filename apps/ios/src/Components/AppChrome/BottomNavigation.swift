@@ -15,7 +15,7 @@ struct BottomNavigation: View {
   var body: some View {
       HStack(spacing: 10) {
       tabItem(
-        iconName: "Icons/home_02",
+        iconName: "house",
         title: "bottom_nav_home",
         titleWidth: 100,
         isActive: activeTab == .home,
@@ -23,7 +23,7 @@ struct BottomNavigation: View {
       )
 
       tabItem(
-        iconName: "Icons/receipt",
+        iconName: "receipt",
         title: "bottom_nav_transactions",
         titleWidth: 100,
         isActive: activeTab == .transactions,
@@ -31,7 +31,7 @@ struct BottomNavigation: View {
       )
 
       tabItem(
-        iconName: "Icons/key_01",
+        iconName: "key",
         title: "bottom_nav_session_key",
         titleWidth: 100,
         isActive: activeTab == .sessionKey,
@@ -55,10 +55,8 @@ struct BottomNavigation: View {
   ) -> some View {
     Button(action: action) {
       VStack(spacing: 4) {
-        Image(iconName)
-          .renderingMode(.template)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
+        Image(systemName: iconName)
+          .font(.system(size: 22, weight: .medium))
           .frame(width: 22, height: 22)
           .foregroundStyle(isActive ? AppThemeColor.accentBrown : AppThemeColor.labelSecondary)
           .padding(.top, 2)

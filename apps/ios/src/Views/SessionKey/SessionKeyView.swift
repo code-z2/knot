@@ -16,10 +16,8 @@ struct SessionKeyView: View {
                         .rotationEffect(.degrees(19.5))
 
                     VStack(spacing: 110) {
-                        Image("Icons/rss_01")
-                            .renderingMode(.template)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                            .font(.system(size: 24, weight: .medium))
                             .frame(width: 24, height: 24)
                             .foregroundStyle(AppThemeColor.fillPrimary)
 

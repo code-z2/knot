@@ -217,10 +217,8 @@ private struct AssetPriceChange: View {
         .fill(backgroundColor)
         .frame(width: 18, height: 18)
         .overlay {
-          Image(iconAssetName)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
+          Image(systemName: iconSystemName)
+            .font(.system(size: 12, weight: .semibold))
             .frame(width: 12, height: 12)
             .foregroundStyle(accentColor)
         }
@@ -246,10 +244,10 @@ private struct AssetPriceChange: View {
     }
   }
 
-  private var iconAssetName: String {
+  private var iconSystemName: String {
     switch change.direction {
-    case .up: "Icons/arrow_up"
-    case .down: "Icons/arrow_down"
+    case .up: "arrow.up"
+    case .down: "arrow.down"
     }
   }
 }

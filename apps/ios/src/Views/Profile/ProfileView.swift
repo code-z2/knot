@@ -249,10 +249,8 @@ struct ProfileView: View {
     Circle()
       .fill(AppThemeColor.backgroundPrimary)
       .overlay {
-        Image("Icons/user_01")
-          .renderingMode(.template)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
+        Image(systemName: "person")
+          .font(.system(size: 24, weight: .medium))
           .frame(width: 24, height: 24)
           .foregroundStyle(AppThemeColor.separatorOpaque)
       }
@@ -286,10 +284,8 @@ struct ProfileView: View {
                 .foregroundStyle(AppThemeColor.labelPrimary)
 
               if isNameLocked {
-                Image("Icons/lock_01")
-                  .renderingMode(.template)
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
+                Image(systemName: "lock")
+                  .font(.system(size: 14, weight: .medium))
                   .frame(width: 14, height: 14)
                   .foregroundStyle(AppThemeColor.accentBrown)
               }

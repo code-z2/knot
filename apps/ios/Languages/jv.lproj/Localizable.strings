@@ -3,6 +3,13 @@
 "preferences_haptics" = "Umpan balik geter";
 "preferences_currency" = "Mata Uang";
 "preferences_language" = "Basa";
+"preferences_network_mode" = "Mode Jaringan";
+"preferences_network_mode_mainnet" = "Jaringan utama";
+"preferences_network_mode_testnet" = "Jaringan uji";
+"preferences_network_mode_mainnet_plus" = "Jaringan utama+";
+"preferences_appearance_dark" = "Peteng";
+"preferences_appearance_system" = "Sistem";
+"preferences_appearance_light" = "Padhang";
 "preferences_business" = "Knot kanggo Bisnis";
 "sheet_currency_title" = "Mata Uang";
 "sheet_language_title" = "Basa";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "Ora ana aktivitas anyar";
 "transaction_empty_subtitle" = "Transaksi sampeyan bakal katon ing kene sawise sampeyan ngirim utawa nampa dana.";
+"receive_wallet_address" = "Wallet Address";

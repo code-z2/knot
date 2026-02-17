@@ -10,7 +10,6 @@ struct BackNavigationButton: View {
     Button(action: action) {
       Image(systemName: "chevron.backward")
         .font(.system(size: 17, weight: .semibold))
-        .foregroundStyle(tint)
         .frame(width: hitSize, height: hitSize)
         .contentShape(.circle)
     }

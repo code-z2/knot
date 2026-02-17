@@ -13,6 +13,7 @@ import { privateKeyToAccount } from "viem/accounts";
 
 export interface Env {
   GAS_TANK_KV: KVNamespace;
+  FAUCET_FUNDING_KV?: KVNamespace;
   RELAY_AUTH_TOKEN: string;
   RELAY_AUTH_HMAC_SECRET?: string;
   GELATO_API_KEY: string;
@@ -90,12 +91,15 @@ interface NormalizedDirectUploadRequest {
 
 interface FaucetFundRequest {
   eoaAddress: string;
+  supportMode: SupportMode;
 }
 
 const SUPPORT_MODES: Set<string> = new Set(["LIMITED_TESTNET", "LIMITED_MAINNET", "FULL_MAINNET"]);
 const ETH_DRIP_WEI = 10_000_000_000_000_000n; // 0.01 ETH
 const USDC_DRIP_AMOUNT = 2_000_000n; // 2 USDC (6 decimals)
 const INITIALIZE_SELECTOR = "0xc62f0714";
+const FAUCET_PENDING_TTL_SECONDS = 600;
+const FAUCET_FUNDED_TTL_SECONDS = 31_536_000;
 
 const TESTNET_USDC_BY_CHAIN: Record<number, Address> = {
   11155111: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // Sepolia
@@ -369,14 +373,45 @@ async function handleDirectImageUpload(rawBody: string, env: Env): Promise<Respo
 
 async function handleFaucetFund(rawBody: string, env: Env, ctx: ExecutionContext): Promise<Response> {
   const request = parseFaucetFundRequest(rawBody);
+
+  if (request.supportMode !== "LIMITED_TESTNET") {
+    return jsonResponse({ ok: true, status: "skipped_non_testnet", supportMode: request.supportMode }, 200);
+  }
+
   const rpcByChain = resolveFaucetRPCByChain(env);
   normalizePrivateKey(env.FAUCET_PRIVATE_KEY ?? "");
+  const faucetKV = resolveFaucetFundingKV(env);
+  const fundingKey = buildFaucetFundingKey(request.eoaAddress, request.supportMode);
+  const existing = await readFaucetFundingState(faucetKV, fundingKey);
+
+  if (existing === "funded") {
+    return jsonResponse({ ok: true, status: "already_funded" }, 200);
+  }
+  if (existing === "pending") {
+    return jsonResponse({ ok: true, status: "funding_pending" }, 202);
+  }
+
+  await faucetKV.put(
+    fundingKey,
+    JSON.stringify({ state: "pending", updatedAt: Date.now() }),
+    { expirationTtl: FAUCET_PENDING_TTL_SECONDS }
+  );
 
   ctx.waitUntil(
-    fundAccount(request.eoaAddress, env, rpcByChain).catch((error) => {
-      const reason = error instanceof Error ? error.message : "unknown faucet error";
-      console.error("faucet funding failed", reason);
-    })
+    (async () => {
+      try {
+        await fundAccount(request.eoaAddress, env, rpcByChain);
+        await faucetKV.put(
+          fundingKey,
+          JSON.stringify({ state: "funded", updatedAt: Date.now() }),
+          { expirationTtl: FAUCET_FUNDED_TTL_SECONDS }
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "unknown faucet error";
+        console.error("faucet funding failed", reason);
+        await faucetKV.delete(fundingKey);
+      }
+    })()
   );
 
   return jsonResponse({ ok: true, status: "funding_initiated" }, 202);
@@ -428,7 +463,11 @@ function parseFaucetFundRequest(rawBody: string): FaucetFundRequest {
 
   const request = payload as Partial<FaucetFundRequest>;
   const eoaAddress = normalizeAddress(String(request.eoaAddress ?? ""));
-  return { eoaAddress };
+  const supportMode = String(request.supportMode ?? "").trim();
+  if (!SUPPORT_MODES.has(supportMode)) {
+    throw new BadRequestError("Invalid supportMode.");
+  }
+  return { eoaAddress, supportMode: supportMode as SupportMode };
 }
 
 function parseDirectUploadRequest(rawBody: string): NormalizedDirectUploadRequest {
@@ -909,9 +948,47 @@ function resolveFaucetRPCByChain(env: Env): Record<number, string> {
   maybeAdd(421614, env.FAUCET_RPC_ARB_SEPOLIA);
 
   if (Object.keys(values).length === 0) {
+    values[11155111] = buildGelatoRPCURL(11155111, env);
+    values[84532] = buildGelatoRPCURL(84532, env);
+    values[421614] = buildGelatoRPCURL(421614, env);
+  }
+
+  if (Object.keys(values).length === 0) {
     throw new BadRequestError("Faucet RPC URLs are not configured.");
   }
   return values;
+}
+
+function resolveFaucetFundingKV(env: Env): KVNamespace {
+  return env.FAUCET_FUNDING_KV ?? env.GAS_TANK_KV;
+}
+
+function buildFaucetFundingKey(eoaAddress: string, supportMode: SupportMode): string {
+  return `faucet-funded:${supportMode}:${eoaAddress.toLowerCase()}`;
+}
+
+async function readFaucetFundingState(
+  kv: KVNamespace,
+  key: string
+): Promise<"pending" | "funded" | null> {
+  const raw = await kv.get(key);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { state?: string };
+    if (parsed.state === "pending") {
+      return "pending";
+    }
+    if (parsed.state === "funded") {
+      return "funded";
+    }
+  } catch {
+    // Ignore malformed state and treat as not funded.
+  }
+
+  return null;
 }
 
 function normalizePrivateKey(value: string): Hex {

@@ -3,6 +3,13 @@
 "preferences_haptics" = "Mwitikio wa Mguso";
 "preferences_currency" = "Sarafu";
 "preferences_language" = "Lugha";
+"preferences_network_mode" = "Hali ya mtandao";
+"preferences_network_mode_mainnet" = "Mtandao mkuu";
+"preferences_network_mode_testnet" = "Mtandao wa majaribio";
+"preferences_network_mode_mainnet_plus" = "Mtandao mkuu+";
+"preferences_appearance_dark" = "Giza";
+"preferences_appearance_system" = "Mfumo";
+"preferences_appearance_light" = "Mwanga";
 "preferences_business" = "Knot kwa Biashara";
 "sheet_currency_title" = "Sarafu";
 "sheet_language_title" = "Lugha";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "Hakuna shughuli za hivi karibuni";
 "transaction_empty_subtitle" = "Ununuzi wako utaonekana hapa baada ya kutuma au kupokea fedha.";
+"receive_wallet_address" = "Wallet Address";

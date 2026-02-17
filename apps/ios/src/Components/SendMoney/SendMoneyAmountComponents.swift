@@ -35,7 +35,7 @@ struct SendMoneyAmountDisplay: View {
             .minimumScaleFactor(0.7)
             .allowsTightening(true)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, minHeight: 58, maxHeight: 58, alignment: .bottom)
 
         HStack(spacing: 4) {
           Text(secondaryAmountText)
@@ -53,15 +53,13 @@ struct SendMoneyAmountDisplay: View {
             .minimumScaleFactor(0.7)
             .allowsTightening(true)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18, alignment: .top)
       }
-      .frame(maxWidth: .infinity)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
       Button(action: onSwapTap) {
-        Image("Icons/switch_vertical_01")
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
+        Image(systemName: "arrow.up.arrow.down")
+          .font(.system(size: 16, weight: .medium))
           .frame(width: 16, height: 16)
           .foregroundStyle(AppThemeColor.glyphSecondary)
           .padding(8)
@@ -80,7 +78,8 @@ struct SendMoneyBalanceWidget: View {
 
   var body: some View {
     HStack(spacing: 16) {
-      iconView
+        TokenLogo(url: asset.logoURL, size: 32)
+            .frame(width: 37, height: 37)
 
       VStack(alignment: .leading, spacing: 2) {
         Text("\(asset.symbol) \(String(localized: "send_money_balance_suffix"))")
@@ -116,16 +115,6 @@ struct SendMoneyBalanceWidget: View {
             .stroke(AppThemeColor.fillSecondary, lineWidth: 1)
         )
     )
-  }
-
-  private var iconView: some View {
-    ZStack {
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(AppThemeColor.fillPrimary)
-
-      TokenLogo(url: asset.logoURL, size: 32)
-    }
-    .frame(width: 37, height: 37)
   }
 }
 
@@ -168,15 +157,13 @@ struct SendMoneyNumericKeypad: View {
         case .decimal:
           Text("•")
         case .backspace:
-          Image("Icons/chevron_left")
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
+          Image(systemName: "delete.left")
+            .font(.system(size: 12, weight: .semibold))
             .frame(width: 12, height: 12)
         }
       }
       .font(.custom("Roboto-Medium", size: 20))
-      .foregroundStyle(AppThemeColor.labelSecondary)
+      .foregroundStyle(AppThemeColor.labelPrimary)
       .frame(width: 72, height: 40)
       .contentShape(Rectangle())
     }

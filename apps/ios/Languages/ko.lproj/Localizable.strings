@@ -3,6 +3,13 @@
 "preferences_haptics" = "햅틱 피드백";
 "preferences_currency" = "통화";
 "preferences_language" = "언어";
+"preferences_network_mode" = "네트워크 모드";
+"preferences_network_mode_mainnet" = "메인넷";
+"preferences_network_mode_testnet" = "테스트넷";
+"preferences_network_mode_mainnet_plus" = "메인넷+";
+"preferences_appearance_dark" = "다크";
+"preferences_appearance_system" = "시스템";
+"preferences_appearance_light" = "라이트";
 "preferences_business" = "비즈니스용 Knot";
 "sheet_currency_title" = "통화";
 "sheet_language_title" = "언어";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "최근 활동 없음";
 "transaction_empty_subtitle" = "자금을 보내거나 받으면 거래가 여기에 표시됩니다.";
+"receive_wallet_address" = "Wallet Address";

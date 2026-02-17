@@ -39,9 +39,36 @@ public struct ChainSupportConfig: Sendable, Equatable {
 }
 
 public enum ChainSupportRuntime {
+  private static let modeOverrideDefaultsKey = "chain_support_mode_override"
+
+  public static func setPreferredMode(
+    _ mode: ChainSupportMode?,
+    defaults: UserDefaults = .standard
+  ) {
+    if let mode {
+      defaults.set(mode.rawValue, forKey: modeOverrideDefaultsKey)
+    } else {
+      defaults.removeObject(forKey: modeOverrideDefaultsKey)
+    }
+  }
+
+  public static func preferredMode(
+    defaults: UserDefaults = .standard
+  ) -> ChainSupportMode? {
+    guard let rawMode = defaults.string(forKey: modeOverrideDefaultsKey) else {
+      return nil
+    }
+    return ChainSupportMode(rawValue: rawMode)
+  }
+
   public static func resolveMode(
-    bundle: Bundle = .main
+    bundle: Bundle = .main,
+    defaults: UserDefaults = .standard
   ) -> ChainSupportMode {
+    if let preferred = preferredMode(defaults: defaults) {
+      return preferred
+    }
+
     let rawMode = resolveSetting(
       key: "CHAIN_SUPPORT_MODE",
       bundle: bundle
@@ -52,9 +79,10 @@ public enum ChainSupportRuntime {
 
   public static func resolveSupportedChainIDs(
     mode: ChainSupportMode? = nil,
-    bundle: Bundle = .main
+    bundle: Bundle = .main,
+    defaults: UserDefaults = .standard
   ) -> [UInt64] {
-    let resolvedMode = mode ?? resolveMode(bundle: bundle)
+    let resolvedMode = mode ?? resolveMode(bundle: bundle, defaults: defaults)
     guard let rawValue = resolveSetting(key: resolvedMode.supportedChainsKey, bundle: bundle) else {
       return resolvedMode.defaultChainIDs
     }
@@ -71,10 +99,11 @@ public enum ChainSupportRuntime {
   }
 
   public static func resolveConfig(
-    bundle: Bundle = .main
+    bundle: Bundle = .main,
+    defaults: UserDefaults = .standard
   ) -> ChainSupportConfig {
-    let mode = resolveMode(bundle: bundle)
-    let chainIDs = resolveSupportedChainIDs(mode: mode, bundle: bundle)
+    let mode = resolveMode(bundle: bundle, defaults: defaults)
+    let chainIDs = resolveSupportedChainIDs(mode: mode, bundle: bundle, defaults: defaults)
     return ChainSupportConfig(mode: mode, chainIDs: chainIDs)
   }
 

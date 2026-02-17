@@ -4,44 +4,22 @@ import UIKit
 struct ReceiveView: View {
   let address: String
   var onBack: () -> Void = {}
-
-  @State private var copied = false
-  @State private var showShareSheet = false
+  @State private var activityItems: [Any]?
 
   var body: some View {
     ZStack {
       AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
-      VStack(spacing: 0) {
-        VStack(spacing: 36) {
-          StylizedQRCodeView(
-            content: address,
-            size: 217,
-            foreground: AppThemeColor.labelPrimary,
-            logo: "LogoMark"
-          )
-
-          addressCard
-            .frame(maxWidth: .infinity)
-
-          AppButton(
-            fullWidth: true,
-            label: "receive_share",
-            variant: .default,
-            showIcon: true,
-            iconName: "Icons/share_02",
-            backgroundColorOverride: AppThemeColor.accentBrown
-          ) {
-            showShareSheet = true
-          }
-          .frame(height: 52)
+      VStack {
+        ReceiveQRCodeCard(address: address) { items in
+          activityItems = items
         }
-        .padding(.top, 56)
-        .frame(maxWidth: 314)
+        .frame(maxWidth: 351)
+        .padding(.top, 44)
 
-        Spacer()
+        Spacer(minLength: 0)
       }
-      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 20)
       .padding(.top, AppHeaderMetrics.contentTopPadding)
     }
     .safeAreaInset(edge: .top, spacing: 0) {
@@ -52,73 +30,52 @@ struct ReceiveView: View {
         onBack: onBack
       )
     }
-    .sheet(isPresented: $showShareSheet) {
-      ActivitySheet(items: [address])
-        .presentationDetents([.height(320)])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+    .background {
+      ActivityViewPresenter(activityItems: $activityItems)
+        .frame(width: 0, height: 0)
     }
-  }
-
-  private var addressCard: some View {
-    VStack(alignment: .trailing, spacing: 8) {
-      Text(address)
-        .font(.custom("RobotoFlex-Regular_Light", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
-        .lineLimit(1)
-        .kerning(0.12)
-
-      Button {
-        UIPasteboard.general.string = address
-        copied = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { copied = false }
-      } label: {
-        HStack(spacing: 10) {
-          Text(copied ? "receive_copied" : "receive_tap_to_copy")
-            .font(.custom("Roboto-Medium", size: 12))
-            .foregroundStyle(AppThemeColor.labelPrimary)
-
-          Image("Icons/copy_02")
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 16, height: 16)
-            .foregroundStyle(AppThemeColor.labelPrimary)
-        }
-      }
-      .buttonStyle(.plain)
-      .frame(height: 26)
-    }
-    .padding(.horizontal, 12)
-    .padding(.top, 12)
-    .padding(.bottom, 8)
-    .frame(maxWidth: .infinity)
-    .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(AppThemeColor.fillPrimary)
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .stroke(AppThemeColor.fillSecondary, lineWidth: 1)
-    )
   }
 }
 
-private struct ActivitySheet: UIViewControllerRepresentable {
-  let items: [Any]
+private struct ActivityViewPresenter: UIViewControllerRepresentable {
+  @Binding var activityItems: [Any]?
 
-  func makeUIViewController(context: Context) -> UIActivityViewController {
-    let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-    controller.modalPresentationStyle = .pageSheet
-    if let sheet = controller.sheetPresentationController {
-      sheet.detents = [.medium()]
-      sheet.prefersGrabberVisible = true
-      sheet.preferredCornerRadius = 28
-    }
-    return controller
+  func makeUIViewController(context: Context) -> UIViewController {
+    UIViewController()
   }
 
-  func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+  func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+    guard let items = activityItems, context.coordinator.presenter == nil else { return }
+    let activityBinding = _activityItems
+
+    let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+    controller.modalPresentationStyle = .automatic
+    controller.completionWithItemsHandler = { _, _, _, _ in
+      context.coordinator.presenter = nil
+      activityBinding.wrappedValue = nil
+    }
+
+    if let popover = controller.popoverPresentationController {
+      popover.sourceView = uiViewController.view
+      popover.sourceRect = CGRect(
+        x: uiViewController.view.bounds.midX,
+        y: uiViewController.view.bounds.maxY - 1,
+        width: 1,
+        height: 1
+      )
+    }
+
+    context.coordinator.presenter = controller
+    uiViewController.present(controller, animated: true)
+  }
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator()
+  }
+
+  final class Coordinator {
+    var presenter: UIActivityViewController?
+  }
 }
 
 #Preview {

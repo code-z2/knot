@@ -3,6 +3,13 @@
 "preferences_haptics" = "Тактильная отдача";
 "preferences_currency" = "Валюта";
 "preferences_language" = "Язык";
+"preferences_network_mode" = "Режим сети";
+"preferences_network_mode_mainnet" = "Основная сеть";
+"preferences_network_mode_testnet" = "Тестовая сеть";
+"preferences_network_mode_mainnet_plus" = "Основная сеть+";
+"preferences_appearance_dark" = "Тёмная";
+"preferences_appearance_system" = "Системная";
+"preferences_appearance_light" = "Светлая";
 "preferences_business" = "Knot для бизнеса";
 "sheet_currency_title" = "Валюта";
 "sheet_language_title" = "Язык";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "Нет недавней активности";
 "transaction_empty_subtitle" = "Ваши транзакции появятся здесь после отправки или получения средств.";
+"receive_wallet_address" = "Wallet Address";

@@ -12,7 +12,7 @@ RELAY_PROXY_BASE_URL = relay.knot.fi
 UPLOAD_PROXY_BASE_URL = upload.knot.fi
 
 // Chain support mode (active default for now)
-CHAIN_SUPPORT_MODE = LIMITED_MAINNET
+CHAIN_SUPPORT_MODE = LIMITED_TESTNET
 
 // Comma-separated chain ids
 SUPPORTED_CHAINS_LIMITED_TESTNET = 11155111,84532,421614
