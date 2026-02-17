@@ -13,6 +13,7 @@ struct AppRootView: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var route: Route = .splash
   @State private var selectedMainTab: MainTab = .home
+  @State private var tabChangeTrigger = 0
   @State private var currentEOA: String?
   @State private var isWorking = false
   @State private var hasLocalWalletMaterial = false
@@ -60,7 +61,7 @@ struct AppRootView: View {
           .task {
             try? await Task.sleep(for: .seconds(1.2))
             guard let activeEOA = sessionStore.activeEOAAddress else {
-              withAnimation(.easeInOut(duration: 0.18)) {
+              withAnimation(AppAnimation.standard) {
                 route = .onboarding
               }
               return
@@ -70,7 +71,7 @@ struct AppRootView: View {
               hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(
                 for: restored.eoaAddress)
               restoreCachedWalletState(walletAddress: restored.eoaAddress)
-              withAnimation(.easeInOut(duration: 0.18)) {
+              withAnimation(AppAnimation.standard) {
                 currentEOA = restored.eoaAddress
                 selectedMainTab = .home
                 route = .main
@@ -79,7 +80,7 @@ struct AppRootView: View {
             } else {
               sessionStore.clearActiveSession()
               hasLocalWalletMaterial = false
-              withAnimation(.easeInOut(duration: 0.18)) {
+              withAnimation(AppAnimation.standard) {
                 route = .onboarding
               }
             }
@@ -156,7 +157,7 @@ struct AppRootView: View {
       }
     }
     .transition(shouldAnimateRoute ? .opacity.combined(with: .scale(scale: 0.98)) : .identity)
-    .animation(shouldAnimateRoute ? .easeInOut(duration: 0.18) : nil, value: route)
+    .animation(shouldAnimateRoute ? AppAnimation.standard : nil, value: route)
     .preferredColorScheme(preferredColorScheme)
     .environment(\.locale, preferencesStore.locale)
     .environment(\.layoutDirection, layoutDirection)
@@ -181,8 +182,9 @@ struct AppRootView: View {
         await currencyRateStore.ensureRate(for: newCode)
       }
     }
+    .onChange(of: selectedMainTab) { _, _ in tabChangeTrigger += 1 }
     .onChange(of: preferencesStore.chainSupportMode) { _, newMode in
-      withAnimation(.easeInOut(duration: 0.2)) {
+      withAnimation(AppAnimation.gentle) {
         selectedMainTab = .home
       }
       ensService = ENSService(mode: newMode)
@@ -255,7 +257,8 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_home")
         } icon: {
-          Image(systemName: "house")
+          Image("Icons/home_02")
+          .renderingMode(.template)
         }
       }
 
@@ -270,7 +273,8 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_transactions")
         } icon: {
-          Image(systemName: "receipt")
+          Image("Icons/receipt")
+          .renderingMode(.template)
         }
       }
 
@@ -280,11 +284,13 @@ struct AppRootView: View {
         Label {
           Text("bottom_nav_session_key")
         } icon: {
-          Image(systemName: "key")
+          Image("Icons/key_01")
+          .renderingMode(.template)
         }
       }
     }
     .tint(AppThemeColor.accentBrown)
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: tabChangeTrigger) { _, _ in preferencesStore.hapticsEnabled }
   }
 
   @MainActor

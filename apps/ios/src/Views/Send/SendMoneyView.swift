@@ -6,27 +6,6 @@ import ENS
 import RPC
 import SwiftUI
 import Transactions
-import UIKit
-
-private enum SendMoneyField: Hashable {
-  case address
-  case chain
-  case asset
-}
-
-private enum SendMoneyStep: Hashable {
-  case recipient
-  case amount
-  case success
-}
-
-struct SendMoneyDraft: Sendable {
-  let toAddressOrENS: String
-  let chainID: String
-  let chainName: String
-  let assetID: String
-  let assetSymbol: String
-}
 
 struct SendMoneyView: View {
   let eoaAddress: String
@@ -106,6 +85,12 @@ struct SendMoneyView: View {
   @State private var routeDebounceTask: Task<Void, Never>?
   @State private var txHash: String?
 
+  // Haptic triggers
+  @State private var keypadHapticTrigger = 0
+  @State private var successHapticTrigger = 0
+  @State private var errorHapticTrigger = 0
+  @State private var selectionHapticTrigger = 0
+
   var body: some View {
     ZStack {
       AppThemeColor.backgroundPrimary.ignoresSafeArea()
@@ -122,13 +107,13 @@ struct SendMoneyView: View {
         toast(message: errorMessage)
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
           .padding(.bottom, 28)
-          .padding(.horizontal, 20)
+          .padding(.horizontal, AppSpacing.lg)
       }
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
         title: headerTitle,
-        titleFont: .custom("Inter-Regular_Bold", size: 22),
+        titleFont: .custom("Roboto-Bold", size: 22),
         titleColor: AppThemeColor.labelSecondary,
         onBack: handleHeaderBack
       )
@@ -188,6 +173,18 @@ struct SendMoneyView: View {
         spendAssetModal
       }
     }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: keypadHapticTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionHapticTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
+    .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successHapticTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
+    .sensoryFeedback(AppHaptic.error.sensoryFeedback, trigger: errorHapticTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
   }
 
   private var recipientStepContent: some View {
@@ -231,14 +228,14 @@ struct SendMoneyView: View {
           secondaryAmountText: secondaryAmountText,
           secondarySymbolText: secondarySymbolText,
           onSwapTap: {
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(AppAnimation.standard) {
               isAmountDisplayInverted.toggle()
             }
           }
         )
         .frame(height: 84, alignment: .bottom)
         .padding(.top, 42)
-        .padding(.bottom, 16)
+        .padding(.bottom, AppSpacing.md)
 
         if let helperMessage = amountHelperMessage {
           Text(helperMessage.text)
@@ -269,7 +266,7 @@ struct SendMoneyView: View {
           handleKeypadTap(key)
         }
         .padding(.top, 28)
-        .padding(.bottom, 24)
+        .padding(.bottom, AppSpacing.xl)
 
         amountActionButton
       }
@@ -287,7 +284,7 @@ struct SendMoneyView: View {
           SuccessCheckmark()
             .frame(width: 127, height: 123)
 
-          VStack(spacing: 24) {
+          VStack(spacing: AppSpacing.xl) {
             Text("send_money_success_title")
               .font(.custom("Roboto-Medium", size: 34))
               .foregroundStyle(AppThemeColor.labelPrimary)
@@ -300,7 +297,7 @@ struct SendMoneyView: View {
           }
         }
 
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.sm) {
           AppButton(label: "send_money_repeat_transfer", variant: .outline) {
             repeatTransfer()
           }
@@ -390,7 +387,7 @@ struct SendMoneyView: View {
     }
     .disabled(!canContinue)
     .opacity(canContinue ? 1 : 0)
-    .animation(.easeInOut(duration: 0.18), value: canContinue)
+    .animation(AppAnimation.standard, value: canContinue)
   }
 
   private var amountActionButton: some View {
@@ -406,14 +403,14 @@ struct SendMoneyView: View {
     }
     .disabled(!canAttemptAmountAction)
     .opacity(amountActionButtonOpacity)
-    .animation(.easeInOut(duration: 0.18), value: canAttemptAmountAction)
-    .animation(.easeInOut(duration: 0.18), value: amountButtonState)
+    .animation(AppAnimation.standard, value: canAttemptAmountAction)
+    .animation(AppAnimation.standard, value: amountButtonState)
   }
 
   private var spendAssetModal: some View {
     VStack(alignment: .leading, spacing: 0) {
       SearchInput(text: $spendAssetQuery, placeholderKey: "search_placeholder", width: nil)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AppSpacing.lg)
         .padding(.top, 13)
         .padding(.bottom, 21)
 
@@ -437,9 +434,9 @@ struct SendMoneyView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 28)
       }
-      .padding(.horizontal, 20)
-      .padding(.top, 24)
-      .padding(.bottom, 24)
+      .padding(.horizontal, AppSpacing.lg)
+      .padding(.top, AppSpacing.xl)
+      .padding(.bottom, AppSpacing.xl)
     }
   }
 
@@ -457,6 +454,7 @@ struct SendMoneyView: View {
           LazyVStack(spacing: 6) {
             ForEach(filteredBeneficiaries) { beneficiary in
               BeneficiaryRow(beneficiary: beneficiary) {
+                selectionHapticTrigger += 1
                 selectedBeneficiary = beneficiary
                 finalizedAddressValue = beneficiary.address
                 addressQuery = ""
@@ -473,6 +471,7 @@ struct SendMoneyView: View {
 
   private var chainDropdown: some View {
     ChainList(query: chainQuery) { chain in
+      selectionHapticTrigger += 1
       selectedChain = chain
       chainQuery = ""
       focusFirstIncompleteField()
@@ -490,6 +489,7 @@ struct SendMoneyView: View {
         showSectionLabels: true
       ) {
         asset in
+        selectionHapticTrigger += 1
         selectedAsset = asset
         assetQuery = ""
         focusFirstIncompleteField()
@@ -930,35 +930,24 @@ struct SendMoneyView: View {
   /// ENS names are resolved asynchronously via `ENSService`.
   private func validateAddress(_ value: String) {
     addressValidationTask?.cancel()
-    print("[SendMoney] validateAddress called with: \"\(value)\"")
 
     if AddressInputParser.isLikelyEVMAddress(value) {
-      print("[SendMoney] ✅ valid EVM address")
       addressValidationState = .valid
       ensResolvedAddress = nil
       return
     }
 
     if AddressInputParser.isLikelyENSName(value) {
-      print("[SendMoney] 🔍 detected ENS name, resolving…")
       addressValidationState = .validating
       ensResolvedAddress = nil
       addressValidationTask = Task {
         do {
           let resolved = try await ensService.resolveName(name: value)
-          guard !Task.isCancelled else {
-            print("[SendMoney] ⚠️ ENS resolution cancelled for \(value)")
-            return
-          }
-          print("[SendMoney] ✅ ENS resolved \(value) → \(resolved)")
+          guard !Task.isCancelled else { return }
           ensResolvedAddress = resolved
           addressValidationState = .valid
         } catch {
-          guard !Task.isCancelled else {
-            print("[SendMoney] ⚠️ ENS resolution cancelled for \(value)")
-            return
-          }
-          print("[SendMoney] ❌ ENS resolution failed for \(value): \(error)")
+          guard !Task.isCancelled else { return }
           ensResolvedAddress = nil
           addressValidationState = .invalid
         }
@@ -966,7 +955,6 @@ struct SendMoneyView: View {
       return
     }
 
-    print("[SendMoney] ❌ not a valid EVM address or ENS name")
     addressValidationState = .invalid
     ensResolvedAddress = nil
   }
@@ -1015,7 +1003,7 @@ struct SendMoneyView: View {
     }
 
     if step == .amount {
-      withAnimation(.easeInOut(duration: 0.18)) {
+      withAnimation(AppAnimation.standard) {
         step = .recipient
       }
       return
@@ -1061,7 +1049,7 @@ struct SendMoneyView: View {
     amountInput = ""
     isAmountDisplayInverted = false
     amountButtonState = .normal
-    withAnimation(.easeInOut(duration: 0.18)) {
+    withAnimation(AppAnimation.standard) {
       step = .amount
     }
   }
@@ -1080,59 +1068,42 @@ struct SendMoneyView: View {
     }
 
     guard let route = currentRoute else {
-      // No route yet — trigger route resolution
-      print("[SendMoney] ⚠️ confirmAmount called but no route available. Resolving...")
       resolveRoute()
       return
     }
-
-    print(
-      "[SendMoney] 🚀 Initiating transaction. Route: \(route.chainCalls.count) call bundle(s). JobID: \(route.jobId != nil ? "Yes" : "No")"
-    )
 
     amountButtonState = .loading
     amountActionTask = Task { @MainActor in
       do {
         let account = try await accountService.restoreSession(eoaAddress: eoaAddress)
-        print("[SendMoney] Session restored for \(account.eoaAddress)")
 
         if route.jobId != nil {
-          // Multi-chain: executeChainCalls
-          print("[SendMoney] Executing multi-chain calls...")
           let result = try await aaExecutionService.executeChainCalls(
             accountService: accountService,
             account: account,
             destinationChainId: route.destinationChainId,
             chainCalls: route.chainCalls
           )
-          print(
-            "[SendMoney] ✅ Multi-chain execution submitted. Dest Tx: \(result.destinationSubmission)"
-          )
           txHash = result.destinationSubmission
         } else {
-          // Single-chain: executeCalls
-          guard let singleBundle = route.chainCalls.first else {
-            print("[SendMoney] ❌ Unexpected empty chain calls for single-chain route")
-            return
-          }
-          print("[SendMoney] Executing single-chain calls on chain \(singleBundle.chainId)...")
+          guard let singleBundle = route.chainCalls.first else { return }
           let hash = try await aaExecutionService.executeCalls(
             accountService: accountService,
             account: account,
             chainId: singleBundle.chainId,
             calls: singleBundle.calls
           )
-          print("[SendMoney] ✅ Single-chain execution submitted. Hash: \(hash)")
           txHash = hash
         }
 
         amountButtonState = .normal
-        withAnimation(.easeInOut(duration: 0.20)) {
+        successHapticTrigger += 1
+        withAnimation(AppAnimation.gentle) {
           step = .success
         }
       } catch {
-        print("[SendMoney] ❌ Transaction failed: \(error)")
         amountButtonState = .error
+        errorHapticTrigger += 1
         errorMessage = error.localizedDescription
         amountActionTask = Task { @MainActor in
           try? await Task.sleep(for: .milliseconds(2000))
@@ -1207,7 +1178,7 @@ struct SendMoneyView: View {
   }
 
   private func repeatTransfer() {
-    withAnimation(.easeInOut(duration: 0.18)) {
+    withAnimation(AppAnimation.standard) {
       step = .recipient
     }
   }
@@ -1229,7 +1200,7 @@ struct SendMoneyView: View {
 
   private func handleKeypadTap(_ key: SendMoneyKeypadKey) {
     guard amountButtonState == .normal else { return }
-    HapticFeedback.selection(enabled: preferencesStore.hapticsEnabled)
+    keypadHapticTrigger += 1
     switch key {
     case .digit(let digit):
       if amountInput == "0" {
@@ -1263,7 +1234,7 @@ struct SendMoneyView: View {
   ) -> String {
     let cappedMaxFractionDigits = max(0, min(maxFractionDigits, 4))
     let cappedMinFractionDigits = min(max(0, minFractionDigits), cappedMaxFractionDigits)
-    let truncatedValue = truncate(value, fractionDigits: cappedMaxFractionDigits)
+    let truncatedValue = DecimalTruncation.truncate(value, fractionDigits: cappedMaxFractionDigits)
     let formatter = NumberFormatter()
     formatter.locale = Locale.current
     formatter.numberStyle = .decimal
@@ -1272,244 +1243,8 @@ struct SendMoneyView: View {
     return formatter.string(from: truncatedValue as NSDecimalNumber) ?? "0.0"
   }
 
-  private func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
-    var source = value
-    var result = Decimal()
-    if source >= 0 {
-      NSDecimalRound(&result, &source, fractionDigits, .down)
-    } else {
-      NSDecimalRound(&result, &source, fractionDigits, .up)
-    }
-    return result
-  }
-
-  private func usdRate(for asset: TokenBalance) -> Decimal {
-    asset.quoteRate > 0 ? asset.quoteRate : 1
-  }
-
   private func toast(message: String) -> some View {
-    Text(message)
-      .font(.custom("RobotoMono-Medium", size: 12))
-      .foregroundStyle(AppThemeColor.labelPrimary)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
-      .background(
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-          .fill(AppThemeColor.fillPrimary)
-      )
-  }
-}
-
-private struct SuccessCheckmark: View {
-  var body: some View {
-    GeometryReader { proxy in
-      Image("LogoMark")
-        .renderingMode(.template)
-        .resizable()
-        .aspectRatio(127.0 / 123.0, contentMode: .fit)
-        .foregroundStyle(AppThemeColor.accentGreen)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .mask(alignment: .bottomTrailing) {
-          Rectangle()
-            .frame(
-              width: proxy.size.width * 0.76,
-              height: proxy.size.height * 0.62
-            )
-            .offset(
-              x: proxy.size.width * 0.04,
-              y: proxy.size.height * 0.07
-            )
-        }
-    }
-  }
-}
-
-private struct SendMoneyScanView: View {
-  let onDismiss: () -> Void
-  let onCodeScanned: (String) -> Bool
-
-  @StateObject private var scanner = QRScannerController()
-  @State private var dragOffset: CGFloat = 0
-  @Environment(\.openURL) private var openURL
-
-  var body: some View {
-    ZStack {
-      QRCodeScannerPreview(session: scanner.session)
-        .ignoresSafeArea()
-
-      Color.black.opacity(0.22)
-        .ignoresSafeArea()
-
-      ScannerCrosshair()
-        .frame(width: 244, height: 244)
-
-      VStack {
-        Spacer()
-        flashlightButton
-          .padding(.bottom, 116)
-      }
-
-      if let error = scanner.error {
-        scannerErrorOverlay(error)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-          .padding(.horizontal, 20)
-          .padding(.bottom, 170)
-      }
-    }
-    .ignoresSafeArea()
-    .offset(y: dragOffset)
-    .gesture(dragToDismissGesture)
-    .accessibilityElement(children: .contain)
-    .onAppear {
-      scanner.onCodeDetected = { payload in
-        let accepted = onCodeScanned(payload)
-        if accepted {
-          onDismiss()
-        }
-        return accepted
-      }
-      scanner.start()
-    }
-    .onDisappear {
-      scanner.stop()
-    }
-  }
-
-  private var flashlightButton: some View {
-    Button {
-      scanner.toggleTorch()
-    } label: {
-      ZStack {
-        Circle()
-          .fill(AppThemeColor.grayBlack.opacity(0.42))
-          .overlay(
-            Circle()
-              .stroke(AppThemeColor.grayWhite.opacity(0.24), lineWidth: 1)
-          )
-          .background(
-            Circle()
-              .fill(.ultraThinMaterial)
-          )
-
-        Image(systemName: scanner.isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill")
-          .font(.system(size: 19, weight: .semibold))
-          .foregroundStyle(Color(hex: "#BFBFBF"))
-      }
-      .frame(width: 48, height: 48)
-    }
-    .buttonStyle(.plain)
-    .accessibilityLabel(Text("send_money_scanner_toggle_flashlight"))
-  }
-
-  @ViewBuilder
-  private func scannerErrorOverlay(_ error: QRScannerError) -> some View {
-    VStack(spacing: 10) {
-      Text(errorTitle(error))
-        .font(.custom("Roboto-Bold", size: 14))
-        .foregroundStyle(AppThemeColor.labelPrimary)
-
-      Text(errorSubtitle(error))
-        .font(.custom("Roboto-Regular", size: 12))
-        .foregroundStyle(AppThemeColor.labelSecondary)
-        .multilineTextAlignment(.center)
-
-      if error == .permissionDenied {
-        Button("send_money_open_settings") {
-          guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-          openURL(url, prefersInApp: true)
-        }
-        .font(.custom("Roboto-Bold", size: 13))
-        .foregroundStyle(AppThemeColor.labelPrimary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-          RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(AppThemeColor.fillPrimary)
-        )
-      }
-    }
-    .padding(.horizontal, 14)
-    .padding(.vertical, 12)
-    .background(
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(AppThemeColor.grayBlack.opacity(0.62))
-    )
-  }
-
-  private func errorTitle(_ error: QRScannerError) -> String {
-    switch error {
-    case .permissionDenied:
-      return String(localized: "send_money_scanner_camera_access_needed")
-    case .unavailable:
-      return String(localized: "send_money_scanner_camera_unavailable")
-    case .configurationFailed:
-      return String(localized: "send_money_scanner_unavailable")
-    }
-  }
-
-  private func errorSubtitle(_ error: QRScannerError) -> String {
-    switch error {
-    case .permissionDenied:
-      return String(localized: "send_money_scanner_permission_subtitle")
-    case .unavailable:
-      return String(localized: "send_money_scanner_unavailable_subtitle")
-    case .configurationFailed:
-      return String(localized: "send_money_scanner_config_subtitle")
-    }
-  }
-
-  private var dragToDismissGesture: some Gesture {
-    DragGesture(minimumDistance: 6)
-      .onChanged { value in
-        dragOffset = max(0, value.translation.height)
-      }
-      .onEnded { value in
-        let shouldDismiss = dragOffset > 110 || value.predictedEndTranslation.height > 180
-        if shouldDismiss {
-          withAnimation(.spring(response: 0.36, dampingFraction: 0.92)) {
-            dragOffset = 0
-            onDismiss()
-          }
-        } else {
-          withAnimation(.spring(response: 0.30, dampingFraction: 0.90)) {
-            dragOffset = 0
-          }
-        }
-      }
-  }
-}
-
-private struct ScannerCrosshair: View {
-  var body: some View {
-    ZStack {
-      corner(x: -90, y: -90, rotation: .degrees(0))
-      corner(x: 90, y: -90, rotation: .degrees(90))
-      corner(x: 90, y: 90, rotation: .degrees(180))
-      corner(x: -90, y: 90, rotation: .degrees(270))
-    }
-  }
-
-  private func corner(x: CGFloat, y: CGFloat, rotation: Angle) -> some View {
-    RoundedCornerArc()
-      .stroke(style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round))
-      .foregroundStyle(AppThemeColor.grayWhite)
-      .frame(width: 58, height: 58)
-      .rotationEffect(rotation)
-      .offset(x: x, y: y)
-  }
-}
-
-private struct RoundedCornerArc: Shape {
-  func path(in rect: CGRect) -> Path {
-    var path = Path()
-    path.addArc(
-      center: CGPoint(x: rect.maxX, y: rect.maxY),
-      radius: rect.width,
-      startAngle: .degrees(180),
-      endAngle: .degrees(270),
-      clockwise: false
-    )
-    return path
+    ToastView(message: message)
   }
 }
 

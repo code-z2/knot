@@ -5,9 +5,10 @@ struct HideableText: View {
   @Binding var isHidden: Bool
   var font: Font = .custom("RobotoMono-Medium", size: 24)
   var onToggle: (() -> Void)? = nil
+  @State private var toggleTrigger = 0
 
   var body: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: AppSpacing.xs) {
       if isHidden {
         Text("••••")
           .font(font)
@@ -21,6 +22,7 @@ struct HideableText: View {
       }
 
       Button {
+        toggleTrigger += 1
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
           isHidden.toggle()
         }
@@ -32,6 +34,7 @@ struct HideableText: View {
       }
       .buttonStyle(.plain)
     }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: toggleTrigger) { _, _ in true }
   }
 }
 

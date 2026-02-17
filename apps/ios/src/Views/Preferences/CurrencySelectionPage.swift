@@ -4,6 +4,7 @@ struct CurrencySelectionPage: View {
   let currencies: [CurrencyOption]
   let selectedCode: String
   let onSelect: (String) -> Void
+  @State private var selectionTrigger = 0
 
   var body: some View {
     List {
@@ -13,7 +14,7 @@ struct CurrencySelectionPage: View {
             title: Text(currency.code),
             subtitle: Text(currency.name),
             isSelected: currency.code == selectedCode,
-            onTap: { onSelect(currency.code) }
+            onTap: { selectionTrigger += 1; onSelect(currency.code) }
           ) {
             IconBadge(
               style: .solid(
@@ -21,7 +22,7 @@ struct CurrencySelectionPage: View {
                 icon: AppThemeColor.grayWhite
               ),
               contentPadding: 6,
-              cornerRadius: 9,
+              cornerRadius: AppCornerRadius.sm,
               borderWidth: 0
             ) {
               Image(systemName: currency.iconAssetName)
@@ -37,6 +38,7 @@ struct CurrencySelectionPage: View {
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
     .scrollIndicators(.hidden)
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
   }
 
   private func badgeColor(for code: String) -> Color {
@@ -80,7 +82,7 @@ private struct CurrencySelectionRow<Leading: View>: View {
 
   var body: some View {
     Button(action: onTap) {
-      HStack(spacing: 16) {
+      HStack(spacing: AppSpacing.md) {
         leading()
 
         VStack(alignment: .leading) {

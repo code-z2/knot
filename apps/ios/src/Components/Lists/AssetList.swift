@@ -95,20 +95,20 @@ private struct AssetListContent: View {
         Text("asset_list_empty")
           .font(.custom("RobotoMono-Medium", size: 12))
           .foregroundStyle(AppThemeColor.labelSecondary)
-          .padding(.horizontal, 8)
+          .padding(.horizontal, AppSpacing.xs)
       }
     }
   }
 
   private func section(title: LocalizedStringKey, assets: [TokenBalance]) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: AppSpacing.sm) {
       if showSectionLabels {
         Text(title)
           .font(.custom("RobotoMono-Medium", size: 12))
           .foregroundStyle(AppThemeColor.labelSecondary)
       }
 
-      VStack(alignment: .leading, spacing: 8) {
+      VStack(alignment: .leading, spacing: AppSpacing.xs) {
         ForEach(assets) { asset in
           let formattedValueText = formatValueText(for: asset)
           AssetItem(
@@ -150,7 +150,7 @@ private struct AssetItem: View {
 
   private var rowContent: some View {
     HStack(spacing: 0) {
-      HStack(spacing: 16) {
+      HStack(spacing: AppSpacing.md) {
         TokenLogo(url: asset.logoURL, size: 32)
 
         VStack(alignment: .leading, spacing: 0) {
@@ -164,7 +164,7 @@ private struct AssetItem: View {
         }
       }
 
-      Spacer(minLength: 8)
+      Spacer(minLength: AppSpacing.xs)
 
       VStack(alignment: .trailing, spacing: 2) {
         Text(valueText)
@@ -177,7 +177,7 @@ private struct AssetItem: View {
       }
       .frame(width: 178, alignment: .trailing)
     }
-    .padding(.horizontal, 8)
+    .padding(.horizontal, AppSpacing.xs)
     .padding(.vertical, 6)
     .frame(minHeight: 44)
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,7 +212,7 @@ private struct AssetPriceChange: View {
   let change: PriceChange
 
   var body: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: AppSpacing.xs) {
       RoundedRectangle(cornerRadius: 6, style: .continuous)
         .fill(backgroundColor)
         .frame(width: 18, height: 18)
@@ -263,15 +263,15 @@ private struct AssetListSkeleton: View {
   }
 
   private func skeletonSection(title: String, count: Int) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: AppSpacing.sm) {
       if showSectionLabels {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
+        RoundedRectangle(cornerRadius: AppCornerRadius.xs, style: .continuous)
           .fill(AppThemeColor.fillSecondary)
           .frame(width: 70, height: 10)
           .modifier(ShimmerEffect())
       }
 
-      VStack(spacing: 8) {
+      VStack(spacing: AppSpacing.xs) {
         ForEach(0..<count, id: \.self) { _ in
           AssetItemSkeletonRow()
         }
@@ -283,30 +283,30 @@ private struct AssetListSkeleton: View {
 private struct AssetItemSkeletonRow: View {
   var body: some View {
     HStack(spacing: 0) {
-      HStack(spacing: 16) {
+      HStack(spacing: AppSpacing.md) {
         Circle()
           .fill(AppThemeColor.fillSecondary)
           .frame(width: 32, height: 32)
 
         VStack(alignment: .leading, spacing: 5) {
-          RoundedRectangle(cornerRadius: 4, style: .continuous)
+          RoundedRectangle(cornerRadius: AppCornerRadius.xs, style: .continuous)
             .fill(AppThemeColor.fillSecondary)
             .frame(width: 46, height: 12)
 
-          RoundedRectangle(cornerRadius: 4, style: .continuous)
+          RoundedRectangle(cornerRadius: AppCornerRadius.xs, style: .continuous)
             .fill(AppThemeColor.fillPrimary)
             .frame(width: 34, height: 10)
         }
       }
 
-      Spacer(minLength: 8)
+      Spacer(minLength: AppSpacing.xs)
 
-      RoundedRectangle(cornerRadius: 4, style: .continuous)
+      RoundedRectangle(cornerRadius: AppCornerRadius.xs, style: .continuous)
         .fill(AppThemeColor.fillSecondary)
         .frame(width: 52, height: 12)
         .frame(width: 178, alignment: .trailing)
     }
-    .padding(.horizontal, 8)
+    .padding(.horizontal, AppSpacing.xs)
     .padding(.vertical, 6)
     .frame(minHeight: 44)
     .frame(maxWidth: .infinity, alignment: .leading)

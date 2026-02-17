@@ -19,7 +19,7 @@ struct SendMoneyAmountDisplay: View {
       Spacer(minLength: 0)
 
       VStack(spacing: 2) {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xxs) {
           Text(primaryAmountText)
             .font(.custom("RobotoMono-Medium", size: 48))
             .foregroundStyle(AppThemeColor.labelVibrantPrimary)
@@ -37,7 +37,7 @@ struct SendMoneyAmountDisplay: View {
         }
         .frame(maxWidth: .infinity, minHeight: 58, maxHeight: 58, alignment: .bottom)
 
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xxs) {
           Text(secondaryAmountText)
             .font(.custom("RobotoMono-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelSecondary)
@@ -62,7 +62,7 @@ struct SendMoneyAmountDisplay: View {
           .font(.system(size: 16, weight: .medium))
           .frame(width: 16, height: 16)
           .foregroundStyle(AppThemeColor.glyphSecondary)
-          .padding(8)
+          .padding(AppSpacing.xs)
       }
       .buttonStyle(.plain)
       .accessibilityLabel(Text("send_money_accessibility_switch_amount_view"))
@@ -77,7 +77,7 @@ struct SendMoneyBalanceWidget: View {
   let onSwitchTap: () -> Void
 
   var body: some View {
-    HStack(spacing: 16) {
+    HStack(spacing: AppSpacing.md) {
         TokenLogo(url: asset.logoURL, size: 32)
             .frame(width: 37, height: 37)
 
@@ -105,7 +105,7 @@ struct SendMoneyBalanceWidget: View {
       }
     }
     .padding(.horizontal, 14)
-    .padding(.vertical, 12)
+    .padding(.vertical, AppSpacing.sm)
     .frame(maxWidth: .infinity, minHeight: 65, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 16, style: .continuous)

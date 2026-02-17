@@ -27,7 +27,7 @@ enum CurrencyDisplayFormatter {
     formatter.minimumFractionDigits = cappedMinFractionDigits
     formatter.maximumFractionDigits = cappedMaxFractionDigits
 
-    let truncatedAmount = truncate(amount, fractionDigits: cappedMaxFractionDigits)
+    let truncatedAmount = DecimalTruncation.truncate(amount, fractionDigits: cappedMaxFractionDigits)
     return formatter.string(from: truncatedAmount as NSDecimalNumber) ?? "\(truncatedAmount)"
   }
 
@@ -41,16 +41,5 @@ enum CurrencyDisplayFormatter {
       formatter.currencySymbol = symbol
     }
     return formatter.currencySymbol ?? currencyCode.uppercased()
-  }
-
-  private static func truncate(_ value: Decimal, fractionDigits: Int) -> Decimal {
-    var source = value
-    var result = Decimal()
-    if source >= 0 {
-      NSDecimalRound(&result, &source, fractionDigits, .down)
-    } else {
-      NSDecimalRound(&result, &source, fractionDigits, .up)
-    }
-    return result
   }
 }

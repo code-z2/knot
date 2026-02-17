@@ -26,7 +26,7 @@ struct SearchInput: View {
   }
 
   private var inputContent: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: AppSpacing.xs) {
       Image(systemName: "magnifyingglass")
         .font(.system(size: 16, weight: .regular))
         .foregroundStyle(AppThemeColor.labelSecondary)
@@ -46,7 +46,7 @@ struct SearchInput: View {
       .font(.custom("Inter-Regular", size: 16))
       .foregroundStyle(AppThemeColor.labelPrimary)
     }
-    .padding(.horizontal, 12)
+    .padding(.horizontal, AppSpacing.sm)
     .padding(.vertical, 10)
     .frame(height: 44)
     .clipShape(.capsule)
