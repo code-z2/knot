@@ -3,6 +3,13 @@
 "preferences_haptics" = "ردود الفعل اللمسية";
 "preferences_currency" = "العملة";
 "preferences_language" = "اللغة";
+"preferences_network_mode" = "وضع الشبكة";
+"preferences_network_mode_mainnet" = "الشبكة الرئيسية";
+"preferences_network_mode_testnet" = "شبكة الاختبار";
+"preferences_network_mode_mainnet_plus" = "الشبكة الرئيسية+";
+"preferences_appearance_dark" = "داكن";
+"preferences_appearance_system" = "النظام";
+"preferences_appearance_light" = "فاتح";
 "preferences_business" = "Knot للأعمال";
 "sheet_currency_title" = "العملة";
 "sheet_language_title" = "اللغة";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "لا يوجد نشاط حديث";
 "transaction_empty_subtitle" = "ستظهر معاملاتك هنا بعد إرسال أو استلام الأموال.";
+"receive_wallet_address" = "Wallet Address";

@@ -3,6 +3,13 @@
 "preferences_haptics" = "Dokunsal Geribildirim";
 "preferences_currency" = "Para Birimi";
 "preferences_language" = "Dil";
+"preferences_network_mode" = "Ağ modu";
+"preferences_network_mode_mainnet" = "Ana ağ";
+"preferences_network_mode_testnet" = "Test ağı";
+"preferences_network_mode_mainnet_plus" = "Ana ağ+";
+"preferences_appearance_dark" = "Koyu";
+"preferences_appearance_system" = "Sistem";
+"preferences_appearance_light" = "Açık";
 "preferences_business" = "İşletmeler için Knot";
 "sheet_currency_title" = "Para Birimi";
 "sheet_language_title" = "Dil";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "Son aktivite yok";
 "transaction_empty_subtitle" = "Kullanıcılar para gönderip aldıktan sonra işlemleriniz burada görünecektir.";
+"receive_wallet_address" = "Wallet Address";

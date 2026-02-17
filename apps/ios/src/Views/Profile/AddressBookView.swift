@@ -68,16 +68,16 @@ struct AddressBookView: View {
         Button {
           showAddScreen = true
         } label: {
-          Image("Icons/plus")
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 24, height: 24)
-            .foregroundStyle(AppThemeColor.accentBrown)
-            .frame(width: 66, height: 50)
+          Image(systemName: "plus")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppThemeColor.accentBrown)
+                .frame(width: 44, height: 44)
         }
+        .clipShape(.circle)
         .buttonStyle(.plain)
         .transition(.move(edge: .trailing).combined(with: .opacity))
+        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibilityLabel(Text("Dismiss search"))
       }
     }
     .frame(width: 351, height: 50)
@@ -89,14 +89,13 @@ struct AddressBookView: View {
       ForEach(visibleBeneficiaries) { beneficiary in
         BeneficiaryRow(beneficiary: beneficiary)
           .listRowInsets(EdgeInsets(top: 0, leading: 25, bottom: 6, trailing: 25))
-          .listRowSeparator(.hidden)
+          .listRowSeparatorTint(AppThemeColor.separatorOpaque)
           .listRowBackground(Color.clear)
           .swipeActions(edge: .trailing, allowsFullSwipe: true) {
               Button(role: .destructive) {
               Task { await deleteBeneficiary(beneficiary.id) }
             } label: {
-              Image("Icons/trash_03")
-                .renderingMode(.template)
+              Image(systemName: "trash")
             }
           }
       }
@@ -357,15 +356,13 @@ private struct AddAddressView: View {
         .foregroundStyle(AppThemeColor.backgroundPrimary)
         .padding(.horizontal, 17)
         .padding(.vertical, 15)
-        .background(
-          RoundedRectangle(cornerRadius: 15, style: .continuous)
-            .fill(AppThemeColor.accentBrown)
-        )
+        .frame(minWidth: 100)
     }
-    .buttonStyle(.plain)
+    .buttonStyle(.borderedProminent)
     .disabled(!canSave || isSaving)
     .opacity(canSave && !isSaving ? 1 : 0)
     .animation(.easeInOut(duration: 0.18), value: canSave)
+    .tint(AppThemeColor.accentBrown)
   }
 
   private var addressDropdown: some View {

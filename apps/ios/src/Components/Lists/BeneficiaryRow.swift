@@ -18,7 +18,7 @@ struct BeneficiaryRow: View {
   private var rowContent: some View {
     HStack(spacing: 16) {
       ZStack {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: 44, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
         Text(initials)
           .font(.custom("RobotoMono-Medium", size: 14))

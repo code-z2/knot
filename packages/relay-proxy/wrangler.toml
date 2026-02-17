@@ -2,6 +2,10 @@ name = "relay-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-02-11"
 
+[observability]
+enabled = true
+head_sampling_rate = 1.0
+
 [[routes]]
 pattern = "relay.knot.fi"
 custom_domain = true
@@ -26,4 +30,8 @@ FAUCET_RPC_ARB_SEPOLIA = ""
 
 [[kv_namespaces]]
 binding = "GAS_TANK_KV"
+id = "9899238f13454a319ec6ea19a20e6f18"
+
+[[kv_namespaces]]
+binding = "FAUCET_FUNDING_KV"
 id = "9899238f13454a319ec6ea19a20e6f18"

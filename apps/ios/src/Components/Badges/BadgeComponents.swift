@@ -54,10 +54,8 @@ struct AppIconTextBadge: View {
   private func badgeIconView(_ icon: AppBadgeIcon, color: Color?) -> some View {
     switch icon {
     case .symbol(let iconName):
-      Image(iconName)
-        .renderingMode(.template)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
+      Image(systemName: iconName)
+        .font(.system(size: 16, weight: .medium))
         .frame(width: 16, height: 16)
         .foregroundStyle(color ?? textColor)
     case .network(let assetName):
@@ -75,7 +73,7 @@ struct AppIconTextBadge: View {
     AppThemeColor.fixedDarkSurface.ignoresSafeArea()
     VStack(alignment: .leading, spacing: 12) {
       AppTextBadge(text: "text badge")
-      AppIconTextBadge(text: "icon badge", icon: .symbol("Icons/check_verified_01"))
+      AppIconTextBadge(text: "icon badge", icon: .symbol("checkmark.seal.fill"))
       AppIconTextBadge(text: "Ethereum", icon: .network("ethereum"))
     }
     .padding(20)

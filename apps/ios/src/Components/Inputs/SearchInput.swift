@@ -48,7 +48,7 @@ struct SearchInput: View {
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
-    .frame(height: 40)
+    .frame(height: 44)
     .clipShape(.capsule)
     .modifier(SearchFieldBackgroundModifier())
   }
@@ -60,7 +60,7 @@ struct SearchInput: View {
       Image(systemName: "xmark")
         .font(.system(size: 17, weight: .semibold))
         .foregroundStyle(AppThemeColor.labelPrimary)
-        .frame(width: 40, height: 40)
+        .frame(width: 44, height: 44)
     }
     .buttonStyle(.plain)
     .clipShape(.circle)

@@ -3,6 +3,13 @@
 "preferences_haptics" = "హాప్టిక్ ఫీడ్‌బ్యాక్";
 "preferences_currency" = "కరెన్సీ";
 "preferences_language" = "భాష";
+"preferences_network_mode" = "నెట్‌వర్క్ మోడ్";
+"preferences_network_mode_mainnet" = "మెయిన్‌నెట్";
+"preferences_network_mode_testnet" = "టెస్ట్‌నెట్";
+"preferences_network_mode_mainnet_plus" = "మెయిన్‌నెట్+";
+"preferences_appearance_dark" = "డార్క్";
+"preferences_appearance_system" = "సిస్టమ్";
+"preferences_appearance_light" = "లైట్";
 "preferences_business" = "వ్యాపారం కోసం Knot";
 "sheet_currency_title" = "కరెన్సీ";
 "sheet_language_title" = "భాష";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "ఇటీవలి కార్యాచరణ లేదు";
 "transaction_empty_subtitle" = "మీరు నిధులు పంపిన తర్వాత లేదా స్వీకరించిన తర్వాత మీ లావాదేవీలు ఇక్కడ కనిపిస్తాయి.";
+"receive_wallet_address" = "Wallet Address";

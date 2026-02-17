@@ -236,6 +236,7 @@ struct SendMoneyView: View {
             }
           }
         )
+        .frame(height: 84, alignment: .bottom)
         .padding(.top, 42)
         .padding(.bottom, 16)
 
@@ -603,7 +604,7 @@ struct SendMoneyView: View {
     case .loading:
       return nil
     case .error:
-      return "Icons/x_close"
+      return "xmark.circle.fill"
     }
   }
 
@@ -677,7 +678,7 @@ struct SendMoneyView: View {
 
   private var primarySymbolText: String {
     if isAmountDisplayInverted {
-      return currentSpendAsset?.symbol ?? "USDC"
+      return currentSpendAsset!.symbol
     }
     return currencyRateStore.symbol(
       for: selectedFiatCode,
@@ -697,7 +698,7 @@ struct SendMoneyView: View {
         locale: preferencesStore.locale
       )
     }
-    return currentSpendAsset?.symbol ?? "USDC"
+    return currentSpendAsset!.symbol
   }
 
   private var spendAssetBalanceText: String {
@@ -1228,6 +1229,7 @@ struct SendMoneyView: View {
 
   private func handleKeypadTap(_ key: SendMoneyKeypadKey) {
     guard amountButtonState == .normal else { return }
+    HapticFeedback.selection(enabled: preferencesStore.hapticsEnabled)
     switch key {
     case .digit(let digit):
       if amountInput == "0" {

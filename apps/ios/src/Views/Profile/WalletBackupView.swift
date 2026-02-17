@@ -29,7 +29,7 @@ struct WalletBackupView: View {
 
             ZStack(alignment: .topLeading) {
               RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppThemeColor.fillPrimary)
+                .fill(AppThemeColor.backgroundSecondary)
                 .frame(height: 154)
 
               Text(mnemonic)
@@ -80,11 +80,9 @@ struct WalletBackupView: View {
               .foregroundStyle(AppThemeColor.accentBrown)
 
             if !didCopy {
-              Image("Icons/copy_02")
-                .renderingMode(.template)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
+              Image(systemName: "square.on.square")
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 16, height: 16)
                 .foregroundStyle(AppThemeColor.accentBrown)
             }
 

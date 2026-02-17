@@ -4,9 +4,11 @@ import UIKit
 public enum AppThemeColor {
   // Core surfaces
   public static let backgroundPrimaryDark = Color(hex: "#000000")
-  public static let backgroundPrimaryLight = Color(hex: "#FFFFFF")
+  public static let backgroundPrimaryLight = Color(hex: "#F2F2F7")
   public static let backgroundSecondaryDark = Color(hex: "#1C1C1E")
-  public static let backgroundSecondaryLight = Color(hex: "#F2F2F7")
+  public static let backgroundSecondaryLight = Color(hex: "#FFFFFF")
+  public static let backgroundTertiaryDark = Color(hex: "#2C2C2E")
+  public static let backgroundTertiaryLight = Color(hex: "#F2F2F7")
 
   public static let labelPrimaryDark = Color(hex: "#FFFFFF")
   public static let labelPrimaryLight = Color(hex: "#000000")
@@ -57,8 +59,9 @@ public enum AppThemeColor {
   public static let onboardingProgressActive = offWhite
 
   // Adaptive app defaults
-  public static let backgroundPrimary = adaptive("#000000", "#FFFFFF")
-  public static let backgroundSecondary = adaptive("#1C1C1E", "#F2F2F7")
+  public static let backgroundPrimary = adaptive("#000000", "#F2F2F7")
+  public static let backgroundSecondary = adaptive("#1C1C1E", "#FFFFFF")
+  public static let backgroundTertiary = adaptive("#2C2C2E", "#F2F2F7")
   public static let labelPrimary = adaptive("#FFFFFF", "#000000")
   public static let labelSecondary = adaptive("#EBEBF599", "#3C3C4399")
   public static let labelVibrantPrimary = adaptive("#FFFFFF", "#333333")

@@ -23,7 +23,6 @@ struct AppSheet<Content: View>: View {
       .presentationDetents(kind.detents)
       .presentationDragIndicator(.visible)
       .presentationCornerRadius(32)
-      .presentationBackground(AppThemeColor.backgroundSecondary)
       .padding(.top, 24)
   }
 }

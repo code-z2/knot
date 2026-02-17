@@ -4,8 +4,9 @@ import Foundation
 import web3swift
 
 public actor RPCClient {
-  private let endpointResolver: any RPCEndpointResolving
-  private let relayConfig: RelayProxyConfig
+  private let baseEndpointResolver: any RPCEndpointResolving
+  private let baseRelayConfig: RelayProxyConfig
+  private let dynamicEnvironmentBundle: Bundle?
   private let transport: any JSONRPCTransporting
   private var requestID: Int = 1
 
@@ -13,8 +14,9 @@ public actor RPCClient {
     environment: RPCEnvironment,
     transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
   ) {
-    self.endpointResolver = environment.makeResolver()
-    self.relayConfig = environment.relayConfig
+    self.baseEndpointResolver = environment.makeResolver()
+    self.baseRelayConfig = environment.relayConfig
+    self.dynamicEnvironmentBundle = nil
     self.transport = transport
   }
 
@@ -23,8 +25,9 @@ public actor RPCClient {
     relayConfig: RelayProxyConfig = .init(),
     transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
   ) {
-    self.endpointResolver = resolver
-    self.relayConfig = relayConfig
+    self.baseEndpointResolver = resolver
+    self.baseRelayConfig = relayConfig
+    self.dynamicEnvironmentBundle = nil
     self.transport = transport
   }
 
@@ -33,38 +36,39 @@ public actor RPCClient {
     transport: any JSONRPCTransporting = URLSessionJSONRPCTransport()
   ) {
     let environment = Self.makeEnvironment(bundle: bundle)
-    self.endpointResolver = environment.makeResolver()
-    self.relayConfig = environment.relayConfig
+    self.baseEndpointResolver = environment.makeResolver()
+    self.baseRelayConfig = environment.relayConfig
+    self.dynamicEnvironmentBundle = bundle
     self.transport = transport
   }
 
   public func getRpcUrl(chainId: UInt64) throws -> String {
-    let endpoints = try endpointResolver.endpoints(for: chainId)
+    let endpoints = try runtimeEndpointResolver().endpoints(for: chainId)
     return endpoints.rpcURL
   }
 
   public func getWalletApiUrl(chainId: UInt64) throws -> String {
-    let endpoints = try endpointResolver.endpoints(for: chainId)
+    let endpoints = try runtimeEndpointResolver().endpoints(for: chainId)
     return endpoints.walletAPIURL
   }
 
   public func getWalletApiBearerToken(chainId: UInt64) throws -> String {
-    let endpoints = try endpointResolver.endpoints(for: chainId)
+    let endpoints = try runtimeEndpointResolver().endpoints(for: chainId)
     return endpoints.walletAPIBearerToken
   }
 
   public func getAddressActivityApiUrl(chainId: UInt64) throws -> String {
-    let endpoints = try endpointResolver.endpoints(for: chainId)
+    let endpoints = try runtimeEndpointResolver().endpoints(for: chainId)
     return endpoints.addressActivityAPIURL
   }
 
   public func getAddressActivityApiBearerToken(chainId: UInt64) throws -> String {
-    let endpoints = try endpointResolver.endpoints(for: chainId)
+    let endpoints = try runtimeEndpointResolver().endpoints(for: chainId)
     return endpoints.addressActivityAPIBearerToken
   }
 
   public func getSupportedChains() -> [UInt64] {
-    endpointResolver.supportedChains()
+    runtimeEndpointResolver().supportedChains()
   }
 
   public func getWeb3Client(chainId: UInt64) async throws -> Web3 {
@@ -153,9 +157,13 @@ public actor RPCClient {
   }
 
   public func relayFaucetFund(
-    eoaAddress: String
+    eoaAddress: String,
+    supportMode: RelaySupportMode
   ) async throws -> RelayFaucetFundResult {
-    let payload = RelayFaucetFundRequestPayload(eoaAddress: eoaAddress)
+    let payload = RelayFaucetFundRequestPayload(
+      eoaAddress: eoaAddress,
+      supportMode: supportMode.rawValue
+    )
     return try await relayCall(
       path: "/v1/faucet/fund",
       method: "POST",
@@ -306,6 +314,7 @@ public actor RPCClient {
   }
 
   private func relayBaseURL() throws -> URL {
+    let relayConfig = runtimeRelayConfig()
     let configured = relayConfig.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
     let fallback = RPCSecrets.relayProxyBaseURLDefault
     let resolved = configured.isEmpty ? fallback : configured
@@ -317,6 +326,7 @@ public actor RPCClient {
   }
 
   private func uploadProxyBaseURL() throws -> URL {
+    let relayConfig = runtimeRelayConfig()
     let configured = relayConfig.uploadBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
     if configured.isEmpty {
       throw RPCError.invalidRelayProxyBaseURL("UPLOAD_PROXY_BASE_URL is not configured.")
@@ -338,6 +348,7 @@ public actor RPCClient {
   }
 
   private func relayClientToken() throws -> String {
+    let relayConfig = runtimeRelayConfig()
     let token = relayConfig.clientToken.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !token.isEmpty else {
       throw RPCError.missingRelayProxyToken
@@ -349,6 +360,7 @@ public actor RPCClient {
     let timestamp = String(Int(Date().timeIntervalSince1970))
     request.setValue(timestamp, forHTTPHeaderField: "X-Relay-Timestamp")
 
+    let relayConfig = runtimeRelayConfig()
     let hmacSecret = relayConfig.hmacSecret.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !hmacSecret.isEmpty else {
       return
@@ -359,6 +371,25 @@ public actor RPCClient {
     let mac = HMAC<SHA256>.authenticationCode(for: Data(payload.utf8), using: key)
     let signature = mac.map { String(format: "%02x", $0) }.joined()
     request.setValue(signature, forHTTPHeaderField: "X-Relay-Signature")
+  }
+
+  private func runtimeEndpointResolver() -> any RPCEndpointResolving {
+    if let environment = runtimeEnvironment() {
+      return environment.makeResolver()
+    }
+    return baseEndpointResolver
+  }
+
+  private func runtimeRelayConfig() -> RelayProxyConfig {
+    if let environment = runtimeEnvironment() {
+      return environment.relayConfig
+    }
+    return baseRelayConfig
+  }
+
+  private func runtimeEnvironment() -> RPCEnvironment? {
+    guard let dynamicEnvironmentBundle else { return nil }
+    return Self.makeEnvironment(bundle: dynamicEnvironmentBundle)
   }
 
   private static func makeEnvironment(

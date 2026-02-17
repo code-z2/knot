@@ -16,6 +16,7 @@
 		D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 		D0F0B0022F35C1A7001A2B3C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0F0B0012F35C1A7001A2B3C /* Localizable.strings */; };
+		D0QRC0022F6A2002001771BB /* QRCode in Frameworks */ = {isa = PBXBuildFile; productRef = D0QRC0012F6A2001001771BB /* QRCode */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 		D0F0B1102F35C1A7001A2B3C /* te */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = te; path = Languages/te.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D0F0B1112F35C1A7001A2B3C /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = Languages/tr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D0F0B1122F35C1A7001A2B3C /* ur */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ur; path = Languages/ur.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0F0B1132F35C1A7001A2B3C /* zh */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = zh; path = Languages/zh.lproj/Localizable.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -106,6 +108,7 @@
 				D0EAD1492F338A51003B1EE1 /* ENS in Frameworks */,
 				D0EAD1462F338A17003B1EE1 /* AA in Frameworks */,
 				D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */,
+				D0QRC0022F6A2002001771BB /* QRCode in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -177,6 +180,7 @@
 				D0BAL0012F3A0001001771BB /* Balance */,
 				D0TXN0012F3B0001001771BB /* Transactions */,
 				D0CMP0022F4B0002001771BB /* Compose */,
+				D0QRC0012F6A2001001771BB /* QRCode */,
 			);
 			productName = knot;
 			productReference = D0EEE96A2F312A96001771BB /* knot.app */;
@@ -274,6 +278,7 @@
 				fr,
 				ru,
 				jv,
+				zh,
 			);
 			mainGroup = D0EEE9612F312A96001771BB;
 			minimizedProjectReferenceProxies = 1;
@@ -284,6 +289,7 @@
 				D0EAD1472F338A51003B1EE1 /* XCLocalSwiftPackageReference "../../packages/ens" */,
 				D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */,
 				D0CMP0002F4B0000001771BB /* XCLocalSwiftPackageReference "../../packages/compose" */,
+				D0QRC0002F6A2000001771BB /* XCRemoteSwiftPackageReference "QRCode" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -384,6 +390,7 @@
 				D0F0B1102F35C1A7001A2B3C /* te */,
 				D0F0B1112F35C1A7001A2B3C /* tr */,
 				D0F0B1122F35C1A7001A2B3C /* ur */,
+				D0F0B1132F35C1A7001A2B3C /* zh */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -746,6 +753,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		D0QRC0002F6A2000001771BB /* XCRemoteSwiftPackageReference "QRCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dagronf/QRCode.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 27.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		D0BAL0012F3A0001001771BB /* Balance */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -766,6 +784,11 @@
 		D0EEE9C22F3145FD001771BB /* AccountSetup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AccountSetup;
+		};
+		D0QRC0012F6A2001001771BB /* QRCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D0QRC0002F6A2000001771BB /* XCRemoteSwiftPackageReference "QRCode" */;
+			productName = QRCode;
 		};
 		D0TXN0012F3B0001001771BB /* Transactions */ = {
 			isa = XCSwiftPackageProductDependency;

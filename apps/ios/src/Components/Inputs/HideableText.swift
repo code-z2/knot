@@ -26,11 +26,9 @@ struct HideableText: View {
         }
         onToggle?()
       } label: {
-        Image(isHidden ? "Icons/eye_off" : "Icons/eye")
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .frame(width: 20, height: 20)
-          .foregroundStyle(AppThemeColor.labelPrimary)
+        Image(systemName: isHidden ? "eye.slash" : "eye")
+          .font(.custom("RobotoMono-Bold", size: 16))
+          .foregroundStyle(AppThemeColor.accentBrown)
       }
       .buttonStyle(.plain)
     }

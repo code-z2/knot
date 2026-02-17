@@ -5,31 +5,92 @@ struct IconBadge<Content: View>: View {
     case defaultStyle
     case neutral
     case destructive
+    case solid(background: Color, icon: Color? = nil)
+    case gradient(colors: [Color], icon: Color? = nil)
   }
 
   let style: Style
+  let contentPadding: CGFloat
+  let cornerRadius: CGFloat
+  let borderWidth: CGFloat
   let content: () -> Content
 
-  init(style: Style, @ViewBuilder content: @escaping () -> Content) {
+  init(
+    style: Style,
+    contentPadding: CGFloat = 8,
+    cornerRadius: CGFloat = 12,
+    borderWidth: CGFloat = 1,
+    @ViewBuilder content: @escaping () -> Content
+  ) {
     self.style = style
+    self.contentPadding = contentPadding
+    self.cornerRadius = cornerRadius
+    self.borderWidth = borderWidth
     self.content = content
   }
 
   var body: some View {
-    content()
-      .padding(8)
-      .background(backgroundColor)
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    badgeContent
+      .padding(contentPadding)
+      .background(backgroundFill)
+      .overlay(
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+          .stroke(borderColor, lineWidth: borderWidth)
+      )
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
   }
 
-  private var backgroundColor: Color {
+  @ViewBuilder
+  private var badgeContent: some View {
+    if let iconColor {
+      content()
+        .foregroundStyle(iconColor)
+    } else {
+      content()
+    }
+  }
+
+  @ViewBuilder
+  private var backgroundFill: some View {
     switch style {
     case .defaultStyle:
-      return AppThemeColor.accentBrownLight.opacity(0.4)
+      AppThemeColor.accentBrown.opacity(0.32)
     case .neutral:
-      return AppThemeColor.fillPrimary
+      AppThemeColor.fillPrimary
     case .destructive:
-      return AppThemeColor.destructiveBackground
+      AppThemeColor.destructiveBackground
+    case .solid(let background, _):
+      background
+    case .gradient(let colors, _):
+      if colors.count >= 2 {
+        LinearGradient(
+          colors: colors,
+          startPoint: .topLeading,
+          endPoint: .bottomTrailing
+        )
+      } else {
+        (colors.first ?? AppThemeColor.fillPrimary)
+      }
+    }
+  }
+
+  private var borderColor: Color {
+    switch style {
+    case .destructive:
+      return AppThemeColor.accentRed.opacity(0.2)
+    default:
+      return AppThemeColor.separatorNonOpaque.opacity(0.32)
+    }
+  }
+
+  private var iconColor: Color? {
+    switch style {
+    case .solid(_, let icon):
+      return icon
+    case .gradient(_, let icon):
+      return icon
+    default:
+      return nil
     }
   }
 }
@@ -37,19 +98,25 @@ struct IconBadge<Content: View>: View {
 #Preview {
   VStack(spacing: 16) {
     IconBadge(style: .defaultStyle) {
-      Image("Icons/refresh_cw_04")
-        .resizable()
-        .aspectRatio(contentMode: .fit)
+      Image(systemName: "arrow.clockwise")
+        .font(.system(size: 16, weight: .medium))
     }
     IconBadge(style: .neutral) {
-      Image("Icons/refresh_cw_04")
-        .resizable()
-        .aspectRatio(contentMode: .fit)
+      Image(systemName: "arrow.clockwise")
+        .font(.system(size: 16, weight: .medium))
     }
     IconBadge(style: .destructive) {
-      Image("Icons/refresh_cw_04")
-        .resizable()
-        .aspectRatio(contentMode: .fit)
+      Image(systemName: "arrow.clockwise")
+        .font(.system(size: 16, weight: .medium))
+    }
+    IconBadge(
+      style: .gradient(
+        colors: [Color(hex: "#5F5AF7"), Color(hex: "#5AC8FA")],
+        icon: AppThemeColor.grayWhite
+      )
+    ) {
+      Image(systemName: "arrow.clockwise")
+        .font(.system(size: 16, weight: .medium))
     }
   }
   .padding()

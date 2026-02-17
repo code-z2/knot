@@ -47,16 +47,19 @@ final class ENSService {
   }
 
   init(
+    mode: ChainSupportMode = ChainSupportRuntime.resolveMode(),
     configuration: ENSConfiguration? = nil,
     client: ENSClient? = nil
   ) {
-    let resolvedConfiguration = configuration ?? ENSService.defaultConfiguration()
+    let resolvedConfiguration = configuration ?? ENSService.configuration(for: mode)
     self.configuration = resolvedConfiguration
     self.client = client ?? ENSClient(configuration: resolvedConfiguration)
   }
 
-  private nonisolated static func defaultConfiguration() -> ENSConfiguration {
-    switch ChainSupportRuntime.resolveMode() {
+  private nonisolated static func configuration(
+    for mode: ChainSupportMode
+  ) -> ENSConfiguration {
+    switch mode {
     case .limitedTestnet:
       return .sepolia
     case .limitedMainnet, .fullMainnet:
@@ -65,16 +68,11 @@ final class ENSService {
   }
 
   func resolveName(name: String) async throws -> String {
-    print("[ENSService] resolveName called for: \(name)")
-    print("[ENSService] config chainID=\(configuration.chainID), universalResolver=\(configuration.universalResolverAddress)")
     do {
-      let resolved = try await client.resolveName(
+      return try await client.resolveName(
         ResolveNameRequest(name: name)
       )
-      print("[ENSService] ✅ resolved \(name) → \(resolved)")
-      return resolved
     } catch {
-      print("[ENSService] ❌ resolveName failed for \(name): \(error)")
       throw ENSServiceError.actionFailed(error)
     }
   }

@@ -14,11 +14,25 @@ final class FaucetService: Sendable {
 
   /// Fire-and-forget: requests the server to fund the given EOA on all testnet chains.
   /// Returns silently on any failure.
-  func fundAccount(eoaAddress: String) async {
+  func fundAccount(eoaAddress: String, mode: ChainSupportMode) async {
     do {
-      _ = try await rpcClient.relayFaucetFund(eoaAddress: eoaAddress)
+      _ = try await rpcClient.relayFaucetFund(
+        eoaAddress: eoaAddress,
+        supportMode: relaySupportMode(mode)
+      )
     } catch {
       // Silently fail — faucet funding is best-effort.
+    }
+  }
+
+  private func relaySupportMode(_ mode: ChainSupportMode) -> RelaySupportMode {
+    switch mode {
+    case .limitedTestnet:
+      return .limitedTestnet
+    case .limitedMainnet:
+      return .limitedMainnet
+    case .fullMainnet:
+      return .fullMainnet
     }
   }
 }

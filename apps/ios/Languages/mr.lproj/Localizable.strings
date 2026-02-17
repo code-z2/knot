@@ -3,6 +3,13 @@
 "preferences_haptics" = "हॅप्टिक अभिप्राय";
 "preferences_currency" = "चलन";
 "preferences_language" = "भाषा";
+"preferences_network_mode" = "नेटवर्क मोड";
+"preferences_network_mode_mainnet" = "मेननेट";
+"preferences_network_mode_testnet" = "टेस्टनेट";
+"preferences_network_mode_mainnet_plus" = "मेननेट+";
+"preferences_appearance_dark" = "गडद";
+"preferences_appearance_system" = "सिस्टम";
+"preferences_appearance_light" = "फिकट";
 "preferences_business" = "व्यवसाय साठी Knot";
 "sheet_currency_title" = "चलन";
 "sheet_language_title" = "भाषा";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "कोणतीही अलीकडील क्रिया नाही";
 "transaction_empty_subtitle" = "तुम्ही निधी पाठवल्यानंतर किंवा प्राप्त केल्यानंतर तुमचे व्यवहार येथे दिसतील.";
+"receive_wallet_address" = "Wallet Address";

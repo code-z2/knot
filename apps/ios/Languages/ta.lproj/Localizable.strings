@@ -3,6 +3,13 @@
 "preferences_haptics" = "ஹேப்டிக் கருத்து";
 "preferences_currency" = "நாணயம்";
 "preferences_language" = "மொழி";
+"preferences_network_mode" = "நெட்வொர்க் முறை";
+"preferences_network_mode_mainnet" = "மெயின்நெட்";
+"preferences_network_mode_testnet" = "டெஸ்ட்நெட்";
+"preferences_network_mode_mainnet_plus" = "மெயின்நெட்+";
+"preferences_appearance_dark" = "இருண்ட";
+"preferences_appearance_system" = "அமைப்பு";
+"preferences_appearance_light" = "ஒளி";
 "preferences_business" = "வணிகத்திற்கான Knot";
 "sheet_currency_title" = "நாணயம்";
 "sheet_language_title" = "மொழி";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "சமீபத்திய செயல்பாடு இல்லை";
 "transaction_empty_subtitle" = "நீங்கள் நிதியை அனுப்பிய அல்லது பெற்ற பிறகு உங்கள் பரிவர்த்தனைகள் இங்கே தோன்றும்.";
+"receive_wallet_address" = "Wallet Address";

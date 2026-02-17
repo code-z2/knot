@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RPC
 
 enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
     case dark
@@ -46,6 +47,7 @@ final class PreferencesStore {
         static let hapticsEnabled = "prefs.hapticsEnabled"
         static let languageCode = "prefs.languageCode"
         static let appearance = "prefs.appearance"
+        static let chainSupportMode = "prefs.chainSupportMode"
     }
 
     @ObservationIgnored
@@ -99,6 +101,18 @@ final class PreferencesStore {
         }
     }
 
+    var chainSupportMode: ChainSupportMode {
+        didSet {
+            let normalized = PreferencesStore.normalizeChainSupportMode(chainSupportMode)
+            if chainSupportMode != normalized {
+                chainSupportMode = normalized
+                return
+            }
+            defaults.set(normalized.rawValue, forKey: Key.chainSupportMode)
+            ChainSupportRuntime.setPreferredMode(normalized, defaults: defaults)
+        }
+    }
+
     init(
         defaults: UserDefaults = .standard,
         supportedCurrencies: [CurrencyOption] = PreferencesStore.defaultCurrencies,
@@ -140,6 +154,14 @@ final class PreferencesStore {
 
         let storedAppearance = defaults.string(forKey: Key.appearance)
         self.appearance = PreferencesStore.resolveAppearance(storedAppearance)
+
+        let storedMode = defaults.string(forKey: Key.chainSupportMode)
+        let resolvedMode = PreferencesStore.resolveChainSupportMode(
+            stored: storedMode,
+            fallback: ChainSupportRuntime.resolveMode(defaults: defaults)
+        )
+        self.chainSupportMode = resolvedMode
+        ChainSupportRuntime.setPreferredMode(resolvedMode, defaults: defaults)
     }
 
     func updateSupportedCurrencies(_ currencies: [CurrencyOption]) {
@@ -203,6 +225,18 @@ final class PreferencesStore {
         return AppAppearance(rawValue: rawValue) ?? .dark
     }
 
+    private static func normalizeChainSupportMode(_ mode: ChainSupportMode) -> ChainSupportMode {
+        mode
+    }
+
+    private static func resolveChainSupportMode(
+        stored: String?,
+        fallback: ChainSupportMode
+    ) -> ChainSupportMode {
+        guard let stored else { return fallback }
+        return ChainSupportMode(rawValue: stored) ?? fallback
+    }
+
     private static func resolveLanguageCode(
         stored: String?,
         supported: [LanguageOption],
@@ -243,15 +277,16 @@ final class PreferencesStore {
             "it": "EUR",
             "ja": "JPY",
             "jv": "USD",
-            "ko": "USD",
+            "ko": "KRW",
             "mr": "INR",
-            "pt": "EUR",
+            "pt": "BRL",
             "ru": "RUB",
             "sw": "USD",
             "ta": "INR",
             "te": "INR",
             "tr": "USD",
             "ur": "INR",
+            "zh": "CNY",
         ]
 
         if let mapped = suggestedByLanguage[normalizedLanguage] {
@@ -275,20 +310,25 @@ final class PreferencesStore {
     nonisolated static let defaultLanguageCode = "en"
 
     nonisolated static let defaultCurrencies: [CurrencyOption] = [
-        .init(code: "ETH", name: "ethereum", iconAssetName: "Icons/currency_ethereum_circle"),
-        .init(code: "EUR", name: "european euro", iconAssetName: "Icons/currency_euro_circle"),
-        .init(code: "GBP", name: "british pounds", iconAssetName: "Icons/currency_pound_circle"),
-        .init(code: "NGN", name: "nigerian naira", iconAssetName: "Icons/currency_naira_circle"),
-        .init(code: "USD", name: "united states dollar", iconAssetName: "Icons/currency_dollar_circle"),
-        .init(code: "JPY", name: "japanese yen", iconAssetName: "Icons/currency_yen_circle"),
-        .init(code: "INR", name: "indian rupee", iconAssetName: "Icons/currency_rupee_circle"),
-        .init(code: "RUB", name: "russian ruble", iconAssetName: "Icons/currency_ruble_circle"),
+        .init(code: "EUR", name: "european euro", iconAssetName: "eurosign"),
+        .init(code: "GBP", name: "british pounds", iconAssetName: "sterlingsign"),
+        .init(code: "NGN", name: "nigerian naira", iconAssetName: "nairasign"),
+        .init(code: "USD", name: "united states dollar", iconAssetName: "dollarsign"),
+        .init(code: "JPY", name: "japanese yen", iconAssetName: "yensign"),
+        .init(code: "INR", name: "indian rupee", iconAssetName: "indianrupeesign"),
+        .init(code: "RUB", name: "russian ruble", iconAssetName: "rublesign"),
+        .init(code: "BRL", name: "brazillian real", iconAssetName: "brazilianrealsign"),
+        .init(code: "ARS", name: "argentinian peso", iconAssetName: "pesosign"),
+        .init(code: "CNY", name: "chinese yuan", iconAssetName: "chineseyuanrenminbisign"),
+        .init(code: "GHS", name: "ghanian cedi", iconAssetName: "cedisign"),
+        .init(code: "KRW", name: "korean won", iconAssetName: "wonsign")
     ]
 
     nonisolated static let defaultLanguages: [LanguageOption] = [
         .init(code: "ar", displayName: "Arabic", flag: "🇸🇦"),
         .init(code: "bn", displayName: "Bengali", flag: "🇧🇩"),
-        .init(code: "en", displayName: "English", flag: "🇬🇧"),
+        .init(code: "zh", displayName: "Chinese", flag: "🇨🇳"),
+        .init(code: "en", displayName: "English", flag: "🇺🇸"),
         .init(code: "fr", displayName: "French", flag: "🇫🇷"),
         .init(code: "de", displayName: "German", flag: "🇩🇪"),
         .init(code: "hi", displayName: "Hindi", flag: "🇮🇳"),
@@ -297,7 +337,7 @@ final class PreferencesStore {
         .init(code: "jv", displayName: "Javanese", flag: "🇮🇩"),
         .init(code: "ko", displayName: "Korean", flag: "🇰🇷"),
         .init(code: "mr", displayName: "Marathi", flag: "🇮🇳"),
-        .init(code: "pt", displayName: "Portuguese", flag: "🇵🇹"),
+        .init(code: "pt", displayName: "Portuguese (Brazil)", flag: "🇧🇷"),
         .init(code: "ru", displayName: "Russian", flag: "🇷🇺"),
         .init(code: "es", displayName: "Spanish", flag: "🇪🇸"),
         .init(code: "sw", displayName: "Swahili", flag: "🇰🇪"),

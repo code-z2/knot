@@ -129,10 +129,8 @@ struct DropdownInputField<DropdownContent: View>: View {
   private var topRow: some View {
     HStack(spacing: 8) {
       if let leadingIconAssetName = properties.leadingIconAssetName {
-        Image(leadingIconAssetName)
-          .renderingMode(.template)
-          .resizable()
-          .scaledToFit()
+        Image(systemName: leadingIconAssetName)
+          .font(.system(size: 16, weight: .medium))
           .frame(width: 16, height: 16)
           .foregroundStyle(properties.textColor)
       }
@@ -182,19 +180,15 @@ struct DropdownInputField<DropdownContent: View>: View {
       if let trailingIconAssetName = resolvedTrailingIconAssetName {
         if let onTrailingIconTap {
           Button(action: onTrailingIconTap) {
-            Image(trailingIconAssetName)
-              .renderingMode(.template)
-              .resizable()
-              .scaledToFit()
+            Image(systemName: trailingIconAssetName)
+              .font(.system(size: 24, weight: .medium))
               .frame(width: 24, height: 24)
               .foregroundStyle(AppThemeColor.accentBrown)
           }
           .buttonStyle(.plain)
         } else {
-          Image(trailingIconAssetName)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
+          Image(systemName: trailingIconAssetName)
+            .font(.system(size: 24, weight: .medium))
             .frame(width: 24, height: 24)
             .foregroundStyle(AppThemeColor.accentBrown)
         }
@@ -246,7 +240,7 @@ struct DropdownInputField<DropdownContent: View>: View {
       return trailingIconAssetName
     }
     if variantSupportsDropdown {
-      return "Icons/scan"
+      return "qrcode.viewfinder"
     }
     return nil
   }
@@ -318,14 +312,14 @@ struct DropdownInputField<DropdownContent: View>: View {
       case .valid:
         AppIconTextBadge(
           text: badge.text,
-          icon: .symbol("Icons/check_verified_01"),
+          icon: .symbol("checkmark.seal.fill"),
           textColor: AppThemeColor.labelPrimary,
           iconColor: AppThemeColor.accentGreen
         )
       case .invalid:
         AppIconTextBadge(
           text: badge.text,
-          icon: .symbol("Icons/x_close"),
+          icon: .symbol("xmark.circle.fill"),
           textColor: AppThemeColor.labelPrimary,
           iconColor: AppThemeColor.accentRed
         )

@@ -3,6 +3,13 @@
 "preferences_haptics" = "触覚フィードバック";
 "preferences_currency" = "通貨";
 "preferences_language" = "言語";
+"preferences_network_mode" = "ネットワークモード";
+"preferences_network_mode_mainnet" = "メインネット";
+"preferences_network_mode_testnet" = "テストネット";
+"preferences_network_mode_mainnet_plus" = "メインネット+";
+"preferences_appearance_dark" = "ダーク";
+"preferences_appearance_system" = "システム";
+"preferences_appearance_light" = "ライト";
 "preferences_business" = "Knot for Business";
 "sheet_currency_title" = "通貨";
 "sheet_language_title" = "言語";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "最近のアクティビティはありません";
 "transaction_empty_subtitle" = "送金または受け取り後、取引はここに表示されます。";
+"receive_wallet_address" = "Wallet Address";

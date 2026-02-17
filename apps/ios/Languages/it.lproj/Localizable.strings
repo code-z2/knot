@@ -3,6 +3,13 @@
 "preferences_haptics" = "Feedback aptico";
 "preferences_currency" = "Valuta";
 "preferences_language" = "Lingua";
+"preferences_network_mode" = "Modalità rete";
+"preferences_network_mode_mainnet" = "Rete principale";
+"preferences_network_mode_testnet" = "Rete di test";
+"preferences_network_mode_mainnet_plus" = "Rete principale+";
+"preferences_appearance_dark" = "Scuro";
+"preferences_appearance_system" = "Sistema";
+"preferences_appearance_light" = "Chiaro";
 "preferences_business" = "Knot per le Aziende";
 "sheet_currency_title" = "Valuta";
 "sheet_language_title" = "Lingua";
@@ -156,3 +163,4 @@
 
 "transaction_empty_title" = "Nessuna attività recente";
 "transaction_empty_subtitle" = "Le tue transazioni appariranno qui dopo aver inviato o ricevuto fondi.";
+"receive_wallet_address" = "Wallet Address";
