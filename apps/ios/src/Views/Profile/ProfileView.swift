@@ -82,6 +82,7 @@ struct ProfileView: View {
             infoText(nameInfoText, tone: nameInfoTone)
               .padding(.horizontal, AppSpacing.lg)
               .padding(.bottom, AppSpacing.sm)
+              .transition(.opacity.combined(with: .move(edge: .top)))
           }
 
           formSection
@@ -110,6 +111,10 @@ struct ProfileView: View {
           .padding(.bottom, AppSpacing.xl)
       }
     }
+    .animation(AppAnimation.gentle, value: isEditingProfile)
+    .animation(AppAnimation.standard, value: nameInfoText)
+    .animation(AppAnimation.spring, value: errorMessage)
+    .animation(AppAnimation.spring, value: successMessage)
     .safeAreaInset(edge: .top, spacing: 0) { profileHeader }
     .task {
       await loadProfile()
@@ -171,8 +176,10 @@ struct ProfileView: View {
       HStack(spacing: 0) {
         if isEditingProfile {
           cancelButton
+            .transition(.opacity)
         } else {
           BackNavigationButton(tint: AppThemeColor.labelSecondary, action: onBack)
+            .transition(.opacity)
         }
         Spacer(minLength: 0)
         profileActionButton

@@ -31,6 +31,7 @@ struct ToastView: View {
         RoundedRectangle(cornerRadius: AppCornerRadius.md, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
       )
+      .transition(.move(edge: .bottom).combined(with: .opacity))
   }
 
   private var foregroundColor: Color {

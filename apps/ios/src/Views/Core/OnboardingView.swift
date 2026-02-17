@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
   let onCreateWallet: () -> Void
   let onLogin: () -> Void
+  @State private var showContent = false
 
   var body: some View {
     GeometryReader { geo in
@@ -37,10 +38,14 @@ struct OnboardingView: View {
               .frame(width: 294, alignment: .leading)
               .fixedSize(horizontal: false, vertical: true)
           }
+          .opacity(showContent ? 1 : 0)
+          .offset(y: showContent ? 0 : 12)
 
           RoundedRectangle(cornerRadius: 15, style: .continuous)
             .fill(AppThemeColor.offWhite)
             .frame(width: 35, height: 7)
+            .opacity(showContent ? 1 : 0)
+            .offset(y: showContent ? 0 : 12)
 
           HStack(spacing: 0) {
             AppButton(
@@ -62,8 +67,15 @@ struct OnboardingView: View {
             )
           }
           .frame(width: 294)
+          .opacity(showContent ? 1 : 0)
+          .offset(y: showContent ? 0 : 12)
         }
         .offset(x: contentX, y: contentTop)
+      }
+    }
+    .onAppear {
+      withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
+        showContent = true
       }
     }
   }

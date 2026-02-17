@@ -96,7 +96,10 @@ struct PreferencesView: View {
             iconName: "moonphase.first.quarter",
             iconBackground: Color(hex: "#5E5CE6"),
             trailing: .localizedValueChevron(preferencesStore.appearance.localizedDisplayName),
-            action: { selectionTrigger += 1; present(.appearance) }
+            action: {
+              selectionTrigger += 1
+              present(.appearance)
+            }
           )
           PreferenceRow(
             title: Text("preferences_haptics"),
@@ -151,6 +154,7 @@ struct PreferencesView: View {
         onSelect: { preferencesStore.selectedCurrencyCode = $0 }
       )
       .padding(.top, AppSpacing.md)
+      .transition(AppAnimation.slideTransition)
     case .language:
       LanguageSelectionPage(
         languages: preferencesStore.supportedLanguages,
@@ -158,6 +162,7 @@ struct PreferencesView: View {
         onSelect: { preferencesStore.languageCode = $0 }
       )
       .padding(.top, AppSpacing.md)
+      .transition(AppAnimation.slideTransition)
     }
   }
 
@@ -183,7 +188,7 @@ struct PreferencesView: View {
     if activePage == .main {
       onBack()
     } else {
-      withAnimation(AppAnimation.standard) {
+      withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
         activePage = .main
       }
     }

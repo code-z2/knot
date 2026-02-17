@@ -26,9 +26,11 @@ struct AddressBookView: View {
           emptyState
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 25)
+            .transition(.opacity)
         } else {
           listState
             .padding(.top, AppSpacing.xl)
+            .transition(.opacity)
         }
       }
 
@@ -39,6 +41,8 @@ struct AddressBookView: View {
           .padding(.horizontal, AppSpacing.lg)
       }
     }
+    .animation(AppAnimation.gentle, value: visibleBeneficiaries.isEmpty)
+    .animation(AppAnimation.spring, value: errorMessage)
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
         title: "address_book_title",
@@ -71,9 +75,9 @@ struct AddressBookView: View {
           showAddScreen = true
         } label: {
           Image(systemName: "plus")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(AppThemeColor.accentBrown)
-                .frame(width: 44, height: 44)
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(AppThemeColor.accentBrown)
+            .frame(width: 44, height: 44)
         }
         .clipShape(.circle)
         .buttonStyle(.plain)
@@ -94,7 +98,7 @@ struct AddressBookView: View {
           .listRowSeparatorTint(AppThemeColor.separatorOpaque)
           .listRowBackground(Color.clear)
           .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-              Button(role: .destructive) {
+            Button(role: .destructive) {
               Task { await deleteBeneficiary(beneficiary.id) }
             } label: {
               Image(systemName: "trash")

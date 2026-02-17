@@ -97,7 +97,8 @@ struct TransactionsView: View {
         }
       }
     }
-    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true
+    }
   }
 
   private func presentReceipt(for transaction: TransactionRecord) {

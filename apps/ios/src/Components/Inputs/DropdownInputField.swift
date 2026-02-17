@@ -95,9 +95,10 @@ struct DropdownInputField<DropdownContent: View>: View {
           dropdownContainer
             .offset(y: properties.rowHeight + 4)
             .zIndex(40)
-            .transition(.opacity)
+            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
         }
       }
+      .animation(AppAnimation.spring, value: isExpanded)
       .zIndex(isExpanded ? 40 : 1)
       .onChange(of: isExpanded) { _, expanded in
         if !expanded {

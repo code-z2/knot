@@ -109,13 +109,14 @@ private struct AssetListContent: View {
       }
 
       VStack(alignment: .leading, spacing: AppSpacing.xs) {
-        ForEach(assets) { asset in
+        ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
           let formattedValueText = formatValueText(for: asset)
           AssetItem(
             asset: asset,
             valueText: formattedValueText,
             onTap: onSelect == nil ? nil : { onSelect?(asset) }
           )
+          .modifier(StaggeredAppearModifier(index: index))
         }
       }
     }
@@ -336,6 +337,22 @@ private struct ShimmerEffect: ViewModifier {
       .onAppear {
         withAnimation(.linear(duration: 1.15).repeatForever(autoreverses: false)) {
           xOffset = 280
+        }
+      }
+  }
+}
+
+private struct StaggeredAppearModifier: ViewModifier {
+  let index: Int
+  @State private var isVisible = false
+
+  func body(content: Content) -> some View {
+    content
+      .opacity(isVisible ? 1 : 0)
+      .offset(y: isVisible ? 0 : 8)
+      .onAppear {
+        withAnimation(.easeOut(duration: 0.25).delay(Double(index) * 0.035)) {
+          isVisible = true
         }
       }
   }
