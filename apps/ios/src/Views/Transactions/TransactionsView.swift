@@ -22,6 +22,7 @@ struct TransactionsView: View {
 
   @State private var isBalanceHidden = false
   @State private var selectedTransaction: TransactionRecord?
+  @State private var selectionTrigger = 0
   @Environment(\.openURL) private var openURL
 
   var body: some View {
@@ -33,7 +34,7 @@ struct TransactionsView: View {
           .tint(AppThemeColor.labelSecondary)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if transactionStore.sections.isEmpty {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
           Text("transaction_empty_title")
             .font(.custom("Roboto-Medium", size: 15))
             .foregroundStyle(AppThemeColor.labelPrimary)
@@ -56,15 +57,15 @@ struct TransactionsView: View {
             ) { transaction in
               presentReceipt(for: transaction)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppSpacing.lg)
             .padding(.top, 35)
-            .padding(.bottom, 24)
+            .padding(.bottom, AppSpacing.xl)
 
             if transactionStore.hasMore {
               ProgressView()
                 .tint(AppThemeColor.labelSecondary)
                 .frame(maxWidth: .infinity)
-                .padding(.bottom, 24)
+                .padding(.bottom, AppSpacing.xl)
                 .task {
                   await transactionStore.loadNextPage()
                 }
@@ -96,9 +97,11 @@ struct TransactionsView: View {
         }
       }
     }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
   }
 
   private func presentReceipt(for transaction: TransactionRecord) {
+    selectionTrigger += 1
     selectedTransaction = transaction
   }
 
@@ -125,7 +128,7 @@ private struct TransactionsAppHeader: View {
         balanceText: balanceText,
         isBalanceHidden: $isBalanceHidden
       )
-      .padding(.horizontal, 20)
+      .padding(.horizontal, AppSpacing.lg)
       .padding(.top, 35)
       .padding(.bottom, 10)
 

@@ -86,18 +86,18 @@ struct ChainList: View {
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.trailing, 4)
+      .padding(.trailing, AppSpacing.xxs)
     }
   }
 
   private func section(title: String, chains: [ChainOption]) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: AppSpacing.sm) {
       Text(title)
         .font(.custom("RobotoMono-Medium", size: 12))
         .foregroundStyle(AppThemeColor.labelSecondary)
         .textCase(.uppercase)
 
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: AppSpacing.sm) {
         ForEach(chains) { chain in
           ChainRow(
             chain: chain,
@@ -115,7 +115,7 @@ private struct ChainRow: View {
 
   var body: some View {
     Button(action: onTap) {
-      HStack(spacing: 16) {
+      HStack(spacing: AppSpacing.md) {
         Image(chain.assetName)
           .resizable()
           .scaledToFit()
@@ -128,7 +128,7 @@ private struct ChainRow: View {
 
         Spacer(minLength: 0)
       }
-      .padding(.horizontal, 8)
+      .padding(.horizontal, AppSpacing.xs)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .buttonStyle(.plain)
@@ -138,7 +138,7 @@ private struct ChainRow: View {
 #Preview {
   ZStack {
     AppThemeColor.fixedDarkSurface.ignoresSafeArea()
-    VStack(spacing: 12) {
+    VStack(spacing: AppSpacing.sm) {
       SearchInput(text: .constant(""), width: nil)
       ChainList(query: "", onSelect: { _ in })
     }

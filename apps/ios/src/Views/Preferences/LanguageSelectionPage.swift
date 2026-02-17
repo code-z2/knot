@@ -4,6 +4,7 @@ struct LanguageSelectionPage: View {
   let languages: [LanguageOption]
   let selectedCode: String
   let onSelect: (String) -> Void
+  @State private var selectionTrigger = 0
 
   var body: some View {
     List {
@@ -12,7 +13,7 @@ struct LanguageSelectionPage: View {
           LanguageSelectionRow(
             title: Text(language.displayName),
             isSelected: language.code == selectedCode,
-            onTap: { onSelect(language.code) }
+            onTap: { selectionTrigger += 1; onSelect(language.code) }
           ) {
             Text(language.flag)
               .font(.custom("Inter-Regular", size: 15))
@@ -23,6 +24,7 @@ struct LanguageSelectionPage: View {
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
     .scrollIndicators(.hidden)
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
   }
 }
 
@@ -34,7 +36,7 @@ private struct LanguageSelectionRow<Leading: View>: View {
 
   var body: some View {
     Button(action: onTap) {
-      HStack(spacing: 16) {
+      HStack(spacing: AppSpacing.md) {
         leading()
 
         title

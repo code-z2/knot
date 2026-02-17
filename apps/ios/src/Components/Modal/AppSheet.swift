@@ -23,6 +23,6 @@ struct AppSheet<Content: View>: View {
       .presentationDetents(kind.detents)
       .presentationDragIndicator(.visible)
       .presentationCornerRadius(32)
-      .padding(.top, 24)
+      .padding(.top, AppSpacing.xl)
   }
 }

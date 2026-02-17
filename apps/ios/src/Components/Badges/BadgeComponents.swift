@@ -17,10 +17,10 @@ struct AppTextBadge: View {
         .foregroundStyle(textColor)
         .lineLimit(1)
     }
-    .padding(.horizontal, 8)
-    .padding(.vertical, 4)
+    .padding(.horizontal, AppSpacing.xs)
+    .padding(.vertical, AppSpacing.xxs)
     .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
+      RoundedRectangle(cornerRadius: AppCornerRadius.lg, style: .continuous)
         .fill(backgroundColor)
     )
   }
@@ -42,10 +42,10 @@ struct AppIconTextBadge: View {
         .foregroundStyle(textColor)
         .lineLimit(1)
     }
-    .padding(.horizontal, 8)
-    .padding(.vertical, 4)
+    .padding(.horizontal, AppSpacing.xs)
+    .padding(.vertical, AppSpacing.xxs)
     .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
+      RoundedRectangle(cornerRadius: AppCornerRadius.lg, style: .continuous)
         .fill(backgroundColor)
     )
   }
@@ -71,11 +71,11 @@ struct AppIconTextBadge: View {
 #Preview {
   ZStack {
     AppThemeColor.fixedDarkSurface.ignoresSafeArea()
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: AppSpacing.sm) {
       AppTextBadge(text: "text badge")
       AppIconTextBadge(text: "icon badge", icon: .symbol("checkmark.seal.fill"))
       AppIconTextBadge(text: "Ethereum", icon: .network("ethereum"))
     }
-    .padding(20)
+    .padding(AppSpacing.lg)
   }
 }

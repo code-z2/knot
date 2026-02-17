@@ -60,6 +60,7 @@ struct PreferencesView: View {
   var onBack: () -> Void = {}
   @State private var activeModal: PreferencesModal?
   @State private var activePage: PreferencesPage = .main
+  @State private var selectionTrigger = 0
 
   var body: some View {
     ZStack {
@@ -79,6 +80,9 @@ struct PreferencesView: View {
         modalContent(for: modal)
       }
     }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
   }
 
   @ViewBuilder
@@ -92,7 +96,7 @@ struct PreferencesView: View {
             iconName: "moonphase.first.quarter",
             iconBackground: Color(hex: "#5E5CE6"),
             trailing: .localizedValueChevron(preferencesStore.appearance.localizedDisplayName),
-            action: { present(.appearance) }
+            action: { selectionTrigger += 1; present(.appearance) }
           )
           PreferenceRow(
             title: Text("preferences_haptics"),
@@ -114,7 +118,8 @@ struct PreferencesView: View {
             iconBackground: Color(hex: "#34C759"),
             trailing: .valueChevron(preferencesStore.selectedCurrencyCode.uppercased()),
             action: {
-              withAnimation(.easeInOut(duration: 0.18)) {
+              selectionTrigger += 1
+              withAnimation(AppAnimation.standard) {
                 activePage = .currency
               }
             }
@@ -127,7 +132,8 @@ struct PreferencesView: View {
               preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode
             ),
             action: {
-              withAnimation(.easeInOut(duration: 0.18)) {
+              selectionTrigger += 1
+              withAnimation(AppAnimation.standard) {
                 activePage = .language
               }
             }
@@ -144,14 +150,14 @@ struct PreferencesView: View {
         selectedCode: preferencesStore.selectedCurrencyCode,
         onSelect: { preferencesStore.selectedCurrencyCode = $0 }
       )
-      .padding(.top, 16)
+      .padding(.top, AppSpacing.md)
     case .language:
       LanguageSelectionPage(
         languages: preferencesStore.supportedLanguages,
         selectedCode: preferencesStore.languageCode,
         onSelect: { preferencesStore.languageCode = $0 }
       )
-      .padding(.top, 16)
+      .padding(.top, AppSpacing.md)
     }
   }
 
@@ -177,7 +183,7 @@ struct PreferencesView: View {
     if activePage == .main {
       onBack()
     } else {
-      withAnimation(.easeInOut(duration: 0.18)) {
+      withAnimation(AppAnimation.standard) {
         activePage = .main
       }
     }
@@ -235,14 +241,14 @@ private struct PreferenceRow: View {
 
   private var rowContent: some View {
     HStack {
-      HStack(spacing: 12) {
+      HStack(spacing: AppSpacing.sm) {
         IconBadge(
           style: .solid(
             background: iconBackground,
             icon: AppThemeColor.grayWhite
           ),
           contentPadding: 6,
-          cornerRadius: 9,
+          cornerRadius: AppCornerRadius.sm,
           borderWidth: 0
         ) {
           Image(systemName: iconName)
@@ -259,7 +265,7 @@ private struct PreferenceRow: View {
 
       switch trailing {
       case .chevron:
-        Chevron()
+        ChevronIcon()
       case .toggle(let isOn):
         ToggleSwitch(isOn: isOn)
       case .valueChevron(let value):
@@ -267,113 +273,20 @@ private struct PreferenceRow: View {
           Text(value)
             .font(.custom("Roboto-Regular", size: 15))
             .foregroundStyle(AppThemeColor.labelSecondary)
-          Chevron()
+          ChevronIcon()
         }
       case .localizedValueChevron(let value):
         HStack(spacing: 10) {
           Text(value)
             .font(.custom("Roboto-Regular", size: 15))
             .foregroundStyle(AppThemeColor.labelSecondary)
-          Chevron()
+          ChevronIcon()
         }
       case .custom(let view):
         view
       }
     }
     .frame(maxWidth: .infinity)
-  }
-}
-
-private struct Chevron: View {
-  var body: some View {
-    Image(systemName: "chevron.right")
-      .font(.system(size: 12, weight: .semibold))
-      .frame(width: 12, height: 12)
-      .foregroundStyle(AppThemeColor.glyphSecondary)
-  }
-}
-
-private struct AppearancePickerModal: View {
-  let selectedAppearance: AppAppearance
-  let onSelect: (AppAppearance) -> Void
-
-  var body: some View {
-    HStack(spacing: 36) {
-      ForEach(AppAppearance.allCases) { appearance in
-        Button {
-          onSelect(appearance)
-        } label: {
-          VStack(spacing: 8) {
-            Text(appearance.localizedDisplayName)
-              .font(.custom("RobotoCondensed-Medium", size: 14))
-              .foregroundStyle(AppThemeColor.labelPrimary)
-              .frame(height: 16)
-
-            AppearancePreviewCard(
-              appearance: appearance, isSelected: appearance == selectedAppearance)
-          }
-        }
-        .buttonStyle(.plain)
-      }
-    }
-    .frame(maxWidth: .infinity)
-    .padding(.top, 36)
-    .padding(.bottom, 42)
-  }
-}
-
-private struct AppearancePreviewCard: View {
-  let appearance: AppAppearance
-  let isSelected: Bool
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 12) {
-        RoundedRectangle(cornerRadius: 40, style: .continuous)
-          .fill(AppThemeColor.gray2Light)
-          .frame(width: 12, height: 8)
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-          .fill(AppThemeColor.gray2Light)
-          .frame(width: 32, height: 8)
-      }
-
-      RoundedRectangle(cornerRadius: 4, style: .continuous)
-        .fill(AppThemeColor.gray2Light)
-        .frame(width: 56, height: 22)
-
-      VStack(spacing: 8) {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-          .fill(AppThemeColor.gray2Light)
-          .frame(width: 56, height: 8)
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-          .fill(AppThemeColor.gray2Light)
-          .frame(width: 56, height: 8)
-      }
-    }
-    .padding(12)
-    .frame(width: 80, height: 94, alignment: .topLeading)
-    .background(cardBackground)
-    .overlay {
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .stroke(
-          isSelected ? AppThemeColor.accentBrown : AppThemeColor.separatorOpaque, lineWidth: 1)
-    }
-    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-  }
-
-  @ViewBuilder
-  private var cardBackground: some View {
-    switch appearance {
-    case .dark:
-      AppThemeColor.grayBlack
-    case .system:
-      HStack(spacing: 0) {
-        AppThemeColor.grayBlack
-        AppThemeColor.grayWhite
-      }
-    case .light:
-      AppThemeColor.grayWhite
-    }
   }
 }
 

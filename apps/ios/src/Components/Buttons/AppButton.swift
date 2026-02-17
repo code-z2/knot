@@ -147,16 +147,16 @@ public struct AppButton: View {
         case .regular:
             return 18
         case .compact:
-            return 12
+            return AppSpacing.sm
         }
     }
-    
+
     private var verticalPadding: CGFloat {
         switch size {
         case .regular:
             return 14
         case .compact:
-            return 8
+            return AppSpacing.xs
         }
     }
     
@@ -177,7 +177,7 @@ public struct AppButton: View {
     }}
 
 #Preview {
-    VStack(spacing: 20) {
+    VStack(spacing: AppSpacing.lg) {
         AppButton(label: "button_label_default", variant: .default, showIcon: true) {}
         AppButton(label: "button_label_default", variant: .outline, showIcon: true) {}
         AppButton(label: "send_money_sending", variant: .neutral, visualState: .loading, showIcon: true) {}
@@ -190,6 +190,6 @@ public struct AppButton: View {
             iconSize: 16
         ) {}
     }
-    .padding(20)
+    .padding(AppSpacing.lg)
     .background(AppThemeColor.fixedDarkSurface)
 }

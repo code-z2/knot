@@ -127,7 +127,7 @@ struct DropdownInputField<DropdownContent: View>: View {
 
   @ViewBuilder
   private var topRow: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: AppSpacing.xs) {
       if let leadingIconAssetName = properties.leadingIconAssetName {
         Image(systemName: leadingIconAssetName)
           .font(.system(size: 16, weight: .medium))
@@ -304,7 +304,7 @@ struct DropdownInputField<DropdownContent: View>: View {
       .padding(.horizontal, 10)
       .padding(.vertical, 6)
       .background(
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
+        RoundedRectangle(cornerRadius: AppCornerRadius.lg, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
       )
     } else {

@@ -17,8 +17,8 @@ struct IconBadge<Content: View>: View {
 
   init(
     style: Style,
-    contentPadding: CGFloat = 8,
-    cornerRadius: CGFloat = 12,
+    contentPadding: CGFloat = AppSpacing.xs,
+    cornerRadius: CGFloat = AppCornerRadius.md,
     borderWidth: CGFloat = 1,
     @ViewBuilder content: @escaping () -> Content
   ) {
@@ -96,7 +96,7 @@ struct IconBadge<Content: View>: View {
 }
 
 #Preview {
-  VStack(spacing: 16) {
+  VStack(spacing: AppSpacing.md) {
     IconBadge(style: .defaultStyle) {
       Image(systemName: "arrow.clockwise")
         .font(.system(size: 16, weight: .medium))

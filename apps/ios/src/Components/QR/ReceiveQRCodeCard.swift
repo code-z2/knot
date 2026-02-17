@@ -24,7 +24,7 @@ struct ReceiveQRCodeCard: View {
             qrContainer
             shareButton
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.xl)
         .padding(.vertical, 28)
         .background(
             RoundedRectangle(cornerRadius: 34, style: .continuous)
@@ -37,7 +37,7 @@ struct ReceiveQRCodeCard: View {
     
     private var qrContainer: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: AppCornerRadius.xl, style: .continuous)
                 .fill(AppThemeColor.backgroundPrimary)
             
             if let qrImage {
@@ -45,7 +45,7 @@ struct ReceiveQRCodeCard: View {
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
-                    .padding(12)
+                    .padding(AppSpacing.sm)
             } else {
                 ProgressView()
                     .tint(AppThemeColor.labelSecondary)
@@ -68,8 +68,8 @@ struct ReceiveQRCodeCard: View {
             }
             .frame(height: 64)
         }
-        .padding(.horizontal, 12)
-        
+        .padding(.horizontal, AppSpacing.sm)
+
     }
     
     private var shortAddress: String {

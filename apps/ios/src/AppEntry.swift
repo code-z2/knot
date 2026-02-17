@@ -30,10 +30,6 @@ final class WalletActivityCache {
 
 @main
 struct AppEntry: App {
-  init() {
-    FontLaunchAudit.logFontsOnLaunch()
-  }
-
   var body: some Scene {
     WindowGroup {
       AppRootView()

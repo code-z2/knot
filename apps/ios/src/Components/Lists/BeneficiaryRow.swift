@@ -16,9 +16,9 @@ struct BeneficiaryRow: View {
   }
 
   private var rowContent: some View {
-    HStack(spacing: 16) {
+    HStack(spacing: AppSpacing.md) {
       ZStack {
-        RoundedRectangle(cornerRadius: 44, style: .continuous)
+        RoundedRectangle(cornerRadius: AppCornerRadius.pill, style: .continuous)
           .fill(AppThemeColor.fillPrimary)
         Text(initials)
           .font(.custom("RobotoMono-Medium", size: 14))
@@ -26,7 +26,7 @@ struct BeneficiaryRow: View {
       }
       .frame(width: 37, height: 37)
 
-      VStack(alignment: .leading, spacing: 4) {
+      VStack(alignment: .leading, spacing: AppSpacing.xxs) {
         Text(beneficiary.name)
           .font(.custom("Inter-Regular_Medium", size: 14))
           .foregroundStyle(AppThemeColor.labelPrimary)

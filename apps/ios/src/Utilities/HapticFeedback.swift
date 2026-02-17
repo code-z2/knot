@@ -1,21 +1,21 @@
-import UIKit
+import SwiftUI
 
-enum HapticFeedback {
-  static func selection(enabled: Bool) {
-    guard enabled else { return }
-    #if targetEnvironment(simulator)
-    return
-    #else
-    UISelectionFeedbackGenerator().selectionChanged()
-    #endif
-  }
+enum AppHaptic {
+  case selection
+  case lightImpact
+  case mediumImpact
+  case success
+  case error
+  case warning
 
-  static func mediumImpact(enabled: Bool) {
-    guard enabled else { return }
-    #if targetEnvironment(simulator)
-    return
-    #else
-    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    #endif
+  var sensoryFeedback: SensoryFeedback {
+    switch self {
+    case .selection:    .selection
+    case .lightImpact:  .impact(flexibility: .rigid, intensity: 0.5)
+    case .mediumImpact: .impact(flexibility: .rigid, intensity: 0.7)
+    case .success:      .success
+    case .error:        .error
+    case .warning:      .warning
+    }
   }
 }

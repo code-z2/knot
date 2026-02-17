@@ -7,6 +7,8 @@ struct WalletBackupView: View {
   @State private var isMnemonicRevealed = false
   @State private var didCopy = false
   @State private var copyResetTask: Task<Void, Never>?
+  @State private var revealTrigger = 0
+  @State private var copyTrigger = 0
 
   var body: some View {
     ZStack {
@@ -14,14 +16,14 @@ struct WalletBackupView: View {
 
       VStack(spacing: 36) {
         VStack(alignment: .leading, spacing: 53) {
-          VStack(alignment: .leading, spacing: 16) {
+          VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("wallet_backup_instructions")
               .font(.custom("RobotoMono-Medium", size: 16))
               .foregroundStyle(AppThemeColor.labelPrimary)
               .fixedSize(horizontal: false, vertical: true)
           }
 
-          VStack(alignment: .leading, spacing: 8) {
+          VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text("wallet_backup_secret_phrase")
               .font(.custom("Roboto-Regular", size: 14))
               .foregroundStyle(AppThemeColor.labelSecondary)
@@ -36,7 +38,7 @@ struct WalletBackupView: View {
                 .font(.custom("RobotoMono-Regular", size: 14))
                 .foregroundStyle(AppThemeColor.labelPrimary)
                 .padding(.horizontal, 18)
-                .padding(.top, 16)
+                .padding(.top, AppSpacing.md)
                 .multilineTextAlignment(.leading)
                 .blur(radius: isMnemonicRevealed ? 0 : 6)
 
@@ -47,7 +49,8 @@ struct WalletBackupView: View {
                    .frame(height: 154)
                   .overlay {
                     Button {
-                      withAnimation(.easeInOut(duration: 0.2)) {
+                      revealTrigger += 1
+                      withAnimation(AppAnimation.gentle) {
                         isMnemonicRevealed = true
                       }
                     } label: {
@@ -55,7 +58,7 @@ struct WalletBackupView: View {
                         .font(.custom("Roboto-Medium", size: 14))
                         .foregroundStyle(AppThemeColor.labelSecondary)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppSpacing.xs)
                     }
                     .buttonStyle(.plain)
                   }
@@ -66,6 +69,7 @@ struct WalletBackupView: View {
         }
 
         Button {
+          copyTrigger += 1
           UIPasteboard.general.string = mnemonic
           didCopy = true
           copyResetTask?.cancel()
@@ -96,7 +100,7 @@ struct WalletBackupView: View {
         Spacer()
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 20)
+      .padding(.horizontal, AppSpacing.lg)
       .padding(.top, AppHeaderMetrics.contentTopPadding)
     }
     .safeAreaInset(edge: .top, spacing: 0) {
@@ -111,6 +115,8 @@ struct WalletBackupView: View {
       copyResetTask?.cancel()
       copyResetTask = nil
     }
+    .sensoryFeedback(AppHaptic.lightImpact.sensoryFeedback, trigger: revealTrigger) { _, _ in true }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: copyTrigger) { _, _ in true }
   }
 }
 

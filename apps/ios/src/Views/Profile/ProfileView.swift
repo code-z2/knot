@@ -44,6 +44,8 @@ struct ProfileView: View {
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var quoteTask: Task<Void, Never>?
   @State private var avatarUploadTask: Task<Void, Never>?
+  @State private var successTrigger = 0
+  @State private var errorTrigger = 0
   @FocusState private var focusedField: FocusedField?
   private let quoteWorker: ENSQuoteWorker
 
@@ -74,12 +76,12 @@ struct ProfileView: View {
         VStack(spacing: 0) {
           avatarSection
             .padding(.top, 46)
-            .padding(.bottom, 44)
+            .padding(.bottom, AppSpacing.xxxl)
 
           if let nameInfoText, !isNameLocked, isEditingProfile {
             infoText(nameInfoText, tone: nameInfoTone)
-              .padding(.horizontal, 20)
-              .padding(.bottom, 12)
+              .padding(.horizontal, AppSpacing.lg)
+              .padding(.bottom, AppSpacing.sm)
           }
 
           formSection
@@ -97,15 +99,15 @@ struct ProfileView: View {
       if let errorMessage {
         toast(message: errorMessage, isError: true)
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-          .padding(.horizontal, 20)
-          .padding(.bottom, 24)
+          .padding(.horizontal, AppSpacing.lg)
+          .padding(.bottom, AppSpacing.xl)
       }
 
       if let successMessage {
         toast(message: successMessage, isError: false)
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-          .padding(.horizontal, 20)
-          .padding(.bottom, 24)
+          .padding(.horizontal, AppSpacing.lg)
+          .padding(.bottom, AppSpacing.xl)
       }
     }
     .safeAreaInset(edge: .top, spacing: 0) { profileHeader }
@@ -154,6 +156,8 @@ struct ProfileView: View {
       avatarUploadTask?.cancel()
       avatarUploadTask = nil
     }
+    .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
+    .sensoryFeedback(AppHaptic.error.sensoryFeedback, trigger: errorTrigger) { _, _ in true }
   }
 
   private var profileHeader: some View {
@@ -175,7 +179,7 @@ struct ProfileView: View {
       }
     }
     .frame(height: AppHeaderMetrics.height)
-    .padding(.horizontal, 16)
+    .padding(.horizontal, AppSpacing.md)
   }
 
   private var cancelButton: some View {
@@ -184,7 +188,7 @@ struct ProfileView: View {
     }) {
       Text("profile_cancel")
         .font(.custom("Roboto-Medium", size: 15))
-        .padding(.horizontal, 12)
+        .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, 6)
 
     }
@@ -208,8 +212,8 @@ struct ProfileView: View {
           Text("Edit Photo")
             .font(.custom("Roboto-Medium", size: 14))
             .foregroundStyle(AppThemeColor.labelPrimary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.vertical, AppSpacing.xxs)
         }
         .buttonStyle(.plain)
         .disabled(!canEditProfileFields)
@@ -259,7 +263,7 @@ struct ProfileView: View {
   private var formSection: some View {
     VStack(alignment: .leading, spacing: 14) {
       VStack(spacing: 0) {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
           HStack(spacing: 10) {
             TextField(
               "",
@@ -292,14 +296,14 @@ struct ProfileView: View {
             }
           }
         }
-        .padding(16)
+        .padding(AppSpacing.md)
 
         Rectangle()
           .fill(AppThemeColor.separatorOpaque.opacity(0.7))
           .frame(height: 1)
-          .padding(.horizontal, 12)
+          .padding(.horizontal, AppSpacing.sm)
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
           ZStack(alignment: .topLeading) {
             TextEditor(text: $bio)
               .font(.custom("Roboto-Medium", size: 14))
@@ -313,14 +317,14 @@ struct ProfileView: View {
               Text("profile_bio_optional")
                 .font(.custom("Roboto-Medium", size: 14))
                 .foregroundStyle(AppThemeColor.labelSecondary)
-                .padding(.top, 8)
-                .padding(.leading, 4)
+                .padding(.top, AppSpacing.xs)
+                .padding(.leading, AppSpacing.xxs)
                 .allowsHitTesting(false)
                 .opacity(canEditProfileFields ? 1 : 0.72)
             }
           }
         }
-        .padding(16)
+        .padding(AppSpacing.md)
       }
       .background(AppThemeColor.backgroundSecondary)
       .clipShape(.rect(cornerRadius: 16))
@@ -331,10 +335,10 @@ struct ProfileView: View {
       .font(.custom("Roboto-Regular", size: 12))
       .foregroundStyle(AppThemeColor.labelSecondary)
       .multilineTextAlignment(.center)
-      .padding(.horizontal, 12)
+      .padding(.horizontal, AppSpacing.sm)
     }
-    .padding(.horizontal, 20)
-    .padding(.top, 24)
+    .padding(.horizontal, AppSpacing.lg)
+    .padding(.top, AppSpacing.xl)
   }
 
   private var canEditProfileFields: Bool {
@@ -361,7 +365,7 @@ struct ProfileView: View {
     }) {
       Text("Edit")
         .font(.custom("Roboto-Medium", size: 15))
-        .padding(.horizontal, 12)
+        .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, 6)
     }
     .foregroundStyle(AppThemeColor.labelPrimary)
@@ -376,7 +380,7 @@ struct ProfileView: View {
     }) {
       Text(isSaving ? "profile_saving" : "profile_save")
         .font(.custom("Roboto-Medium", size: 15))
-        .padding(.horizontal, 12)
+        .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, 6)
     }
     .disabled(!canSave)
@@ -679,7 +683,9 @@ struct ProfileView: View {
       )
       showSuccess(message)
       isEditingProfile = false
+      successTrigger += 1
     } catch {
+      errorTrigger += 1
       showError(error)
     }
   }
@@ -935,82 +941,7 @@ struct ProfileView: View {
   }
 
   private func toast(message: String, isError: Bool) -> some View {
-    Text(message)
-      .font(.custom("RobotoMono-Medium", size: 12))
-      .foregroundStyle(isError ? AppThemeColor.accentRed : AppThemeColor.accentGreen)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
-      .background(
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-          .fill(AppThemeColor.fillPrimary)
-      )
-  }
-}
-
-private actor ENSQuoteWorker {
-  private let client: ENSClient
-
-  init(configuration: ENSConfiguration) {
-    client = ENSClient(configuration: configuration)
-  }
-
-  func quote(name: String) async throws -> ENSNameQuote {
-    let quote = try await client.quoteRegistration(
-      RegisterNameRequest(
-        name: name,
-        ownerAddress: "0x0000000000000000000000000000000000000000",
-        duration: 31_536_000
-      )
-    )
-    return ENSNameQuote(
-      normalizedName: quote.normalizedName,
-      available: quote.available,
-      rentPriceWei: quote.rentPriceWei
-    )
-  }
-}
-
-private struct PendingAvatarUpload {
-  let id: UUID
-  let data: Data
-  let mimeType: String
-  let fileName: String
-}
-
-private enum NameInfoTone {
-  case info
-  case success
-  case error
-}
-
-private struct ProfileGlassCapsuleButtonModifier: ViewModifier {
-  func body(content: Content) -> some View {
-    if #available(iOS 26.0, *) {
-      content
-        .buttonStyle(.glass)
-    } else {
-      content
-        .background(
-          Capsule()
-            .fill(AppThemeColor.fillPrimary)
-        )
-    }
-  }
-}
-
-private struct ProfileProminentActionButtonModifier: ViewModifier {
-  func body(content: Content) -> some View {
-    if #available(iOS 26.0, *) {
-      content
-        .buttonStyle(.glassProminent)
-    } else {
-      content
-        .foregroundStyle(AppThemeColor.backgroundPrimary)
-        .background(
-          Capsule()
-            .fill(Color.blue)
-        )
-    }
+    ToastView(message: message, isError: isError)
   }
 }
 

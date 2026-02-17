@@ -53,7 +53,7 @@ struct AppHeader<ActionButton: View>: View {
       }
     }
     .frame(height: AppHeaderMetrics.height)
-    .padding(.horizontal, 16)
+    .padding(.horizontal, AppSpacing.md)
   }
 }
 

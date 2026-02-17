@@ -15,11 +15,11 @@ struct ReceiveView: View {
           activityItems = items
         }
         .frame(maxWidth: 351)
-        .padding(.top, 44)
+        .padding(.top, AppSpacing.xxxl)
 
         Spacer(minLength: 0)
       }
-      .padding(.horizontal, 20)
+      .padding(.horizontal, AppSpacing.lg)
       .padding(.top, AppHeaderMetrics.contentTopPadding)
     }
     .safeAreaInset(edge: .top, spacing: 0) {
