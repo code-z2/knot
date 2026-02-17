@@ -3,8 +3,8 @@ import AccountSetup
 import Balance
 import Compose
 import RPC
-import SwiftUI
 import SwiftData
+import SwiftUI
 import Transactions
 
 @MainActor
@@ -104,6 +104,7 @@ struct AppRootView: View {
             route = .main
           }
         )
+        .transition(AppAnimation.slideTransition)
       case .preferences:
         PreferencesView(
           preferencesStore: preferencesStore,
@@ -112,6 +113,7 @@ struct AppRootView: View {
             route = .main
           }
         )
+        .transition(AppAnimation.slideTransition)
       case .addressBook:
         AddressBookView(
           eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
@@ -122,6 +124,7 @@ struct AppRootView: View {
             route = .main
           }
         )
+        .transition(AppAnimation.slideTransition)
       case .receive:
         ReceiveView(
           address: currentEOA ?? "0x0000000000000000000000000000000000000000",
@@ -154,10 +157,10 @@ struct AppRootView: View {
             route = .main
           }
         )
+        .transition(AppAnimation.slideTransition)
       }
     }
-    .transition(shouldAnimateRoute ? .opacity.combined(with: .scale(scale: 0.98)) : .identity)
-    .animation(shouldAnimateRoute ? AppAnimation.standard : nil, value: route)
+    .animation(.spring(response: 0.32, dampingFraction: 0.86), value: route)
     .preferredColorScheme(preferredColorScheme)
     .environment(\.locale, preferencesStore.locale)
     .environment(\.layoutDirection, layoutDirection)
@@ -194,15 +197,6 @@ struct AppRootView: View {
         await refreshWalletData(walletAddress: eoa)
         await triggerFaucetIfNeeded(walletAddress: eoa, mode: newMode)
       }
-    }
-  }
-
-  private var shouldAnimateRoute: Bool {
-    switch route {
-    case .profile, .preferences, .addressBook, .receive, .sendMoney, .walletBackup:
-      return true
-    case .splash, .onboarding, .main:
-      return false
     }
   }
 
@@ -258,7 +252,7 @@ struct AppRootView: View {
           Text("bottom_nav_home")
         } icon: {
           Image("Icons/home_02")
-          .renderingMode(.template)
+            .renderingMode(.template)
         }
       }
 
@@ -274,7 +268,7 @@ struct AppRootView: View {
           Text("bottom_nav_transactions")
         } icon: {
           Image("Icons/receipt")
-          .renderingMode(.template)
+            .renderingMode(.template)
         }
       }
 
@@ -285,12 +279,14 @@ struct AppRootView: View {
           Text("bottom_nav_session_key")
         } icon: {
           Image("Icons/key_01")
-          .renderingMode(.template)
+            .renderingMode(.template)
         }
       }
     }
     .tint(AppThemeColor.accentBrown)
-    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: tabChangeTrigger) { _, _ in preferencesStore.hapticsEnabled }
+    .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: tabChangeTrigger) { _, _ in
+      preferencesStore.hapticsEnabled
+    }
   }
 
   @MainActor
@@ -307,7 +303,8 @@ struct AppRootView: View {
       route = .main
 
       // Fire-and-forget: fund new account with testnet USDC + ETH.
-      await triggerFaucetIfNeeded(walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
+      await triggerFaucetIfNeeded(
+        walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
 
       restoreCachedWalletState(walletAddress: restored.eoaAddress)
       Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
@@ -327,7 +324,8 @@ struct AppRootView: View {
       restoreCachedWalletState(walletAddress: restored.eoaAddress)
       selectedMainTab = .home
       route = .main
-      await triggerFaucetIfNeeded(walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
+      await triggerFaucetIfNeeded(
+        walletAddress: restored.eoaAddress, mode: preferencesStore.chainSupportMode)
       Task { await refreshWalletData(walletAddress: restored.eoaAddress) }
     }
   }

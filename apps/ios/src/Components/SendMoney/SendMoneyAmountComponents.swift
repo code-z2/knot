@@ -27,6 +27,7 @@ struct SendMoneyAmountDisplay: View {
             .minimumScaleFactor(0.25)
             .allowsTightening(true)
             .layoutPriority(1)
+            .contentTransition(.numericText(countsDown: false))
 
           Text(primarySymbolText)
             .font(.custom("RobotoCondensed-Medium", size: 18))
@@ -36,6 +37,7 @@ struct SendMoneyAmountDisplay: View {
             .allowsTightening(true)
         }
         .frame(maxWidth: .infinity, minHeight: 58, maxHeight: 58, alignment: .bottom)
+        .animation(AppAnimation.standard, value: primaryAmountText)
 
         HStack(spacing: AppSpacing.xxs) {
           Text(secondaryAmountText)
@@ -45,6 +47,7 @@ struct SendMoneyAmountDisplay: View {
             .minimumScaleFactor(0.6)
             .allowsTightening(true)
             .layoutPriority(1)
+            .contentTransition(.numericText(countsDown: false))
 
           Text(secondarySymbolText)
             .font(.custom("RobotoCondensed-Medium", size: 12))
@@ -54,6 +57,7 @@ struct SendMoneyAmountDisplay: View {
             .allowsTightening(true)
         }
         .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18, alignment: .top)
+        .animation(AppAnimation.standard, value: secondaryAmountText)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
@@ -78,8 +82,8 @@ struct SendMoneyBalanceWidget: View {
 
   var body: some View {
     HStack(spacing: AppSpacing.md) {
-        TokenLogo(url: asset.logoURL, size: 32)
-            .frame(width: 37, height: 37)
+      TokenLogo(url: asset.logoURL, size: 32)
+        .frame(width: 37, height: 37)
 
       VStack(alignment: .leading, spacing: 2) {
         Text("\(asset.symbol) \(String(localized: "send_money_balance_suffix"))")

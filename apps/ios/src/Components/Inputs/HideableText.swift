@@ -15,10 +15,12 @@ struct HideableText: View {
           .tracking(-0.48)
           .foregroundStyle(AppThemeColor.labelPrimary)
           .frame(alignment: .leading)
+          .contentTransition(.numericText())
       } else {
         Text(text)
           .font(font)
           .foregroundStyle(AppThemeColor.labelPrimary)
+          .contentTransition(.numericText())
       }
 
       Button {
@@ -31,9 +33,11 @@ struct HideableText: View {
         Image(systemName: isHidden ? "eye.slash" : "eye")
           .font(.custom("RobotoMono-Bold", size: 16))
           .foregroundStyle(AppThemeColor.accentBrown)
+          .contentTransition(.symbolEffect(.replace))
       }
       .buttonStyle(.plain)
     }
+    .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isHidden)
     .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: toggleTrigger) { _, _ in true }
   }
 }

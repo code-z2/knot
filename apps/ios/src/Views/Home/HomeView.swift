@@ -150,6 +150,7 @@ struct HomeView: View {
           isHidden: $isBalanceHidden,
           font: .custom("RobotoMono-Bold", size: 24)
         )
+        .animation(AppAnimation.gentle, value: accountBalanceDisplay)
       }
       .padding(.horizontal, 18)
 

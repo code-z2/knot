@@ -8,6 +8,11 @@ import SwiftUI
 import Transactions
 
 struct SendMoneyView: View {
+  private enum StepNavigationDirection {
+    case forward
+    case backward
+  }
+
   let eoaAddress: String
   let store: BeneficiaryStore
   let balanceStore: BalanceStore
@@ -69,6 +74,7 @@ struct SendMoneyView: View {
   @State private var addressValidationTask: Task<Void, Never>?
   @State private var isShowingScanner = false
   @State private var step: SendMoneyStep = .recipient
+  @State private var stepNavigationDirection: StepNavigationDirection = .forward
 
   @State private var amountInput = ""
   @State private var isAmountDisplayInverted = false
@@ -97,10 +103,13 @@ struct SendMoneyView: View {
 
       if step == .recipient {
         recipientStepContent
+          .transition(stepTransition)
       } else if step == .amount {
         amountStepContent
+          .transition(stepTransition)
       } else {
         successStepContent
+          .transition(stepTransition)
       }
 
       if let errorMessage {
@@ -110,6 +119,8 @@ struct SendMoneyView: View {
           .padding(.horizontal, AppSpacing.lg)
       }
     }
+    .animation(AppAnimation.standard, value: step)
+    .animation(AppAnimation.spring, value: errorMessage)
     .safeAreaInset(edge: .top, spacing: 0) {
       AppHeader(
         title: headerTitle,
@@ -204,6 +215,21 @@ struct SendMoneyView: View {
     .overlay(alignment: .bottom) {
       continueButton
         .padding(.bottom, 96)
+    }
+  }
+
+  private var stepTransition: AnyTransition {
+    switch stepNavigationDirection {
+    case .forward:
+      return .asymmetric(
+        insertion: .move(edge: .trailing).combined(with: .opacity),
+        removal: .move(edge: .leading).combined(with: .opacity)
+      )
+    case .backward:
+      return .asymmetric(
+        insertion: .move(edge: .leading).combined(with: .opacity),
+        removal: .move(edge: .trailing).combined(with: .opacity)
+      )
     }
   }
 
@@ -1004,6 +1030,7 @@ struct SendMoneyView: View {
 
     if step == .amount {
       withAnimation(AppAnimation.standard) {
+        stepNavigationDirection = .backward
         step = .recipient
       }
       return
@@ -1050,6 +1077,7 @@ struct SendMoneyView: View {
     isAmountDisplayInverted = false
     amountButtonState = .normal
     withAnimation(AppAnimation.standard) {
+      stepNavigationDirection = .forward
       step = .amount
     }
   }
@@ -1099,6 +1127,7 @@ struct SendMoneyView: View {
         amountButtonState = .normal
         successHapticTrigger += 1
         withAnimation(AppAnimation.gentle) {
+          stepNavigationDirection = .forward
           step = .success
         }
       } catch {
@@ -1179,6 +1208,7 @@ struct SendMoneyView: View {
 
   private func repeatTransfer() {
     withAnimation(AppAnimation.standard) {
+      stepNavigationDirection = .backward
       step = .recipient
     }
   }

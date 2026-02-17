@@ -44,9 +44,9 @@ struct WalletBackupView: View {
 
               if !isMnemonicRevealed {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                   .glassEffect(.clear.interactive(), in:  .rect)
-                   .clipShape(.rect(cornerRadius: 16))
-                   .frame(height: 154)
+                  .glassEffect(.clear.interactive(), in: .rect)
+                  .clipShape(.rect(cornerRadius: 16))
+                  .frame(height: 154)
                   .overlay {
                     Button {
                       revealTrigger += 1
@@ -82,15 +82,18 @@ struct WalletBackupView: View {
             Text(didCopy ? "receive_copied" : "wallet_backup_copy")
               .font(.custom("Roboto-Bold", size: 15))
               .foregroundStyle(AppThemeColor.accentBrown)
+              .contentTransition(.numericText())
 
             if !didCopy {
               Image(systemName: "square.on.square")
                 .font(.system(size: 16, weight: .medium))
                 .frame(width: 16, height: 16)
                 .foregroundStyle(AppThemeColor.accentBrown)
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
 
           }
+          .animation(AppAnimation.standard, value: didCopy)
           .padding(.horizontal, 21)
           .padding(.vertical, 13)
           .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))

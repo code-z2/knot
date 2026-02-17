@@ -6,6 +6,12 @@ struct LanguageSelectionPage: View {
   let onSelect: (String) -> Void
   @State private var selectionTrigger = 0
 
+  private var currentLayoutDirection: LayoutDirection {
+    Locale.Language(identifier: selectedCode).characterDirection == .rightToLeft
+      ? .rightToLeft
+      : .leftToRight
+  }
+
   var body: some View {
     List {
       Section {
@@ -21,9 +27,11 @@ struct LanguageSelectionPage: View {
         }
       }
     }
+    .id(currentLayoutDirection)
     .listStyle(.insetGrouped)
     .scrollContentBackground(.hidden)
     .scrollIndicators(.hidden)
+    .environment(\.layoutDirection, currentLayoutDirection)
     .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
   }
 }

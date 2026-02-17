@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SuccessCheckmark: View {
+  @State private var isVisible = false
+
   var body: some View {
     GeometryReader { proxy in
       Image("LogoMark")
@@ -20,6 +22,13 @@ struct SuccessCheckmark: View {
               y: proxy.size.height * 0.07
             )
         }
+        .scaleEffect(isVisible ? 1.0 : 0.6)
+        .opacity(isVisible ? 1.0 : 0)
+    }
+    .onAppear {
+      withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
+        isVisible = true
+      }
     }
   }
 }

@@ -26,4 +26,8 @@ enum AppAnimation {
   static let standard = Animation.easeInOut(duration: 0.18)
   static let gentle = Animation.easeInOut(duration: 0.20)
   static let spring = Animation.spring(response: 0.26, dampingFraction: 0.82)
+  static let slideTransition: AnyTransition = .asymmetric(
+    insertion: .move(edge: .trailing).combined(with: .opacity),
+    removal: .move(edge: .trailing).combined(with: .opacity)
+  )
 }
