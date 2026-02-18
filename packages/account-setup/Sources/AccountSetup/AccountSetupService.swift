@@ -357,6 +357,37 @@ public actor AccountSetupService {
     }
   }
 
+  public func verifyStoredPasskeyForSensitiveAction(
+    account: AccountIdentity,
+    action: String
+  ) async throws {
+    let passkey = try passkeyPublicKey(account: account)
+    var payload = Data("knot:\(action):\(normalizedAddressKey(account.eoaAddress)):".utf8)
+    payload.append(randomChallenge(length: 32))
+
+    let signature: PasskeySignature
+    do {
+      signature = try await passkeyService.sign(
+        rpId: relyingParty.rpID,
+        payload: payload,
+        allowedCredentialIDs: [passkey.credentialID]
+      )
+    } catch {
+      throw AccountSetupError.passkeyAssertionFailed(error)
+    }
+
+    do {
+      try PasskeyAssertionVerifier.verify(
+        signature: signature,
+        payload: payload,
+        expectedPasskey: passkey,
+        rpId: relyingParty.rpID
+      )
+    } catch {
+      throw AccountSetupError.passkeyAssertionFailed(error)
+    }
+  }
+
   /// Signs a 32-byte digest using the stored EOA private key as an Ethereum signed message.
   /// Signature format is 65-byte recoverable `[r || s || v]` with `v` in 27/28 domain.
   public func signEthMessageDigestWithStoredWallet(
