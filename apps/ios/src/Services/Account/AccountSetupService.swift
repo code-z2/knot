@@ -15,6 +15,7 @@ enum AccountSetupServiceError: Error {
   case walletMaterialLookupFailed(Error)
   case passkeyLookupFailed(Error)
   case passkeySignFailed(Error)
+  case passkeyVerificationFailed(Error)
 }
 
 extension AccountSetupServiceError: LocalizedError {
@@ -34,6 +35,8 @@ extension AccountSetupServiceError: LocalizedError {
       return "Passkey lookup failed: \(error.localizedDescription)"
     case .passkeySignFailed(let error):
       return "Passkey signing failed: \(error.localizedDescription)"
+    case .passkeyVerificationFailed(let error):
+      return "Passkey verification failed: \(error.localizedDescription)"
     }
   }
 }
@@ -151,6 +154,18 @@ final class AccountSetupService {
       return try await service.signEthMessageDigestWithStoredWallet(account: account, digest32: digest32)
     } catch {
       throw AccountSetupServiceError.walletMaterialLookupFailed(error)
+    }
+  }
+
+  func verifyWalletBackupAccess(eoaAddress: String) async throws {
+    do {
+      let account = try await service.restoreStoredSession(eoaAddress: eoaAddress)
+      try await service.verifyStoredPasskeyForSensitiveAction(
+        account: account,
+        action: "wallet-backup"
+      )
+    } catch {
+      throw AccountSetupServiceError.passkeyVerificationFailed(error)
     }
   }
 

@@ -97,6 +97,12 @@ public enum PasskeyServiceError: Error {
   case malformedAuthenticatorData
   case malformedCoseKey
   case malformedSignature
+  case malformedClientDataJSON
+  case challengeMismatch
+  case relyingPartyMismatch
+  case credentialIDMismatch
+  case userVerificationRequired
+  case signatureVerificationFailed
   case authorizationFailed(code: Int?, message: String)
 }
 
@@ -115,11 +121,76 @@ extension PasskeyServiceError: LocalizedError {
       return "Passkey COSE public key is malformed."
     case .malformedSignature:
       return "Passkey signature payload is malformed."
+    case .malformedClientDataJSON:
+      return "Passkey clientDataJSON is malformed."
+    case .challengeMismatch:
+      return "Passkey challenge does not match the expected payload."
+    case .relyingPartyMismatch:
+      return "Passkey relying party does not match."
+    case .credentialIDMismatch:
+      return "Passkey credential ID does not match the expected credential."
+    case .userVerificationRequired:
+      return "Passkey user verification is required."
+    case .signatureVerificationFailed:
+      return "Passkey signature verification failed."
     case .authorizationFailed(let code, let message):
       if let code {
         return "Passkey authorization failed (\(code)): \(message)"
       }
       return "Passkey authorization failed: \(message)"
+    }
+  }
+}
+
+public enum PasskeyAssertionVerifier {
+  public static func verify(
+    signature: PasskeySignature,
+    payload: Data,
+    expectedPasskey: PasskeyPublicKey,
+    rpId: String
+  ) throws {
+    guard signature.credentialID == expectedPasskey.credentialID else {
+      throw PasskeyServiceError.credentialIDMismatch
+    }
+
+    let clientData = try ClientDataPayload.decode(signature.clientDataJSON)
+    let expectedChallenge = Data(SHA256.hash(data: payload))
+    guard let challengeData = clientData.challengeData else {
+      throw PasskeyServiceError.malformedClientDataJSON
+    }
+    guard challengeData == expectedChallenge else {
+      throw PasskeyServiceError.challengeMismatch
+    }
+    guard clientData.type == "webauthn.get" else {
+      throw PasskeyServiceError.malformedClientDataJSON
+    }
+
+    guard signature.authData.count >= 37 else {
+      throw PasskeyServiceError.malformedAuthenticatorData
+    }
+    let rpIdHash = signature.authData.prefix(32)
+    let expectedRpIdHash = Data(SHA256.hash(data: Data(rpId.utf8)))
+    guard rpIdHash == expectedRpIdHash else {
+      throw PasskeyServiceError.relyingPartyMismatch
+    }
+    let flags = signature.authData[32]
+    guard (flags & 0x04) != 0 else {
+      throw PasskeyServiceError.userVerificationRequired
+    }
+
+    let clientDataHash = Data(SHA256.hash(data: signature.clientDataJSON))
+    let signedMessage = signature.authData + clientDataHash
+    let publicKeyBytes =
+      Data([0x04])
+      + SignatureNormalizer.leftPadTo32(expectedPasskey.x)
+      + SignatureNormalizer.leftPadTo32(expectedPasskey.y)
+    let publicKey = try P256.Signing.PublicKey(x963Representation: publicKeyBytes)
+    let signatureBytes =
+      SignatureNormalizer.leftPadTo32(signature.r)
+      + SignatureNormalizer.leftPadTo32(signature.s)
+    let ecdsaSignature = try P256.Signing.ECDSASignature(rawRepresentation: signatureBytes)
+    guard publicKey.isValidSignature(ecdsaSignature, for: signedMessage) else {
+      throw PasskeyServiceError.signatureVerificationFailed
     }
   }
 }
@@ -339,6 +410,23 @@ private enum WebAuthnAttestationParser {
   }
 }
 
+private struct ClientDataPayload: Decodable {
+  let type: String
+  let challenge: String
+
+  var challengeData: Data? {
+    Data(base64URLEncoded: challenge)
+  }
+
+  static func decode(_ data: Data) throws -> ClientDataPayload {
+    do {
+      return try JSONDecoder().decode(ClientDataPayload.self, from: data)
+    } catch {
+      throw PasskeyServiceError.malformedClientDataJSON
+    }
+  }
+}
+
 private enum DERP256SignatureParser {
   static func parse(_ der: Data) throws -> (r: Data, s: Data) {
     let bytes = [UInt8](der)
@@ -486,5 +574,19 @@ private extension Data {
       .replacingOccurrences(of: "+", with: "-")
       .replacingOccurrences(of: "/", with: "_")
       .replacingOccurrences(of: "=", with: "")
+  }
+
+  init?(base64URLEncoded: String) {
+    var input = base64URLEncoded
+      .replacingOccurrences(of: "-", with: "+")
+      .replacingOccurrences(of: "_", with: "/")
+    let remainder = input.count % 4
+    if remainder != 0 {
+      input.append(String(repeating: "=", count: 4 - remainder))
+    }
+    guard let decoded = Data(base64Encoded: input) else {
+      return nil
+    }
+    self = decoded
   }
 }

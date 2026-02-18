@@ -334,6 +334,7 @@ struct AppRootView: View {
   private func openWalletBackupIfAvailable() async {
     guard let eoa = currentEOA else { return }
     guard hasLocalWalletMaterial else { return }
+    guard (try? await accountService.verifyWalletBackupAccess(eoaAddress: eoa)) != nil else { return }
     guard let mnemonic = try? await accountService.localMnemonic(for: eoa) else { return }
     walletBackupMnemonic = mnemonic
     route = .walletBackup
