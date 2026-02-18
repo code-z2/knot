@@ -7,13 +7,15 @@ enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
     case system
     case light
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var displayName: String {
         switch self {
-        case .dark: return "Dark"
-        case .system: return "System"
-        case .light: return "Light"
+        case .dark: "Dark"
+        case .system: "System"
+        case .light: "Light"
         }
     }
 }
@@ -23,7 +25,9 @@ struct CurrencyOption: Identifiable, Equatable, Sendable {
     let name: String
     let iconAssetName: String
 
-    var id: String { code }
+    var id: String {
+        code
+    }
 }
 
 struct LanguageOption: Identifiable, Equatable, Sendable {
@@ -31,7 +35,9 @@ struct LanguageOption: Identifiable, Equatable, Sendable {
     let displayName: String
     let flag: String
 
-    var id: String { code }
+    var id: String {
+        code
+    }
 
     var listLabel: String {
         "\(flag) \(displayName)"
@@ -116,7 +122,7 @@ final class PreferencesStore {
     init(
         defaults: UserDefaults = .standard,
         supportedCurrencies: [CurrencyOption] = PreferencesStore.defaultCurrencies,
-        supportedLanguages: [LanguageOption] = PreferencesStore.defaultLanguages
+        supportedLanguages: [LanguageOption] = PreferencesStore.defaultLanguages,
     ) {
         self.defaults = defaults
         self.supportedCurrencies = supportedCurrencies
@@ -126,41 +132,41 @@ final class PreferencesStore {
         let resolvedLanguage = PreferencesStore.resolveLanguageCode(
             stored: storedLanguage,
             supported: supportedLanguages,
-            fallback: PreferencesStore.defaultLanguageCode
+            fallback: PreferencesStore.defaultLanguageCode,
         )
 
         let storedCurrency = defaults.string(forKey: Key.selectedCurrencyCode)
         if defaults.object(forKey: Key.hasExplicitCurrencySelection) == nil {
-            self.hasExplicitCurrencySelection = storedCurrency != nil
+            hasExplicitCurrencySelection = storedCurrency != nil
         } else {
-            self.hasExplicitCurrencySelection = defaults.bool(forKey: Key.hasExplicitCurrencySelection)
+            hasExplicitCurrencySelection = defaults.bool(forKey: Key.hasExplicitCurrencySelection)
         }
         if let storedCurrency {
-            self.selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(storedCurrency, supported: supportedCurrencies)
+            selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(storedCurrency, supported: supportedCurrencies)
         } else {
-            self.selectedCurrencyCode = PreferencesStore.suggestedCurrencyCode(
+            selectedCurrencyCode = PreferencesStore.suggestedCurrencyCode(
                 forLanguageCode: resolvedLanguage,
-                supported: supportedCurrencies
+                supported: supportedCurrencies,
             )
         }
 
         if defaults.object(forKey: Key.hapticsEnabled) == nil {
-            self.hapticsEnabled = true
+            hapticsEnabled = true
         } else {
-            self.hapticsEnabled = defaults.bool(forKey: Key.hapticsEnabled)
+            hapticsEnabled = defaults.bool(forKey: Key.hapticsEnabled)
         }
 
-        self.languageCode = resolvedLanguage
+        languageCode = resolvedLanguage
 
         let storedAppearance = defaults.string(forKey: Key.appearance)
-        self.appearance = PreferencesStore.resolveAppearance(storedAppearance)
+        appearance = PreferencesStore.resolveAppearance(storedAppearance)
 
         let storedMode = defaults.string(forKey: Key.chainSupportMode)
         let resolvedMode = PreferencesStore.resolveChainSupportMode(
             stored: storedMode,
-            fallback: ChainSupportRuntime.resolveMode(defaults: defaults)
+            fallback: ChainSupportRuntime.resolveMode(defaults: defaults),
         )
-        self.chainSupportMode = resolvedMode
+        chainSupportMode = resolvedMode
         ChainSupportRuntime.setPreferredMode(resolvedMode, defaults: defaults)
     }
 
@@ -174,7 +180,7 @@ final class PreferencesStore {
         } else {
             let suggested = PreferencesStore.suggestedCurrencyCode(
                 forLanguageCode: languageCode,
-                supported: currencies
+                supported: currencies,
             )
             if selectedCurrencyCode != suggested {
                 suppressCurrencyTracking = true
@@ -231,7 +237,7 @@ final class PreferencesStore {
 
     private static func resolveChainSupportMode(
         stored: String?,
-        fallback: ChainSupportMode
+        fallback: ChainSupportMode,
     ) -> ChainSupportMode {
         guard let stored else { return fallback }
         return ChainSupportMode(rawValue: stored) ?? fallback
@@ -240,7 +246,7 @@ final class PreferencesStore {
     private static func resolveLanguageCode(
         stored: String?,
         supported: [LanguageOption],
-        fallback: String
+        fallback: String,
     ) -> String {
         let supportedCodes = supported.map(\.code)
         if let stored, supportedCodes.contains(stored.lowercased()) {
@@ -253,7 +259,8 @@ final class PreferencesStore {
                 return normalized
             }
             if let base = normalized.split(separator: "-").first,
-               supportedCodes.contains(String(base)) {
+               supportedCodes.contains(String(base))
+            {
                 return String(base)
             }
         }
@@ -263,7 +270,7 @@ final class PreferencesStore {
 
     private static func suggestedCurrencyCode(
         forLanguageCode languageCode: String,
-        supported: [CurrencyOption]
+        supported: [CurrencyOption],
     ) -> String {
         let normalizedLanguage = languageCode.lowercased()
         let suggestedByLanguage: [String: String] = [
@@ -299,7 +306,7 @@ final class PreferencesStore {
         guard !hasExplicitCurrencySelection else { return }
         let suggested = PreferencesStore.suggestedCurrencyCode(
             forLanguageCode: languageCode,
-            supported: supportedCurrencies
+            supported: supportedCurrencies,
         )
         guard selectedCurrencyCode != suggested else { return }
         suppressCurrencyTracking = true
@@ -321,7 +328,7 @@ final class PreferencesStore {
         .init(code: "ARS", name: "argentinian peso", iconAssetName: "pesosign"),
         .init(code: "CNY", name: "chinese yuan", iconAssetName: "chineseyuanrenminbisign"),
         .init(code: "GHS", name: "ghanian cedi", iconAssetName: "cedisign"),
-        .init(code: "KRW", name: "korean won", iconAssetName: "wonsign")
+        .init(code: "KRW", name: "korean won", iconAssetName: "wonsign"),
     ]
 
     nonisolated static let defaultLanguages: [LanguageOption] = [

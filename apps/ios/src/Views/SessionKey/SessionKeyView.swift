@@ -10,7 +10,7 @@ struct SessionKeyView: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(
                             AppThemeColor.fillSecondary,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [12, 10])
+                            style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [12, 10]),
                         )
                         .frame(width: 238, height: 313)
                         .rotationEffect(.degrees(19.5))
@@ -25,7 +25,7 @@ struct SessionKeyView: View {
                             label: "session_key_coming_soon",
                             variant: .outline,
                             showIcon: false,
-                            action: {}
+                            action: {},
                         )
                     }
                 }
@@ -46,7 +46,7 @@ struct SessionKeyView: View {
             AppHeader(
                 title: "session_key_title",
                 titleFont: .custom("Roboto-Medium", size: 24),
-                titleColor: AppThemeColor.labelPrimary
+                titleColor: AppThemeColor.labelPrimary,
             )
         }
     }

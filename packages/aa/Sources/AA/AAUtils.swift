@@ -3,115 +3,117 @@ import Foundation
 import web3swift
 
 enum AAUtils {
-  static let eip712DomainTypeHash = Data(
-    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)".utf8
-  ).sha3(.keccak256)
-  static let accountDomainNameHash = Data("UnifiedTokenAccount".utf8).sha3(.keccak256)
-  static let accountDomainVersionHash = Data("1".utf8).sha3(.keccak256)
-  static let executeTypeHash = Data(
-    "Execute(address target,uint256 value,bytes32 dataHash,uint256 nonce,uint256 deadline)".utf8
-  ).sha3(.keccak256)
-  static let executeBatchTypeHash = Data(
-    "ExecuteBatch(bytes32 callsHash,uint256 nonce,uint256 deadline)".utf8
-  ).sha3(.keccak256)
-  static let superIntentExecutionTypeHash = Data(
-    "SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)".utf8
-  ).sha3(.keccak256)
-  static let superIntentTypeHash = Data(
-    "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
-      .utf8
-  ).sha3(.keccak256)
+    static let eip712DomainTypeHash = Data(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)".utf8,
+    ).sha3(.keccak256)
+    static let accountDomainNameHash = Data("UnifiedTokenAccount".utf8).sha3(.keccak256)
+    static let accountDomainVersionHash = Data("1".utf8).sha3(.keccak256)
+    static let executeTypeHash = Data(
+        "Execute(address target,uint256 value,bytes32 dataHash,uint256 nonce,uint256 deadline)".utf8,
+    ).sha3(.keccak256)
+    static let executeBatchTypeHash = Data(
+        "ExecuteBatch(bytes32 callsHash,uint256 nonce,uint256 deadline)".utf8,
+    ).sha3(.keccak256)
+    static let superIntentExecutionTypeHash = Data(
+        "SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)".utf8,
+    ).sha3(.keccak256)
+    static let superIntentTypeHash = Data(
+        "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
+            .utf8,
+    ).sha3(.keccak256)
 
-  static func normalizeHexBytes(_ value: String) -> String {
-    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized.isEmpty || normalized == "0x" { return "0x" }
-    return normalized.hasPrefix("0x") ? normalized : "0x" + normalized
-  }
-
-  static func normalizeAddressOrEmpty(_ value: String) -> String {
-    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized.isEmpty || normalized == "0x" { return "0x" }
-    return normalized.hasPrefix("0x") ? normalized : "0x" + normalized
-  }
-
-  static func normalizeHexQuantity(_ value: String) -> String {
-    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized.hasPrefix("0x") {
-      var stripped = String(normalized.dropFirst(2))
-      while stripped.hasPrefix("0") && stripped.count > 1 {
-        stripped.removeFirst()
-      }
-      return "0x" + stripped
+    static func normalizeHexBytes(_ value: String) -> String {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.isEmpty || normalized == "0x" { return "0x" }
+        return normalized.hasPrefix("0x") ? normalized : "0x" + normalized
     }
 
-    guard let number = BigUInt(normalized, radix: 10) else { return normalized }
-    if number == .zero { return "0x0" }
-    return "0x" + number.serialize().toHexString()
-  }
-
-  static func parseQuantity(_ value: String) throws -> BigUInt {
-    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized.hasPrefix("0x") {
-      let hex = String(normalized.dropFirst(2))
-      if hex.isEmpty { return .zero }
-      guard let out = BigUInt(hex, radix: 16) else { throw AAError.invalidHexValue(value) }
-      return out
+    static func normalizeAddressOrEmpty(_ value: String) -> String {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.isEmpty || normalized == "0x" { return "0x" }
+        return normalized.hasPrefix("0x") ? normalized : "0x" + normalized
     }
-    guard let out = BigUInt(normalized, radix: 10) else { throw AAError.invalidQuantity(value) }
-    return out
-  }
 
-  static func hexToData(_ value: String) throws -> Data {
-    let clean = normalizeHexBytes(value).replacingOccurrences(of: "0x", with: "")
-    if clean.isEmpty { return Data() }
-    guard let out = Data.fromHex(clean) else { throw AAError.invalidHexValue(value) }
-    return out
-  }
+    static func normalizeHexQuantity(_ value: String) -> String {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.hasPrefix("0x") {
+            var stripped = String(normalized.dropFirst(2))
+            while stripped.hasPrefix("0"), stripped.count > 1 {
+                stripped.removeFirst()
+            }
+            return "0x" + stripped
+        }
 
-  static func addressData(_ value: String) throws -> Data {
-    let clean = normalizeAddressOrEmpty(value).replacingOccurrences(of: "0x", with: "")
-    guard clean.count == 40, let out = Data.fromHex(clean) else {
-      throw AAError.invalidAddress(value)
+        guard let number = BigUInt(normalized, radix: 10) else { return normalized }
+        if number == .zero { return "0x0" }
+        return "0x" + number.serialize().toHexString()
     }
-    return out
-  }
 
-  static func uint128Data(_ value: String) throws -> Data {
-    let n = try parseQuantity(value)
-    if n > ((BigUInt(1) << 128) - 1) { throw AAError.invalidQuantity(value) }
-    let s = n.serialize()
-    return Data(repeating: 0, count: max(0, 16 - s.count)) + s
-  }
+    static func parseQuantity(_ value: String) throws -> BigUInt {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.hasPrefix("0x") {
+            let hex = String(normalized.dropFirst(2))
+            if hex.isEmpty { return .zero }
+            guard let out = BigUInt(hex, radix: 16) else { throw AAError.invalidHexValue(value) }
+            return out
+        }
+        guard let out = BigUInt(normalized, radix: 10) else { throw AAError.invalidQuantity(value) }
+        return out
+    }
 
-  static func wordData(_ value: String) throws -> Data {
-    let d = try hexToData(value)
-    guard d.count == 32 else { throw AAError.invalidPackedWord(value) }
-    return d
-  }
+    static func hexToData(_ value: String) throws -> Data {
+        let clean = normalizeHexBytes(value).replacingOccurrences(of: "0x", with: "")
+        if clean.isEmpty { return Data() }
+        guard let out = Data.fromHex(clean) else { throw AAError.invalidHexValue(value) }
+        return out
+    }
 
-  static func uintWord(_ value: String) throws -> Data {
-    ABIWord.uint(try parseQuantity(value))
-  }
+    static func addressData(_ value: String) throws -> Data {
+        let clean = normalizeAddressOrEmpty(value).replacingOccurrences(of: "0x", with: "")
+        guard clean.count == 40, let out = Data.fromHex(clean) else {
+            throw AAError.invalidAddress(value)
+        }
+        return out
+    }
 
-  static func wordHex(_ value: BigUInt) -> String {
-    let bytes = value.serialize()
-    let padded = Data(repeating: 0, count: max(0, 32 - bytes.count)) + bytes
-    return "0x" + padded.toHexString()
-  }
+    static func uint128Data(_ value: String) throws -> Data {
+        let n = try parseQuantity(value)
+        if n > ((BigUInt(1) << 128) - 1) { throw AAError.invalidQuantity(value) }
+        let s = n.serialize()
+        return Data(repeating: 0, count: max(0, 16 - s.count)) + s
+    }
 
-  static func accountDomainSeparator(chainId: UInt64, account: String) throws -> Data {
-    let chainWord = ABIWord.uint(BigUInt(chainId))
-    let accountWord = try ABIWord.address(account)
-    return Data(
-      (eip712DomainTypeHash + accountDomainNameHash + accountDomainVersionHash + chainWord + accountWord).sha3(
-        .keccak256))
-  }
+    static func wordData(_ value: String) throws -> Data {
+        let d = try hexToData(value)
+        guard d.count == 32 else { throw AAError.invalidPackedWord(value) }
+        return d
+    }
 
-  static func hashTypedDataV4(domainSeparator: Data, structHash: Data) -> Data {
-    Data((Data([0x19, 0x01]) + domainSeparator + structHash).sha3(.keccak256))
-  }
+    static func uintWord(_ value: String) throws -> Data {
+        try ABIWord.uint(parseQuantity(value))
+    }
 
-  static func toEthSignedMessageHash(_ digest32: Data) -> Data {
-    Data((Data("\u{19}Ethereum Signed Message:\n32".utf8) + digest32).sha3(.keccak256))
-  }
+    static func wordHex(_ value: BigUInt) -> String {
+        let bytes = value.serialize()
+        let padded = Data(repeating: 0, count: max(0, 32 - bytes.count)) + bytes
+        return "0x" + padded.toHexString()
+    }
+
+    static func accountDomainSeparator(chainId: UInt64, account: String) throws -> Data {
+        let chainWord = ABIWord.uint(BigUInt(chainId))
+        let accountWord = try ABIWord.address(account)
+        return Data(
+            (eip712DomainTypeHash + accountDomainNameHash + accountDomainVersionHash + chainWord + accountWord).sha3(
+                .keccak256,
+            ),
+        )
+    }
+
+    static func hashTypedDataV4(domainSeparator: Data, structHash: Data) -> Data {
+        Data((Data([0x19, 0x01]) + domainSeparator + structHash).sha3(.keccak256))
+    }
+
+    static func toEthSignedMessageHash(_ digest32: Data) -> Data {
+        Data((Data("\u{19}Ethereum Signed Message:\n32".utf8) + digest32).sha3(.keccak256))
+    }
 }

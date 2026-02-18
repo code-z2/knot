@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "xcodebuild -project knot.xcodeproj -scheme knot -configuration Debug -sdk iphonesimulator build",
-    "dev": "xcodebuild -project knot.xcodeproj -scheme knot -configuration Debug -sdk iphonesimulator build"
+    "dev": "xcodebuild -project knot.xcodeproj -scheme knot -configuration Debug -sdk iphonesimulator build",
+    "format": "swiftformat ."
   }
 }
