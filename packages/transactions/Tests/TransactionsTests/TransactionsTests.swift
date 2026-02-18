@@ -1,4 +1,5 @@
 import Foundation
+import RPC
 import XCTest
 @testable import Transactions
 
@@ -96,7 +97,8 @@ final class TransactionsTests: XCTestCase {
       apiKey: "test-key",
       supportedChainIDs: [8_453],
       includeTestnets: false,
-      cursorAfter: nil
+      cursorAfter: nil,
+      zerionChainMapping: mapping(chainIDs: [8_453])
     )
 
     XCTAssertEqual(page.hasMore, true)
@@ -173,7 +175,8 @@ final class TransactionsTests: XCTestCase {
       apiKey: "test-key",
       supportedChainIDs: [8_453],
       includeTestnets: false,
-      cursorAfter: nil
+      cursorAfter: nil,
+      zerionChainMapping: mapping(chainIDs: [8_453])
     )
 
     XCTAssertEqual(page.sections.count, 1)
@@ -212,7 +215,8 @@ final class TransactionsTests: XCTestCase {
       supportedChainIDs: [8_453],
       includeTestnets: false,
       cursorAfter: nil,
-      includeTrash: true
+      includeTrash: true,
+      zerionChainMapping: mapping(chainIDs: [8_453])
     )
   }
 
@@ -220,6 +224,32 @@ final class TransactionsTests: XCTestCase {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [URLProtocolStub.self]
     return URLSession(configuration: configuration)
+  }
+
+  private func mapping(chainIDs: Set<UInt64>) -> ZerionChainMapping {
+    let baseMapping: [UInt64: String] = [
+      1: "ethereum",
+      8_453: "base",
+      11_155_111: "sepolia",
+      84_532: "base_sepolia",
+      42_161: "arbitrum",
+      421_614: "arbitrum_sepolia",
+      10: "optimism",
+      137: "polygon",
+    ]
+
+    var zerionIDByChainID: [UInt64: String] = [:]
+    var chainIDByZerionID: [String: UInt64] = [:]
+    for chainID in chainIDs {
+      guard let zerionID = baseMapping[chainID] else { continue }
+      zerionIDByChainID[chainID] = zerionID
+      chainIDByZerionID[zerionID] = chainID
+    }
+
+    return ZerionChainMapping(
+      zerionIDByChainID: zerionIDByChainID,
+      chainIDByZerionID: chainIDByZerionID
+    )
   }
 }
 

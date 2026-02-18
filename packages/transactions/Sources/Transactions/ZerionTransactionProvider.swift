@@ -37,7 +37,8 @@ public actor ZerionTransactionProvider {
     supportedChainIDs: Set<UInt64>,
     includeTestnets: Bool,
     cursorAfter: String?,
-    includeTrash: Bool = false
+    includeTrash: Bool = false,
+    zerionChainMapping: ZerionChainMapping
   ) async throws -> TransactionPage {
     let walletPage = try await fetchWalletPage(
       address: walletAddress,
@@ -46,7 +47,8 @@ public actor ZerionTransactionProvider {
       supportedChainIDs: supportedChainIDs,
       includeTestnets: includeTestnets,
       cursorAfter: cursorAfter,
-      includeTrash: includeTrash
+      includeTrash: includeTrash,
+      zerionChainMapping: zerionChainMapping
     )
 
     var allItems = walletPage.items
@@ -59,7 +61,8 @@ public actor ZerionTransactionProvider {
         supportedChainIDs: supportedChainIDs,
         includeTestnets: includeTestnets,
         cursorAfter: nil,
-        includeTrash: includeTrash
+        includeTrash: includeTrash,
+        zerionChainMapping: zerionChainMapping
       )
       allItems.append(contentsOf: accumulatorPage.items)
     }
@@ -74,7 +77,8 @@ public actor ZerionTransactionProvider {
       let record = classify(
         item: item,
         userAddress: userAddress,
-        accumulatorAddress: accumulator
+        accumulatorAddress: accumulator,
+        zerionChainMapping: zerionChainMapping
       )
 
       guard !record.txHash.isEmpty else { continue }
@@ -104,7 +108,8 @@ public actor ZerionTransactionProvider {
     supportedChainIDs: Set<UInt64>,
     includeTestnets: Bool,
     cursorAfter: String?,
-    includeTrash: Bool
+    includeTrash: Bool,
+    zerionChainMapping: ZerionChainMapping
   ) async throws -> WalletTransactionPage {
     let endpointURLString = transactionsAPIURL.replacingOccurrences(
       of: "{walletAddress}",
@@ -115,7 +120,7 @@ public actor ZerionTransactionProvider {
       throw TransactionProviderError.invalidURL(endpointURLString)
     }
 
-    let zerionChainIDs = supportedChainIDs.compactMap { ChainRegistry.zerionChainID(chainID: $0) }
+    let zerionChainIDs = zerionChainMapping.zerionChainIDs(for: supportedChainIDs)
 
     var queryItems: [URLQueryItem] = [
       URLQueryItem(name: "currency", value: "usd"),
@@ -191,10 +196,11 @@ public actor ZerionTransactionProvider {
   private func classify(
     item: ZerionTransactionItem,
     userAddress: String,
-    accumulatorAddress: String?
+    accumulatorAddress: String?,
+    zerionChainMapping: ZerionChainMapping
   ) -> TransactionRecord {
     let chainKey = item.relationships?.chain?.data?.id?.lowercased() ?? ""
-    let chainID = ChainRegistry.chainID(zerionChainID: chainKey) ?? 0
+    let chainID = zerionChainMapping.chainID(zerionChainID: chainKey) ?? 0
     let chainDefinition = ChainRegistry.resolveOrFallback(chainID: chainID)
 
     let txHash = item.attributes.hash ?? ""

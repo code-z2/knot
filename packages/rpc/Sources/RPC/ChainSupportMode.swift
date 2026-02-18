@@ -19,11 +19,11 @@ public enum ChainSupportMode: String, Sendable {
   public var defaultChainIDs: [UInt64] {
     switch self {
     case .limitedTestnet:
-      return [11_155_111, 84_532, 421_614]
+      return [11_155_111, 84_532, 421_614, 10_143]
     case .limitedMainnet:
-      return [1, 42_161, 8_453, 137, 10_143]
+      return [1, 42_161, 8_453, 137, 143]
     case .fullMainnet:
-      return [1, 10, 137, 8_453]
+      return [1, 10, 137, 8_453, 42_161, 143]
     }
   }
 }
@@ -69,10 +69,11 @@ public enum ChainSupportRuntime {
       return preferred
     }
 
-    let rawMode = resolveSetting(
-      key: "CHAIN_SUPPORT_MODE",
-      bundle: bundle
-    ) ?? ChainSupportMode.limitedTestnet.rawValue
+    let rawMode =
+      resolveSetting(
+        key: "CHAIN_SUPPORT_MODE",
+        bundle: bundle
+      ) ?? ChainSupportMode.limitedTestnet.rawValue
 
     return ChainSupportMode(rawValue: rawMode) ?? .limitedTestnet
   }
@@ -90,7 +91,9 @@ public enum ChainSupportRuntime {
     var output: [UInt64] = []
     var seen = Set<UInt64>()
     for token in rawValue.split(separator: ",") {
-      guard let chainID = UInt64(token.trimmingCharacters(in: .whitespacesAndNewlines)) else { continue }
+      guard let chainID = UInt64(token.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        continue
+      }
       if seen.insert(chainID).inserted {
         output.append(chainID)
       }

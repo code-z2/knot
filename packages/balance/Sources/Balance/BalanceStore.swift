@@ -44,13 +44,16 @@ public final class BalanceStore {
 
   private let provider: ZerionBalanceProvider
   private let rpcClient: RPCClient
+  private let chainResolver: ZerionChainResolver
 
   public init(
     provider: ZerionBalanceProvider = .init(),
-    rpcClient: RPCClient = .init()
+    rpcClient: RPCClient = .init(),
+    chainResolver: ZerionChainResolver = .shared
   ) {
     self.provider = provider
     self.rpcClient = rpcClient
+    self.chainResolver = chainResolver
   }
 
   /// Refresh balances for the given wallet across all supported chains.
@@ -95,7 +98,15 @@ public final class BalanceStore {
 
       let positionsAPIURL = try await rpcClient.getWalletApiUrl(chainId: firstChain)
       let apiKey = try await rpcClient.getWalletApiBearerToken(chainId: firstChain)
+      let mode = ChainSupportRuntime.resolveMode()
       let chainSet = Set(chains)
+      let zerionChainMapping = try await chainResolver.resolve(
+        apiBaseURL: positionsAPIURL,
+        apiKey: apiKey,
+        mode: mode,
+        supportedChainIDs: chainSet
+      )
+
       let includeTestnets = chains.allSatisfy(Self.isKnownTestnetChain)
 
       balances = try await provider.fetchBalances(
@@ -103,7 +114,8 @@ public final class BalanceStore {
         positionsAPIURL: positionsAPIURL,
         apiKey: apiKey,
         supportedChainIDs: chainSet,
-        includeTestnets: includeTestnets
+        includeTestnets: includeTestnets,
+        zerionChainMapping: zerionChainMapping
       )
 
       let derivedActiveChainIDs = Set(

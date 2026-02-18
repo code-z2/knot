@@ -39,15 +39,18 @@ public final class TransactionStore {
   private let provider: ZerionTransactionProvider
   private let rpcClient: RPCClient
   private let accumulatorConfig: AccumulatorConfig
+  private let chainResolver: ZerionChainResolver
 
   public init(
     provider: ZerionTransactionProvider = .init(),
     rpcClient: RPCClient = .init(),
-    accumulatorConfig: AccumulatorConfig = .default
+    accumulatorConfig: AccumulatorConfig = .default,
+    chainResolver: ZerionChainResolver = .shared
   ) {
     self.provider = provider
     self.rpcClient = rpcClient
     self.accumulatorConfig = accumulatorConfig
+    self.chainResolver = chainResolver
   }
 
   /// Full refresh — clears existing data, fetches page 1.
@@ -106,6 +109,14 @@ public final class TransactionStore {
 
       let apiKey = try await rpcClient.getAddressActivityApiBearerToken(chainId: firstChain)
       let transactionsAPIURL = try await rpcClient.getAddressActivityApiUrl(chainId: firstChain)
+      let mode = ChainSupportRuntime.resolveMode()
+      let supportedChainIDs = Set(chains)
+      let zerionChainMapping = try await chainResolver.resolve(
+        apiBaseURL: transactionsAPIURL,
+        apiKey: apiKey,
+        mode: mode,
+        supportedChainIDs: supportedChainIDs
+      )
       let includeTestnets = chains.allSatisfy(Self.isKnownTestnetChain)
 
       // Resolve accumulator address (cached after first call)
@@ -116,9 +127,10 @@ public final class TransactionStore {
         accumulatorAddress: accAddress,
         transactionsAPIURL: transactionsAPIURL,
         apiKey: apiKey,
-        supportedChainIDs: Set(chains),
+        supportedChainIDs: supportedChainIDs,
         includeTestnets: includeTestnets,
-        cursorAfter: cursor
+        cursorAfter: cursor,
+        zerionChainMapping: zerionChainMapping
       )
 
       if replace {
