@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cat > "$CI_PRIMARY_REPOSITORY_PATH/Secrets.xcconfig" << EOF
+cat > "$CI_PRIMARY_REPOSITORY_PATH/apps/ios/Secrets.xcconfig" << EOF
 JSONRPC_API_KEY = $JSONRPC_API_KEY
 ZERION_API_KEY = $ZERION_API_KEY
 

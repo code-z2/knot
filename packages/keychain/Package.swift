@@ -2,13 +2,13 @@
 import PackageDescription
 
 let package = Package(
-  name: "Keychain",
-  platforms: [.iOS(.v16), .macOS(.v10_15)],
-  products: [
-    .library(name: "Keychain", targets: ["Keychain"])
-  ],
-  targets: [
-    .target(name: "Keychain"),
-    .testTarget(name: "KeychainTests", dependencies: ["Keychain"])
-  ]
+    name: "Keychain",
+    platforms: [.iOS(.v16), .macOS(.v10_15)],
+    products: [
+        .library(name: "Keychain", targets: ["Keychain"]),
+    ],
+    targets: [
+        .target(name: "Keychain"),
+        .testTarget(name: "KeychainTests", dependencies: ["Keychain"]),
+    ],
 )

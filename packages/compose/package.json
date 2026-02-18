@@ -1,0 +1,9 @@
+{
+    "name": "compose",
+    "private": true,
+    "scripts": {
+        "build": "swift build",
+        "test": "swift test",
+        "format": "swiftformat ."
+    }
+}

@@ -76,11 +76,11 @@ enum TransactionRowTitle: Hashable {
 
     var text: Text {
         switch self {
-        case .localized(let key):
+        case let .localized(key):
             Text(LocalizedStringKey(key))
-        case .sent(let assetSymbol):
+        case let .sent(assetSymbol):
             Text("\(Text("transaction_row_action_sent")) \(Text(verbatim: assetSymbol))")
-        case .received(let assetSymbol):
+        case let .received(assetSymbol):
             Text("\(Text("transaction_row_action_received")) \(Text(verbatim: assetSymbol))")
         }
     }
@@ -93,11 +93,11 @@ enum TransactionRowSubtitle: Hashable {
 
     var text: Text {
         switch self {
-        case .localized(let key):
+        case let .localized(key):
             Text(LocalizedStringKey(key))
-        case .on(let networkName):
+        case let .on(networkName):
             Text("\(Text("transaction_row_prefix_on")) \(Text(verbatim: networkName))")
-        case .from(let networkName):
+        case let .from(networkName):
             Text("\(Text("transaction_row_prefix_from")) \(Text(verbatim: networkName))")
         }
     }
@@ -152,7 +152,7 @@ extension TransactionRecord {
         return TransactionAssetChange(
             direction: direction,
             fiatUSD: valueQuoteUSD,
-            assetText: assetAmountText
+            assetText: assetAmountText,
         )
     }
 
@@ -206,7 +206,7 @@ extension TransactionRecord {
     func uiFeeText(
         displayCurrencyCode: String,
         displayLocale: Locale,
-        usdToSelectedRate: Decimal
+        usdToSelectedRate: Decimal,
     ) -> String {
         let converted = gasQuoteUSD * usdToSelectedRate
         if converted > 0, converted < 0.01 {
@@ -215,7 +215,7 @@ extension TransactionRecord {
                 currencyCode: displayCurrencyCode,
                 locale: displayLocale,
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 4
+                maximumFractionDigits: 4,
             )
             return "<\(minimumDisplay)"
         }
@@ -224,14 +224,14 @@ extension TransactionRecord {
             currencyCode: displayCurrencyCode,
             locale: displayLocale,
             minimumFractionDigits: 2,
-            maximumFractionDigits: 4
+            maximumFractionDigits: 4,
         )
     }
 
     func uiReceiptAmountText(
         displayCurrencyCode: String,
         displayLocale: Locale,
-        usdToSelectedRate: Decimal
+        usdToSelectedRate: Decimal,
     ) -> String? {
         guard valueQuoteUSD != 0 else { return nil }
         let prefix = variant == .received ? "+" : "-"
@@ -241,7 +241,7 @@ extension TransactionRecord {
             currencyCode: displayCurrencyCode,
             locale: displayLocale,
             minimumFractionDigits: 2,
-            maximumFractionDigits: 4
+            maximumFractionDigits: 4,
         )
         return "\(prefix)\(formatted)"
     }

@@ -14,7 +14,7 @@ struct TransactionReceiptModal: View {
         displayCurrencyCode: String = "USD",
         displayLocale: Locale = .current,
         usdToSelectedRate: Decimal = 1,
-        onOpenExplorer: @escaping (URL) -> Void = { _ in }
+        onOpenExplorer: @escaping (URL) -> Void = { _ in },
     ) {
         self.transaction = transaction
         self.displayCurrencyCode = displayCurrencyCode
@@ -27,7 +27,7 @@ struct TransactionReceiptModal: View {
         transaction.uiReceiptAmountText(
             displayCurrencyCode: displayCurrencyCode,
             displayLocale: displayLocale,
-            usdToSelectedRate: usdToSelectedRate
+            usdToSelectedRate: usdToSelectedRate,
         )
     }
 
@@ -35,7 +35,7 @@ struct TransactionReceiptModal: View {
         transaction.uiFeeText(
             displayCurrencyCode: displayCurrencyCode,
             displayLocale: displayLocale,
-            usdToSelectedRate: usdToSelectedRate
+            usdToSelectedRate: usdToSelectedRate,
         )
     }
 
@@ -45,7 +45,7 @@ struct TransactionReceiptModal: View {
                 text: transaction.uiStatus.badgeText,
                 icon: .symbol(transaction.uiStatus.badgeIconSystemName),
                 textColor: transaction.uiStatus.badgeTextColor,
-                backgroundColor: transaction.uiStatus.badgeBackgroundColor
+                backgroundColor: transaction.uiStatus.badgeBackgroundColor,
             )
             .padding(.top, 22)
 
@@ -63,7 +63,7 @@ struct TransactionReceiptModal: View {
                 receiptField(label: LocalizedStringKey(transaction.uiCounterpartyLabelKey)) {
                     AppIconTextBadge(
                         text: transaction.uiCounterpartyValue,
-                        icon: transaction.uiCounterpartyIcon
+                        icon: transaction.uiCounterpartyIcon,
                     )
                 }
 
@@ -88,7 +88,7 @@ struct TransactionReceiptModal: View {
                 receiptField(label: "transaction_receipt_network") {
                     AppIconTextBadge(
                         text: transaction.chainName,
-                        icon: .network(transaction.networkAssetName)
+                        icon: .network(transaction.networkAssetName),
                     )
                 }
 
@@ -114,9 +114,9 @@ struct TransactionReceiptModal: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private func receiptField<Content: View>(
+    private func receiptField(
         label: LocalizedStringKey,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> some View,
     ) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(label)
@@ -131,7 +131,8 @@ struct TransactionReceiptModal: View {
         let hash = transaction.txHash
         guard !hash.isEmpty,
               let url = BlockExplorer.transactionURL(
-                chainId: transaction.chainId, transactionHash: hash)
+                  chainId: transaction.chainId, transactionHash: hash,
+              )
         else {
             return
         }

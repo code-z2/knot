@@ -1,8 +1,8 @@
-import XCTest
 @testable import Keychain
+import XCTest
 
 final class KeychainTests: XCTestCase {
-  func testStoreInit() {
-    _ = KeychainStore()
-  }
+    func testStoreInit() {
+        _ = KeychainStore()
+    }
 }
