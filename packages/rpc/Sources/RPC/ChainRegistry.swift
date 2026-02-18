@@ -197,9 +197,9 @@ public enum ChainRegistry {
     .init(
       chainID: 10_143,
       slug: "monad-testnet",
-      name: "Monad",
+      name: "Monad Testnet",
       assetName: "monad",
-      keywords: [],
+      keywords: ["monad", "testnet"],
       rpcURL: nil,
       explorerBaseURL: "https://testnet.monadexplorer.com"
     ),
@@ -289,19 +289,6 @@ public enum ChainRegistry {
   private static let knownByChainID: [UInt64: ChainDefinition] = Dictionary(
     uniqueKeysWithValues: known.map { ($0.chainID, $0) }
   )
-  private static let zerionChainIDsByChainID: [UInt64: String] = [
-    1: "ethereum",
-    11_155_111: "sepolia",
-    8_453: "base",
-    84_532: "base_sepolia",
-    42_161: "arbitrum",
-    421_614: "arbitrum_sepolia",
-    10: "optimism",
-    137: "polygon",
-  ]
-  private static let chainIDsByZerionChainID: [String: UInt64] = Dictionary(
-    uniqueKeysWithValues: zerionChainIDsByChainID.map { ($0.value, $0.key) }
-  )
 
   public static func resolve(chainID: UInt64) -> ChainDefinition? {
     knownByChainID[chainID]
@@ -330,23 +317,6 @@ public enum ChainRegistry {
     return configuredChainIDs.map(resolveOrFallback(chainID:))
   }
 
-  public static func zerionChainID(chainID: UInt64) -> String? {
-    zerionChainIDsByChainID[chainID]
-  }
-
-  public static func chainID(zerionChainID: String) -> UInt64? {
-    chainIDsByZerionChainID[zerionChainID.lowercased()]
-  }
-}
-
-private func firstNonEmpty(_ candidates: String...) -> String {
-  for candidate in candidates {
-    let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
-    if !trimmed.isEmpty {
-      return trimmed
-    }
-  }
-  return ""
 }
 
 private func makeURL(chainID: UInt64, slug: String, template: String) -> String {
@@ -367,4 +337,14 @@ private func makeURL(chainID: UInt64, slug: String, template: String, apiKey: St
   }
 
   return resolved
+}
+
+private func firstNonEmpty(_ candidates: String...) -> String {
+  for candidate in candidates {
+    let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmed.isEmpty {
+      return trimmed
+    }
+  }
+  return ""
 }

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import RPC
 
 final class RPCTests: XCTestCase {
@@ -43,15 +44,15 @@ final class RPCTests: XCTestCase {
 
     XCTAssertEqual(
       ChainSupportRuntime.resolveSupportedChainIDs(mode: .limitedTestnet, bundle: bundle),
-      [11_155_111, 84_532, 421_614]
+      [11_155_111, 84_532, 421_614, 10_143]
     )
     XCTAssertEqual(
       ChainSupportRuntime.resolveSupportedChainIDs(mode: .limitedMainnet, bundle: bundle),
-      [1, 42_161, 8_453, 137, 10_143]
+      [1, 42_161, 8_453, 137, 143]
     )
     XCTAssertEqual(
       ChainSupportRuntime.resolveSupportedChainIDs(mode: .fullMainnet, bundle: bundle),
-      [1, 10, 137, 8_453]
+      [1, 10, 137, 8_453, 42_161, 143]
     )
   }
 }

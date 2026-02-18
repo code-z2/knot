@@ -1,4 +1,5 @@
 import Foundation
+import RPC
 import XCTest
 @testable import Balance
 
@@ -79,7 +80,8 @@ final class BalanceTests: XCTestCase {
       positionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/positions/",
       apiKey: "test-key",
       supportedChainIDs: [1, 8_453],
-      includeTestnets: false
+      includeTestnets: false,
+      zerionChainMapping: mapping(chainIDs: [1, 8_453])
     )
 
     XCTAssertEqual(balances.count, 1)
@@ -152,7 +154,8 @@ final class BalanceTests: XCTestCase {
       positionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/positions/",
       apiKey: "test-key",
       supportedChainIDs: [1],
-      includeTestnets: false
+      includeTestnets: false,
+      zerionChainMapping: mapping(chainIDs: [1])
     )
 
     XCTAssertEqual(balances.count, 1)
@@ -168,6 +171,32 @@ final class BalanceTests: XCTestCase {
 
   private func decimalString(_ value: Decimal) -> String {
     NSDecimalNumber(decimal: value).stringValue
+  }
+
+  private func mapping(chainIDs: Set<UInt64>) -> ZerionChainMapping {
+    let baseMapping: [UInt64: String] = [
+      1: "ethereum",
+      8_453: "base",
+      11_155_111: "sepolia",
+      84_532: "base_sepolia",
+      42_161: "arbitrum",
+      421_614: "arbitrum_sepolia",
+      10: "optimism",
+      137: "polygon",
+    ]
+
+    var zerionIDByChainID: [UInt64: String] = [:]
+    var chainIDByZerionID: [String: UInt64] = [:]
+    for chainID in chainIDs {
+      guard let zerionID = baseMapping[chainID] else { continue }
+      zerionIDByChainID[chainID] = zerionID
+      chainIDByZerionID[zerionID] = chainID
+    }
+
+    return ZerionChainMapping(
+      zerionIDByChainID: zerionIDByChainID,
+      chainIDByZerionID: chainIDByZerionID
+    )
   }
 }
 

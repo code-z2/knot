@@ -60,7 +60,8 @@ public actor ZerionBalanceProvider {
     supportedChainIDs: Set<UInt64>,
     includeTestnets: Bool,
     dustThresholdUSD: Decimal = 0.01,
-    includeTrash: Bool = false
+    includeTrash: Bool = false,
+    zerionChainMapping: ZerionChainMapping
   ) async throws -> [TokenBalance] {
     let endpointURLString = positionsAPIURL.replacingOccurrences(
       of: "{walletAddress}",
@@ -71,7 +72,7 @@ public actor ZerionBalanceProvider {
       throw BalanceProviderError.invalidURL(endpointURLString)
     }
 
-    let zerionChainIDs = supportedChainIDs.compactMap { ChainRegistry.zerionChainID(chainID: $0) }
+    let zerionChainIDs = zerionChainMapping.zerionChainIDs(for: supportedChainIDs)
 
     var queryItems: [URLQueryItem] = [
       URLQueryItem(name: "currency", value: "usd"),
@@ -147,11 +148,13 @@ public actor ZerionBalanceProvider {
     var groups: [String: MutableTokenGroup] = [:]
 
     for item in allPositions {
-      guard
-        let chainKey = item.relationships?.chain?.data?.id?.lowercased(),
-        let chainID = ChainRegistry.chainID(zerionChainID: chainKey),
-        supportedChainIDs.contains(chainID)
-      else {
+      guard let chainKey = item.relationships?.chain?.data?.id?.lowercased() else {
+        continue
+      }
+      guard let chainID = zerionChainMapping.chainID(zerionChainID: chainKey) else {
+        continue
+      }
+      guard supportedChainIDs.contains(chainID) else {
         continue
       }
 
@@ -168,9 +171,11 @@ public actor ZerionBalanceProvider {
       let canonicalSymbol = canonicalSymbol(for: rawSymbol)
       let groupKey = canonicalSymbol.lowercased()
 
-      let valueUSD = item.attributes.value?.value
+      let valueUSD =
+        item.attributes.value?.value
         ?? ((item.attributes.price?.value ?? 0) * quantity)
-      let quoteRate = item.attributes.price?.value
+      let quoteRate =
+        item.attributes.price?.value
         ?? (quantity > 0 ? (valueUSD / quantity) : 0)
       let quoteRate24h = quoteRate24hFromZerionChanges(
         currentRate: quoteRate,
@@ -179,23 +184,27 @@ public actor ZerionBalanceProvider {
 
       let chainDef = ChainRegistry.resolveOrFallback(chainID: chainID)
       let contractAddress = contractAddress(for: item, chainID: chainKey)
-      let tokenName = item.attributes.fungibleInfo?.name ?? item.attributes.name ?? canonicalName(for: canonicalSymbol)
+      let tokenName =
+        item.attributes.fungibleInfo?.name ?? item.attributes.name
+        ?? canonicalName(for: canonicalSymbol)
       let logoURL = URL(string: item.attributes.fungibleInfo?.icon?.url ?? "")
 
-      var group = groups[groupKey] ?? MutableTokenGroup(
-        id: groupKey,
-        symbol: canonicalSymbol,
-        name: tokenName,
-        contractAddress: contractAddress,
-        decimals: item.attributes.quantity?.decimals ?? 18,
-        isNative: isLikelyNative(symbol: rawSymbol, contractAddress: contractAddress),
-        totalBalance: 0,
-        totalValueUSD: 0,
-        quoteRate: 0,
-        quoteRate24h: nil,
-        logoURL: logoURL,
-        chainBalances: [:]
-      )
+      var group =
+        groups[groupKey]
+        ?? MutableTokenGroup(
+          id: groupKey,
+          symbol: canonicalSymbol,
+          name: tokenName,
+          contractAddress: contractAddress,
+          decimals: item.attributes.quantity?.decimals ?? 18,
+          isNative: isLikelyNative(symbol: rawSymbol, contractAddress: contractAddress),
+          totalBalance: 0,
+          totalValueUSD: 0,
+          quoteRate: 0,
+          quoteRate24h: nil,
+          logoURL: logoURL,
+          chainBalances: [:]
+        )
 
       group.totalBalance += quantity
       group.totalValueUSD += valueUSD
@@ -217,13 +226,15 @@ public actor ZerionBalanceProvider {
         group.contractAddress = contractAddress
       }
 
-      var perChain = group.chainBalances[chainID] ?? MutableChainBalance(
-        chainID: chainID,
-        chainName: chainDef.name,
-        balance: 0,
-        valueUSD: 0,
-        contractAddress: contractAddress
-      )
+      var perChain =
+        group.chainBalances[chainID]
+        ?? MutableChainBalance(
+          chainID: chainID,
+          chainName: chainDef.name,
+          balance: 0,
+          valueUSD: 0,
+          contractAddress: contractAddress
+        )
 
       perChain.balance += quantity
       perChain.valueUSD += valueUSD
