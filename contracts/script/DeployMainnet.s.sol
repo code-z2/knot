@@ -3,7 +3,7 @@ pragma solidity 0.8.33;
 
 import {Script, console} from "forge-std/Script.sol";
 import {AccumulatorFactory} from "../src/AccumulatorFactory.sol";
-import {UnifiedTokenAccount} from "../src/UnifiedTokenAccount.sol";
+import {UnifiedAccount} from "../src/UnifiedAccount.sol";
 
 interface ICreateX {
     function deployCreate2(bytes32 salt, bytes memory initCode) external payable returns (address);
@@ -19,7 +19,7 @@ interface ICreateX {
 contract DeployMainnet is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
     bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v1");
-    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedTokenAccount_v1");
+    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedAccount_v1");
 
     // P256 Generator Point (for valid constructor generic initialization)
     bytes32 constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
@@ -35,10 +35,10 @@ contract DeployMainnet is Script {
         address accFactory = CREATEX.deployCreate2(ACCUMULATOR_SALT, accInitCode);
         console.log("AccumulatorFactory deployed at:", accFactory);
 
-        // 2. Unified Token Account (Singleton/Implementation)
-        bytes memory accountInitCode = abi.encodePacked(type(UnifiedTokenAccount).creationCode, abi.encode(GX, GY));
+        // 2. Unified Account (Singleton/Implementation)
+        bytes memory accountInitCode = abi.encodePacked(type(UnifiedAccount).creationCode, abi.encode(GX, GY));
         address accountImpl = CREATEX.deployCreate2(ACCOUNT_SALT, accountInitCode);
-        console.log("UnifiedTokenAccount deployed at:", accountImpl);
+        console.log("UnifiedAccount deployed at:", accountImpl);
 
         vm.stopBroadcast();
     }
