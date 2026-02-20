@@ -11,27 +11,29 @@ import {ERC721Holder} from "openzeppelin-contracts/token/ERC721/utils/ERC721Hold
 import {ReentrancyGuard} from "openzeppelin-contracts/utils/ReentrancyGuard.sol";
 
 import {IAccumulator} from "./interfaces/IAccumulator.sol";
-import {Call, FillState, FillStatus} from "./types/Structs.sol";
+import {IMerkleVerifier} from "./interfaces/IMerkleVerifier.sol";
+import {Call, ExecutionParams, FillState, FillStatus} from "./types/Structs.sol";
 
 /// @title Accumulator
 /// @notice Destination-chain receiver that gathers bridged tokens from one or more source chains
-///         and executes the user's intent once the accumulation threshold is met.
+///         and executes the user's intent once explicitly triggered by an authorized caller.
 ///
-/// @dev Lifecycle:
-///      1. Dispatcher(s) on source chain(s) call SpokePool.deposit, targeting this contract.
-///      2. The SpokePool (or the owner directly for same-chain participation) delivers tokens
-///         and calls `handleV3AcrossMessage` with the payload.
-///      3. The Accumulator validates the caller (SpokePool or owner) and originator (owner).
-///      4. Tokens accumulate per fill ID until `received >= sumOutput`.
-///      5. On threshold: execute destCalls, transfer finalOutputToken to recipient, return any remainder to owner.
+/// @dev Two-step lifecycle:
+///      1. ACCUMULATE — The SpokePool (or owner) delivers bridged tokens via `handleV3AcrossMessage`.
+///         Tokens are tracked against a fillId derived from (salt, depositor, fillDeadline, sumOutput).
+///         No execution occurs during accumulation.
+///      2. EXECUTE — An authorized party calls `executeIntent` with ExecutionParams + Merkle proof.
+///         The Accumulator hashes the params with plain keccak256 (stateless — not the verifying
+///         contract), then calls back to the owner account's `verifyMerkleRoot` to check that the
+///         hash belongs to a signed Merkle tree.
 ///
-///      Message format (encoded by Dispatcher._buildDestinationMessage):
-///        abi.encode(salt, fromChainId, fillDeadline, depositor, recipient, sumOutput, finalMinOutput,
-///                   finalOutputToken, destCalls)
+///      Three execution modes:
+///        Mode 1 (Pure Transfer):        No destCalls; inputToken transferred directly to recipient.
+///        Mode 2 (Transform + Transfer): DestCalls execute, then finalOutputToken sent to recipient.
+///        Mode 3 (Execute Only):         DestCalls execute; no Accumulator-managed transfer.
 ///
-///      The Accumulator always transfers `finalOutputToken` to the recipient.
-///      If destCalls is empty, the user must ensure `finalOutputToken == tokenSent`.
-///      Any conversions (WETH→ETH, token swaps) are handled by the destCalls.
+///      Accumulation message format (encoded by Dispatcher._buildDestinationMessage):
+///        abi.encode(salt, fromChainId, fillDeadline, depositor, sumOutput, outputToken)
 contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC721Holder, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -45,27 +47,63 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     /// @dev The depositor in the message does not match the contract owner.
     error InvalidOriginator(address originator);
 
+    /// @dev The token delivered by the SpokePool does not match the expected output token.
+    error TokenMismatch(bytes32 fillId, address tokenSent, address expectedToken);
+
     /// @dev Reserved accounting invariant was broken.
     error ReservedAccountingInvariant(address token, uint256 reserved, uint256 releaseAmount);
 
     /// @dev No destination calls were provided, but final output token differs from input token.
     error InvalidFinalOutputTokenForDirectTransfer(address inputToken, address finalOutputToken);
 
+    /// @dev Post-execution output balance is below the user's minimum.
+    error InsufficientOutput(address token, uint256 available, uint256 required);
+
+    /// @dev Fill has not reached the accumulation threshold yet.
+    error ThresholdNotMet(bytes32 fillId, uint256 received, uint256 sumOutput);
+
+    /// @dev Fill is not in the Accumulating state.
+    error InvalidFillStatus(bytes32 fillId, FillStatus status);
+
+    /// @dev Fill deadline has not expired yet (markStale called too early).
+    error FillNotExpired(bytes32 fillId, uint32 fillDeadline);
+
+    /// @dev The owner's Merkle signature verification failed.
+    error InvalidMerkleSignature();
+
+    /// @dev Caller is not the designated destination caller for this intent.
+    error UnauthorizedDestinationCaller(address caller, address expected);
+
+    /// @dev Mode 3 requires destination calls to be present.
+    error DestCallsRequiredForExecuteOnly();
+
+    /// @dev Mode 1 does not support destination calls.
+    error DestCallsNotAllowedForDirectTransfer();
+
     // ═══════════════════════════════════════════════════════════════════════════
     //                                CONSTANTS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Sentinel address representing native ETH.
+    /// @dev Sentinel address representing native ETH for `finalOutputToken`.
+    ///      Used only for balance checks and transfer routing after destCalls produce native.
     address private constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    /// @dev EIP-712 struct typehash for ExecutionParams.
+    ///      The account wraps this struct hash with its domain separator to produce the chain-bound leaf.
+    bytes32 private constant EXECUTION_PARAMS_TYPEHASH = keccak256(
+        "ExecutionParams(bytes32 salt,uint32 fillDeadline,uint256 sumOutput,"
+        "address outputToken,uint256 finalMinOutput,address finalOutputToken,"
+        "address recipient,address destinationCaller,bytes32 destCallsHash)"
+    );
 
     // ═══════════════════════════════════════════════════════════════════════════
     //                                 STATE
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Across SpokePool authorized to deliver fills.
-    address private SPOKE_POOL;
+    address private spokePool;
 
-    /// @notice Per-fill accumulation state, keyed by fill ID (keccak256 of message).
+    /// @notice Per-fill accumulation state, keyed by fill ID.
     mapping(bytes32 => FillState) public fills;
 
     /// @notice Reserved balances backing active fills, by token.
@@ -75,9 +113,12 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     //                                 EVENTS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Emitted after threshold is reached and execution path completes.
-    /// @param requestedOutput User-requested minimum output (`finalMinOutput`).
-    /// @param actualOutput Actual output sent to recipient during execution.
+    /// @notice Emitted when tokens are accumulated for a fill.
+    event FillAccumulated(
+        bytes32 indexed fillId, address indexed inputToken, uint256 amount, uint256 totalReceived, uint256 sumOutput
+    );
+
+    /// @notice Emitted after executeIntent completes successfully.
     event FillExecuted(
         bytes32 indexed fillId,
         address indexed recipient,
@@ -93,19 +134,19 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     /// @notice Emitted when funds are returned to owner due to stale/late fill handling.
     event FillRefunded(bytes32 indexed fillId, uint256 refundedInput, uint256[] sourceChainIds);
 
-    /// @notice Emitted when a non-matching token fill is ignored while still active.
-    event FillTokenIgnored(bytes32 indexed fillId, address tokenSent, address expectedToken, uint256 amount);
+    /// @notice Emitted when the accumulation threshold is met and the fill is ready for execution.
+    event FillReady(bytes32 indexed fillId, uint256 totalReceived, uint256 sumOutput);
 
     // ═══════════════════════════════════════════════════════════════════════════
     //                            CONSTRUCTOR / INIT
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @param _userAccount Owner account (the UnifiedTokenAccount on the destination chain).
+    /// @param _userAccount Owner account (the UnifiedAccount on the destination chain).
     constructor(address _userAccount) Ownable(_userAccount) {}
 
     /// @notice One-time initialization of the SpokePool address (called by factory).
     function initialize(address _spokePool) external initializer {
-        SPOKE_POOL = _spokePool;
+        spokePool = _spokePool;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -114,7 +155,7 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
 
     /// @notice Update the authorized SpokePool address.
     function setSpokePool(address _spokePool) external onlyOwner {
-        SPOKE_POOL = _spokePool;
+        spokePool = _spokePool;
     }
 
     /// @notice Sweep currently unreserved token balance back to the owner (user account).
@@ -124,19 +165,46 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
         if (available > 0) _transferToken(token, owner(), available);
     }
 
+    /// @notice Mark a fill as stale and refund reserved tokens to the owner.
+    /// @dev V-002 fix: Allows the owner to recover partial fills that never reached sumOutput
+    ///      and have no further fills arriving to trigger the stale branch in handleV3AcrossMessage.
+    ///      Only callable after fillDeadline has passed.
+    /// @param fillId The fill ID to mark as stale.
+    function markStale(bytes32 fillId) external onlyOwner {
+        FillState storage state = fills[fillId];
+
+        if (state.status != FillStatus.Accumulating) {
+            revert InvalidFillStatus(fillId, state.status);
+        }
+        if (block.timestamp <= state.fillDeadline) {
+            revert FillNotExpired(fillId, state.fillDeadline);
+        }
+
+        uint256 staleInput = state.received;
+        address token = state.inputToken;
+
+        _releaseReserved(token, staleInput);
+        state.received = 0;
+        state.status = FillStatus.Stale;
+
+        uint256 refund = staleInput;
+        uint256 available = _availableBalance(token);
+        if (refund > available) refund = available;
+        if (refund > 0) _transferToken(token, owner(), refund);
+
+        emit FillStale(fillId, state.fillDeadline, refund, state.sourceChainIds);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
-    //                        ACROSS MESSAGE HANDLER
+    //                    STEP 1: ACCUMULATE (SpokePool fills)
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Across V3 callback. Called by the SpokePool after delivering bridged tokens,
     ///         or directly by the owner for same-chain participation.
     ///
-    /// @dev Message layout (encoded by Dispatcher._buildDestinationMessage):
-    ///        (bytes32 salt, uint256 fromChainId, uint32 fillDeadline, address depositor, address recipient, uint256 sumOutput,
-    ///         uint256 finalMinOutput, address finalOutputToken, bytes destCalls)
-    ///
-    ///      `destCalls` is raw bytes — abi.encode(Call[]). Only decoded here on the destination chain.
-    ///      Source chains pass it through without touching it.
+    /// @dev Accumulation-only. No execution occurs here.
+    ///      Message layout (encoded by Dispatcher._buildDestinationMessage):
+    ///        (bytes32 salt, uint256 fromChainId, uint32 fillDeadline, address depositor, uint256 sumOutput, address outputToken)
     ///
     /// @param tokenSent The token address delivered by the SpokePool.
     /// @param amount    The amount of tokens delivered in this fill.
@@ -152,42 +220,30 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
         payable
         override
     {
-        if (msg.sender != SPOKE_POOL && msg.sender != owner()) {
+        if (msg.sender != spokePool && msg.sender != owner()) {
             revert UnrecognizedCaller(msg.sender);
         }
 
-        // Decode the Dispatcher's message payload.
         (
             bytes32 salt,
             uint256 fromChainId,
             uint32 fillDeadline,
             address depositor,
-            address recipient,
             uint256 sumOutput,
-            uint256 finalMinOutput,
-            address finalOutputToken,
-            bytes memory destCallsEncoded
-        ) = abi.decode(
-            message, (bytes32, uint256, uint32, address, address, uint256, uint256, address, bytes)
-        );
+            address outputToken
+        ) = abi.decode(message, (bytes32, uint256, uint32, address, uint256, address));
 
         // Only the account owner can originate intents targeting this accumulator.
         if (depositor != owner()) revert InvalidOriginator(depositor);
 
-        // fillId is derived from everything EXCEPT fromChainId, so fills from
-        // different source chains accumulate into the same intent.
-        bytes32 fillId = keccak256(
-            abi.encode(
-                salt,
-                depositor,
-                fillDeadline,
-                recipient,
-                sumOutput,
-                finalMinOutput,
-                finalOutputToken,
-                destCallsEncoded
-            )
-        );
+        // V-001 fix: Reject fills where the delivered token does not match the expected output token.
+        // This prevents fill poisoning where an attacker front-runs with a different token.
+        // fillId now includes outputToken so each token gets its own accumulation lane.
+        bytes32 fillId = keccak256(abi.encode(salt, depositor, fillDeadline, sumOutput, outputToken));
+
+        if (tokenSent != outputToken) {
+            revert TokenMismatch(fillId, tokenSent, outputToken);
+        }
         FillState storage state = fills[fillId];
 
         // Executed/refunded fills ignore duplicates.
@@ -213,17 +269,12 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
         // Initialize state on first fill for this intent.
         if (state.received == 0 && state.inputToken == address(0)) {
             state.inputToken = tokenSent;
-            state.recipient = recipient;
             state.sumOutput = sumOutput;
             state.fillDeadline = fillDeadline;
-            state.finalMinOutput = finalMinOutput;
-            state.finalOutputToken = finalOutputToken;
             state.status = FillStatus.Accumulating;
         }
 
-        // Deadline is for accumulation as well. Expired fills become stale and auto-refund:
-        // - previously accumulated expected input
-        // - the current late arrival (even if token mismatches)
+        // Deadline expired: mark stale and auto-refund.
         if (block.timestamp > state.fillDeadline) {
             uint256 staleInput = state.received;
             address expectedToken = state.inputToken;
@@ -255,106 +306,182 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
             return;
         }
 
-        // Active fill with mismatched token: accept transfer but do not account it into this fill.
-        // Owner can recover unreserved tokens via `sweep`.
-        if (state.inputToken != tokenSent) {
-            if (amount > 0) {
-                _transferToken(tokenSent, owner(), amount);
-            }
-            emit FillTokenIgnored(fillId, tokenSent, state.inputToken, amount);
-            return;
-        }
-
-        // Track source chain ID for this fill.
         _recordSourceChainId(state, fromChainId);
 
-        // Track the full delivered amount. `sumOutput` is only the minimum threshold
-        // required to execute; arrivals can be higher and excess is handled on execute.
         state.received += amount;
         reservedByToken[tokenSent] += amount;
 
-        // Execute once the accumulation threshold is reached.
+        emit FillAccumulated(fillId, tokenSent, amount, state.received, sumOutput);
+
+        // Signal readiness but do NOT execute.
         if (state.received >= sumOutput) {
-            // Decode dest calls only here on the dest chain — source chains never touch this.
-            Call[] memory destCalls;
-            if (destCallsEncoded.length > 0) {
-                destCalls = abi.decode(destCallsEncoded, (Call[]));
-            }
-            _executeIntent(fillId, state, destCalls);
+            emit FillReady(fillId, state.received, sumOutput);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //                          INTENT EXECUTION
+    //                    STEP 2: EXECUTE (Merkle-verified)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Main execution flow after accumulation threshold is reached.
+    /// @notice Execute an accumulated intent. Authorization is verified by hashing the
+    ///         ExecutionParams with plain keccak256 and calling back to the owner account's
+    ///         `verifyMerkleRoot` to check the leaf belongs to a signed Merkle tree.
     ///
-    ///      1. If destCalls present: execute swaps/conversions.
-    ///         destCalls handle ALL token conversions (WETH→ETH, token swaps, etc.).
-    ///         Reverts in destination calls bubble up.
+    /// @dev Three execution modes based on `params.finalOutputToken` and destination calls:
     ///
-    ///      2. Transfer finalOutputToken to recipient, capped at finalMinOutput when destCalls are present.
-    ///      `state` is an in-memory snapshot from storage and used only for this execution pass.
-    function _executeIntent(bytes32 fillId, FillState memory state, Call[] memory destCalls) internal nonReentrant {
-        fills[fillId].status = FillStatus.Executed;
+    ///      Mode 1 — Pure Transfer (no destCalls, finalOutputToken != address(0)):
+    ///        Transfers `min(finalMinOutput, available)` of inputToken to recipient.
+    ///        Requires `finalOutputToken == inputToken` (what Across delivered).
+    ///
+    ///      Mode 2 — Transform + Transfer (destCalls present, finalOutputToken != address(0)):
+    ///        Executes destCalls, then transfers `min(finalMinOutput, available)` of
+    ///        finalOutputToken to recipient. Supports NATIVE sentinel for native output.
+    ///        Reverts if post-execution balance < finalMinOutput.
+    ///
+    ///      Mode 3 — Execute Only (destCalls present, finalOutputToken == address(0)):
+    ///        Executes destCalls. No Accumulator-managed transfer. DestCalls must handle
+    ///        all fund movement (transfers, protocol deposits, etc).
+    ///
+    /// @param params      Execution parameters for the dest chain leg.
+    /// @param merkleProof Sibling hashes proving the leaf belongs to the signed root.
+    /// @param signature   Signature over `toEthSignedMessageHash(merkleRoot)`.
+    function executeIntent(ExecutionParams calldata params, bytes32[] calldata merkleProof, bytes calldata signature)
+        external
+        nonReentrant
+    {
+        (bytes32 fillId, FillState storage state) = _validateAndTransition(params, merkleProof, signature);
 
-        _releaseReserved(state.inputToken, state.received);
+        address finalOutputToken = params.finalOutputToken;
+        bool hasDestCalls = params.destCalls.length > 0;
 
-        address inputToken = state.inputToken;
-
-        // 1. Execute destination calls or direct transfer.
         uint256 actualOutput;
-        if (destCalls.length > 0) {
-            _executeCalls(destCalls);
 
-            uint256 availableOutput = _availableBalance(state.finalOutputToken);
-            uint256 toSend = _min(state.finalMinOutput, availableOutput);
-            if (toSend > 0) {
-                _transferToken(state.finalOutputToken, state.recipient, toSend);
+        if (!hasDestCalls && finalOutputToken != address(0)) {
+            // ── Mode 1: Pure Transfer ──
+            if (finalOutputToken != state.inputToken) {
+                revert InvalidFinalOutputTokenForDirectTransfer(state.inputToken, finalOutputToken);
             }
-            actualOutput = toSend;
-
-            // Return any unreserved remainder to owner.
-            uint256 outputRemainder = _availableBalance(state.finalOutputToken);
-            if (outputRemainder > 0) {
-                _transferToken(state.finalOutputToken, owner(), outputRemainder);
+            actualOutput = _transferOutput(state.inputToken, params.recipient, params.finalMinOutput);
+            _sweepToken(state.inputToken);
+        } else if (hasDestCalls && finalOutputToken != address(0)) {
+            // ── Mode 2: Transform + Transfer ──
+            _executeCalls(params.destCalls);
+            actualOutput = _transferOutput(finalOutputToken, params.recipient, params.finalMinOutput);
+            _sweepToken(finalOutputToken);
+            if (finalOutputToken != state.inputToken) {
+                _sweepToken(state.inputToken);
             }
-            if (state.finalOutputToken != inputToken) {
-                uint256 inputRemainder = _availableBalance(inputToken);
-                if (inputRemainder > 0) {
-                    _transferToken(inputToken, owner(), inputRemainder);
-                }
-            }
+        } else if (hasDestCalls && finalOutputToken == address(0)) {
+            // ── Mode 3: Execute Only ──
+            _executeCalls(params.destCalls);
+            _sweepToken(state.inputToken);
         } else {
-            // No destCalls: direct transfer path only supports the same token.
-            if (state.finalOutputToken != inputToken) {
-                revert InvalidFinalOutputTokenForDirectTransfer(inputToken, state.finalOutputToken);
-            }
-            uint256 availableInput = _availableBalance(inputToken);
-            uint256 toSend = _min(state.finalMinOutput, availableInput);
-            if (toSend > 0) {
-                _transferToken(inputToken, state.recipient, toSend);
-            }
-            actualOutput = toSend;
-            uint256 remainder = _availableBalance(inputToken);
-            if (remainder > 0) {
-                _transferToken(inputToken, owner(), remainder);
-            }
+            revert DestCallsRequiredForExecuteOnly();
         }
 
         emit FillExecuted(
-            fillId,
-            state.recipient,
-            state.finalOutputToken,
-            state.finalMinOutput,
-            actualOutput,
-            state.sourceChainIds
+            fillId, params.recipient, finalOutputToken, params.finalMinOutput, actualOutput, state.sourceChainIds
         );
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    //                       EXECUTE — INTERNAL HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @dev Validates authorization via Merkle proof, checks fill status & threshold,
+    ///      then marks the fill as Executed and releases reserved input tokens.
+    function _validateAndTransition(
+        ExecutionParams calldata params,
+        bytes32[] calldata merkleProof,
+        bytes calldata signature
+    ) internal returns (bytes32 fillId, FillState storage state) {
+        // Verify destination caller authorization.
+        if (params.destinationCaller != address(0) && msg.sender != params.destinationCaller) {
+            revert UnauthorizedDestinationCaller(msg.sender, params.destinationCaller);
+        }
+
+        // Compute the EIP-712 struct hash (pre-domain). The account wraps this with its
+        // domain separator to produce the chain-bound leaf before walking the Merkle proof.
+        bytes32 structHash = _hashExecutionParams(params);
+
+        // Verify the owner signed a Merkle tree containing this leaf.
+        if (
+            IMerkleVerifier(owner()).verifyMerkleRoot(structHash, merkleProof, signature)
+                != IMerkleVerifier.verifyMerkleRoot.selector
+        ) {
+            revert InvalidMerkleSignature();
+        }
+
+        // Derive the same fillId used during accumulation (includes outputToken per V-001 fix).
+        fillId = keccak256(abi.encode(params.salt, owner(), params.fillDeadline, params.sumOutput, params.outputToken));
+        state = fills[fillId];
+
+        if (state.status != FillStatus.Accumulating) {
+            revert InvalidFillStatus(fillId, state.status);
+        }
+
+        if (state.received < state.sumOutput) {
+            revert ThresholdNotMet(fillId, state.received, state.sumOutput);
+        }
+
+        state.status = FillStatus.Executed;
+        _releaseReserved(state.inputToken, state.received);
+    }
+
+    /// @dev Computes the EIP-712 struct hash for ExecutionParams.
+    ///      This is the pre-domain struct hash — the owner account wraps it with
+    ///      `_hashTypedDataV4(structHash)` to produce the chain-bound leaf.
+    function _hashExecutionParams(ExecutionParams calldata params) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EXECUTION_PARAMS_TYPEHASH,
+                params.salt,
+                params.fillDeadline,
+                params.sumOutput,
+                params.outputToken,
+                params.finalMinOutput,
+                params.finalOutputToken,
+                params.recipient,
+                params.destinationCaller,
+                _hashCalls(params.destCalls)
+            )
+        );
+    }
+
+    /// @dev Hashes an array of Call structs for inclusion in the ExecutionParams leaf hash.
+    function _hashCalls(Call[] calldata calls) internal pure returns (bytes32) {
+        if (calls.length == 0) return bytes32(0);
+        bytes32[] memory hashes = new bytes32[](calls.length);
+        for (uint256 i; i < calls.length; i++) {
+            hashes[i] = keccak256(abi.encode(calls[i].target, calls[i].value, keccak256(calls[i].data)));
+        }
+        return keccak256(abi.encodePacked(hashes));
+    }
+
+    /// @dev Enforces minimum output, transfers to recipient, and returns the amount sent.
+    ///      Uses unreserved balance to prevent spending funds reserved for other active fills.
+    function _transferOutput(address token, address recipient, uint256 minOutput) internal returns (uint256 sent) {
+        uint256 available = _availableBalance(token);
+        if (available < minOutput) {
+            revert InsufficientOutput(token, available, minOutput);
+        }
+
+        sent = _min(minOutput, available);
+        if (sent > 0) _transferToken(token, recipient, sent);
+    }
+
+    /// @dev Sweeps any remaining balance of `token` back to the owner.
+    function _sweepToken(address token) internal {
+        uint256 remainder = _availableBalance(token);
+        if (remainder > 0) _transferToken(token, owner(), remainder);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //                          CALL EXECUTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
     /// @dev Executes destination calls in-order and bubbles underlying reverts.
-    function _executeCalls(Call[] memory calls) internal {
+    function _executeCalls(Call[] calldata calls) internal {
         for (uint256 i; i < calls.length; i++) {
             Address.functionCallWithValue(calls[i].target, calls[i].data, calls[i].value);
         }
@@ -387,7 +514,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     }
 
     /// @dev Releases `amount` from token-level reservation accounting.
-    ///      Reverts if release exceeds reserved amount to prevent silent underflow/clamp.
     function _releaseReserved(address token, uint256 amount) internal {
         if (amount == 0) return;
         uint256 reserved = reservedByToken[token];
@@ -414,6 +540,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     //                              RECEIVE
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @dev Accept native ETH (needed for WETH.withdraw() in destCalls and bridge fills).
+    /// @dev Accept native Token (needed for destCalls that unwrap wrapped token or produce native).
     receive() external payable {}
 }
