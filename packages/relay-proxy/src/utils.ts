@@ -222,7 +222,7 @@ async function hmacHex(secret: string, payload: string): Promise<string> {
   );
 
   const mac = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-  return bytesToHex(new Uint8Array(mac));
+  return bytesToHex(new Uint8Array(mac)).slice(2);
 }
 
 function timingSafeEqual(a: string, b: string): boolean {

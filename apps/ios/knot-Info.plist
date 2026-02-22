@@ -20,6 +20,8 @@
 	<string>$(JSONRPC_API_KEY)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan QR codes to capture wallet addresses for Send Money.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a profile photo to personalize your account.</string>
 	<key>CLIENT_TOKEN</key>
 	<string>$(CLIENT_TOKEN)</string>
 	<key>RELAY_PROXY_BASE_URL</key>

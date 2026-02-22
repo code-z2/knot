@@ -47,7 +47,16 @@ public struct KeychainStoreService: KeychainStoreProviding {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: account,
             kSecAttrService as String: service,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            kSecAttrSynchronizable as String: synchronizableValue(),
         ]
+    }
+
+    private func synchronizableValue() -> CFBoolean {
+        #if targetEnvironment(simulator)
+            kCFBooleanFalse
+        #else
+            kCFBooleanTrue
+        #endif
     }
 }

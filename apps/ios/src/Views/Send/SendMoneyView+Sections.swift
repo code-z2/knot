@@ -57,8 +57,20 @@ extension SendMoneyView {
                     secondaryAmountText: secondaryAmountText,
                     secondarySymbolText: secondarySymbolText,
                     onSwapTap: {
+                        let converted = isAmountDisplayInverted ? displayFiatAmount : assetAmount
                         withAnimation(AppAnimation.standard) {
                             isAmountDisplayInverted.toggle()
+                            if converted > 0 {
+                                amountInput = plainDecimalString(converted, maxFractionDigits: 4)
+                            } else {
+                                amountInput = ""
+                            }
+                            currentRoute = nil
+                            routeError = nil
+                            routeDebounceTask?.cancel()
+                        }
+                        if converted > 0 {
+                            resolveRoute()
                         }
                     },
                 )
