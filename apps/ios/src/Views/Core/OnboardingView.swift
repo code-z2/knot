@@ -1,6 +1,13 @@
 import SwiftUI
 
+enum OnboardingAction {
+    case createWallet
+    case signIn
+}
+
 struct OnboardingView: View {
+    let activeAction: OnboardingAction?
+    let failed: Bool
     let onCreateWallet: () -> Void
     let onLogin: () -> Void
     @State private var showContent = false
@@ -51,7 +58,10 @@ struct OnboardingView: View {
                         AppButton(
                             label: "onboarding_create_wallet",
                             variant: .default,
-                            showIcon: false,
+                            visualState: buttonState(for: .createWallet),
+                            showIcon: activeAction == .createWallet,
+                            iconName: failed ? "xmark.circle.fill" : nil,
+                            iconSize: 16,
                             backgroundColorOverride: AppThemeColor.accentBrown,
                             action: onCreateWallet,
                         )
@@ -61,7 +71,10 @@ struct OnboardingView: View {
                         AppButton(
                             label: "onboarding_log_in",
                             variant: .outline,
-                            showIcon: false,
+                            visualState: buttonState(for: .signIn),
+                            showIcon: activeAction == .signIn,
+                            iconName: failed ? "xmark.circle.fill" : nil,
+                            iconSize: 16,
                             foregroundColorOverride: AppThemeColor.grayWhite,
                             action: onLogin,
                         )
@@ -79,9 +92,15 @@ struct OnboardingView: View {
             }
         }
     }
+
+    private func buttonState(for action: OnboardingAction) -> AppButtonVisualState {
+        guard let activeAction else { return .normal }
+        guard activeAction == action else { return .normal }
+        return failed ? .error : .loading
+    }
 }
 
 #Preview {
-    OnboardingView(onCreateWallet: {}, onLogin: {})
+    OnboardingView(activeAction: nil, failed: false, onCreateWallet: {}, onLogin: {})
         .preferredColorScheme(.dark)
 }

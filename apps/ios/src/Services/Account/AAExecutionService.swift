@@ -42,13 +42,16 @@ extension AAExecutionServiceError: LocalizedError {
 final class AAExecutionService {
     private let rpcClient: RPCClient
     private let executeXPlanner: ExecuteXPlanner
+    private let biometricAuth: BiometricAuthService
 
     init(
         rpcClient: RPCClient = RPCClient(),
         executeXPlanner: ExecuteXPlanner = ExecuteXPlanner(),
+        biometricAuth: BiometricAuthService? = nil,
     ) {
         self.rpcClient = rpcClient
         self.executeXPlanner = executeXPlanner
+        self.biometricAuth = biometricAuth ?? BiometricAuthService()
     }
 
     func executeCalls(
@@ -255,6 +258,7 @@ final class AAExecutionService {
         account: AccountSession,
         chainId: UInt64,
     ) async throws -> RelayAuthorizationModel {
+        try await biometricAuth.authenticate(reason: "Authenticate to sign transaction")
         let auth = try await accountService.jitSignedAuthorization(
             account: account, chainId: chainId,
         )

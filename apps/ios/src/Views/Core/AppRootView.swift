@@ -15,7 +15,8 @@ struct AppRootView: View {
     @State private var tabChangeTrigger = 0
     @State private var currentEOA: String?
     @State private var currentAccumulatorAddress: String?
-    @State private var isWorking = false
+    @State private var onboardingAction: OnboardingAction?
+    @State private var onboardingFailed = false
     @State private var hasLocalWalletMaterial = false
     @State private var walletBackupMnemonic = ""
     @State private var walletRefreshTask: Task<Void, Never>?
@@ -50,8 +51,9 @@ struct AppRootView: View {
     }
 
     init() {
-        let sessionFlowService = AppSessionFlowService()
-        let executionService = AAExecutionService()
+        let biometricAuth = BiometricAuthService()
+        let sessionFlowService = AppSessionFlowService(biometricAuth: biometricAuth)
+        let executionService = AAExecutionService(biometricAuth: biometricAuth)
         appSessionFlowService = sessionFlowService
         walletDataFlowService = WalletDataFlowService()
         aaExecutionService = executionService
@@ -130,10 +132,11 @@ struct AppRootView: View {
                 }
         case .onboarding:
             OnboardingView(
+                activeAction: onboardingAction,
+                failed: onboardingFailed,
                 onCreateWallet: { Task { await createAccountFromOnboarding() } },
                 onLogin: { Task { await signInFromOnboarding() } },
             )
-            .disabled(isWorking)
         case .main:
             mainTabView
         case .profile:
@@ -257,16 +260,16 @@ struct AppRootView: View {
                 }
             }
 
-            Tab(value: MainTab.sessionKey) {
-                SessionKeyView()
-            } label: {
-                Label {
-                    Text("bottom_nav_session_key")
-                } icon: {
-                    Image("Icons/key_01")
-                        .renderingMode(.template)
-                }
-            }
+//            Tab(value: MainTab.sessionKey) {
+//                SessionKeyView()
+//            } label: {
+//                Label {
+//                    Text("bottom_nav_session_key")
+//                } icon: {
+//                    Image("Icons/key_01")
+//                        .renderingMode(.template)
+//                }
+//            }
         }
         .tint(AppThemeColor.accentBrown)
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: tabChangeTrigger) { _, _ in
@@ -276,11 +279,16 @@ struct AppRootView: View {
 
     @MainActor
     private func createAccountFromOnboarding() async {
-        guard !isWorking else { return }
-        isWorking = true
-        defer { isWorking = false }
+        guard onboardingAction == nil else { return }
+        onboardingAction = .createWallet
+        onboardingFailed = false
 
-        guard let sessionState = await appSessionFlowService.createWallet() else { return }
+        guard let sessionState = await appSessionFlowService.createWallet() else {
+            await showOnboardingError()
+            return
+        }
+
+        onboardingAction = nil
         applySessionState(sessionState)
         restoreCachedWalletState(walletAddress: sessionState.eoaAddress)
         selectedMainTab = .home
@@ -295,11 +303,16 @@ struct AppRootView: View {
 
     @MainActor
     private func signInFromOnboarding() async {
-        guard !isWorking else { return }
-        isWorking = true
-        defer { isWorking = false }
+        guard onboardingAction == nil else { return }
+        onboardingAction = .signIn
+        onboardingFailed = false
 
-        guard let sessionState = await appSessionFlowService.signIn() else { return }
+        guard let sessionState = await appSessionFlowService.signIn() else {
+            await showOnboardingError()
+            return
+        }
+
+        onboardingAction = nil
         applySessionState(sessionState)
         restoreCachedWalletState(walletAddress: sessionState.eoaAddress)
         selectedMainTab = .home
@@ -310,6 +323,14 @@ struct AppRootView: View {
             mode: preferencesStore.chainSupportMode,
         )
         scheduleWalletRefresh(useSilentRefresh: false)
+    }
+
+    @MainActor
+    private func showOnboardingError() async {
+        onboardingFailed = true
+        try? await Task.sleep(for: .seconds(1.5))
+        onboardingAction = nil
+        onboardingFailed = false
     }
 
     @MainActor

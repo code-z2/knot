@@ -508,6 +508,20 @@ extension SendMoneyView {
         return formatter.string(from: truncatedValue as NSDecimalNumber) ?? "0.0"
     }
 
+    /// Formats a `Decimal` as a plain digit string (no grouping separators)
+    /// suitable for use as raw keypad input.
+    func plainDecimalString(_ value: Decimal, maxFractionDigits: Int) -> String {
+        let capped = max(0, min(maxFractionDigits, 4))
+        let truncated = DecimalTruncation.truncate(value, fractionDigits: capped)
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = capped
+        return formatter.string(from: truncated as NSDecimalNumber) ?? "0"
+    }
+
     func toast(message: String) -> some View {
         ToastView(message: message)
     }

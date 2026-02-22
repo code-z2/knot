@@ -16,6 +16,7 @@ enum AppBootstrapResultModel: Sendable {
 @MainActor
 final class AppSessionFlowService {
     let accountService: AccountSetupService
+    let biometricAuth: BiometricAuthService
     private let sessionStore: SessionStore
     private let faucetService: FaucetService
 
@@ -23,10 +24,12 @@ final class AppSessionFlowService {
         accountService: AccountSetupService? = nil,
         sessionStore: SessionStore? = nil,
         faucetService: FaucetService? = nil,
+        biometricAuth: BiometricAuthService? = nil,
     ) {
         self.accountService = accountService ?? AccountSetupService()
         self.sessionStore = sessionStore ?? SessionStore()
         self.faucetService = faucetService ?? FaucetService()
+        self.biometricAuth = biometricAuth ?? BiometricAuthService()
     }
 
     func bootstrap() async -> AppBootstrapResultModel {
@@ -34,65 +37,53 @@ final class AppSessionFlowService {
             return .onboarding
         }
 
-        let restored: AccountSession
         do {
-            restored = try await accountService.restoreSession(eoaAddress: activeEOA)
+            let restored = try await accountService.restoreSession(eoaAddress: activeEOA)
+            let hasWallet = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
+            return .activeSession(
+                AppSessionStateModel(
+                    eoaAddress: restored.eoaAddress,
+                    accumulatorAddress: restored.accumulatorAddress,
+                    hasLocalWalletMaterial: hasWallet,
+                ),
+            )
         } catch {
             print("❌ [AppSessionFlowService] bootstrap restore failed: \(error.localizedDescription)")
             sessionStore.clearActiveSession()
             return .onboarding
         }
-
-        let hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(
-            for: restored.eoaAddress,
-        )
-        return .activeSession(
-            AppSessionStateModel(
-                eoaAddress: restored.eoaAddress,
-                accumulatorAddress: restored.accumulatorAddress,
-                hasLocalWalletMaterial: hasLocalWalletMaterial,
-            ),
-        )
     }
 
     func createWallet() async -> AppSessionStateModel? {
-        let restored: AccountSession
         do {
-            restored = try await accountService.createWallet()
+            let created = try await accountService.createWallet()
+            sessionStore.setActiveSession(eoaAddress: created.eoaAddress)
+            let hasWallet = await accountService.hasLocalWalletMaterial(for: created.eoaAddress)
+            return AppSessionStateModel(
+                eoaAddress: created.eoaAddress,
+                accumulatorAddress: created.accumulatorAddress,
+                hasLocalWalletMaterial: hasWallet,
+            )
         } catch {
             print("❌ [AppSessionFlowService] createWallet failed: \(error.localizedDescription)")
             return nil
         }
-
-        sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
-        let hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(
-            for: restored.eoaAddress,
-        )
-        return AppSessionStateModel(
-            eoaAddress: restored.eoaAddress,
-            accumulatorAddress: restored.accumulatorAddress,
-            hasLocalWalletMaterial: hasLocalWalletMaterial,
-        )
     }
 
     func signIn() async -> AppSessionStateModel? {
-        let restored: AccountSession
         do {
-            restored = try await accountService.signIn()
+            let restored = try await accountService.signIn()
+            sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
+            let hasWallet = await accountService.hasLocalWalletMaterial(for: restored.eoaAddress)
+            return AppSessionStateModel(
+                eoaAddress: restored.eoaAddress,
+                accumulatorAddress: restored.accumulatorAddress,
+                hasLocalWalletMaterial: hasWallet,
+            )
         } catch {
             print("❌ [AppSessionFlowService] signIn failed: \(error.localizedDescription)")
             return nil
         }
-
-        sessionStore.setActiveSession(eoaAddress: restored.eoaAddress)
-        let hasLocalWalletMaterial = await accountService.hasLocalWalletMaterial(
-            for: restored.eoaAddress,
-        )
-        return AppSessionStateModel(
-            eoaAddress: restored.eoaAddress,
-            accumulatorAddress: restored.accumulatorAddress,
-            hasLocalWalletMaterial: hasLocalWalletMaterial,
-        )
     }
 
     func signOut() {
@@ -105,7 +96,9 @@ final class AppSessionFlowService {
     ) async -> String? {
         guard let eoaAddress else { return nil }
         guard hasLocalWalletMaterial else { return nil }
-        guard await (try? accountService.verifyWalletBackupAccess(eoaAddress: eoaAddress)) != nil else {
+        do {
+            try await biometricAuth.authenticate(reason: "Authenticate to reveal your recovery phrase")
+        } catch {
             return nil
         }
         return try? await accountService.localMnemonic(for: eoaAddress)

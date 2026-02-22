@@ -39,7 +39,7 @@ struct HomeBalanceSectionView: View {
                 .frame(minWidth: 128)
                 .padding(.vertical, 10)
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.borderedProminent)
         .tint(AppThemeColor.accentBrown)
     }
 }
