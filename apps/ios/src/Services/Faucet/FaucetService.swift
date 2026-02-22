@@ -18,21 +18,10 @@ final class FaucetService: Sendable {
         do {
             _ = try await rpcClient.relayFaucetFund(
                 eoaAddress: eoaAddress,
-                supportMode: relaySupportMode(mode),
+                supportMode: mode,
             )
         } catch {
             // Silently fail — faucet funding is best-effort.
-        }
-    }
-
-    private func relaySupportMode(_ mode: ChainSupportMode) -> RelaySupportMode {
-        switch mode {
-        case .limitedTestnet:
-            .limitedTestnet
-        case .limitedMainnet:
-            .limitedMainnet
-        case .fullMainnet:
-            .fullMainnet
         }
     }
 }

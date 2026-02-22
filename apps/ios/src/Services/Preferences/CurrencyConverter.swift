@@ -127,19 +127,6 @@ struct CoinbaseCryptoRateProvider: CurrencyRateProviding {
     }
 }
 
-struct StaticRateProvider: CurrencyRateProviding {
-    let table: [String: [String: Decimal]]
-
-    init(table: [String: [String: Decimal]] = [:]) {
-        self.table = table
-    }
-
-    func latestRates(base: String) async throws -> [String: Decimal] {
-        if let row = table[base.uppercased()] { return row }
-        return [base.uppercased(): 1]
-    }
-}
-
 struct CurrencyConverter {
     let provider: CurrencyRateProviding
 

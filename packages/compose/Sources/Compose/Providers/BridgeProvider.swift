@@ -27,14 +27,14 @@ public protocol BridgeProvider: Sendable {
         destinationChainId: UInt64,
         recipient: String,
         message: Data,
-    ) async throws -> BridgeQuote
+    ) async throws -> BridgeQuoteModel
 
     /// Encode the deposit call from a quote.
     ///
     /// Returns a `Call` targeting the bridge contract on the source chain.
     /// The caller must prepend an ERC20 approve call if the input is not native.
     func encodeDeposit(
-        quote: BridgeQuote,
+        quote: BridgeQuoteModel,
         depositor: String,
         recipient: String,
         sourceChainId: UInt64,

@@ -1,4 +1,3 @@
-import AA
 import BigInt
 import Foundation
 import RPC
@@ -27,7 +26,7 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
         destinationChainId: UInt64,
         recipient: String,
         message: Data,
-    ) async throws -> BridgeQuote {
+    ) async throws -> BridgeQuoteModel {
         let messageHex = message.isEmpty ? "0x" : "0x" + message.map { String(format: "%02x", $0) }.joined()
 
         var components = URLComponents(string: "\(baseURL)/suggested-fees")!
@@ -72,13 +71,15 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
     }
 
     public func encodeDeposit(
-        quote: BridgeQuote,
+        quote: BridgeQuoteModel,
         depositor: String,
         recipient: String,
         sourceChainId: UInt64,
         destinationChainId: UInt64,
     ) throws -> Call {
-        let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
+        guard let spokePool = ChainRegistry.spokePoolAddress(chainID: sourceChainId) else {
+            throw RouteError.unsupportedChain(sourceChainId)
+        }
 
         return try SpokePoolEncoder.depositV3Call(
             spokePool: spokePool,
@@ -103,7 +104,7 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
         else {
             return false
         }
-        return FlightAssets.isFlightAsset(contractAddress: token, chainId: sourceChain)
+        return FlightAssetRegistry.isFlightAsset(contractAddress: token, chainId: sourceChain)
     }
 
     // MARK: - Private
@@ -114,7 +115,7 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
         outputToken: String,
         inputAmountWei: String,
         message: Data,
-    ) throws -> BridgeQuote {
+    ) throws -> BridgeQuoteModel {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw RouteError.quoteUnavailable(provider: "Across", reason: "Invalid JSON response")
         }
@@ -153,7 +154,7 @@ public struct AcrossBridgeProvider: BridgeProvider, Sendable {
         let outputDecimal = Decimal(string: outputAmountWei) ?? .zero
         let feeDecimal = inputDecimal - outputDecimal
 
-        return BridgeQuote(
+        return BridgeQuoteModel(
             inputAmount: inputDecimal,
             outputAmount: outputDecimal,
             relayFee: feeDecimal,

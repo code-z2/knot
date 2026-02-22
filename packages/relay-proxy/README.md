@@ -12,10 +12,17 @@ Request:
 {
   "account": "0x...",
   "supportMode": "LIMITED_TESTNET",
-  "priorityTxs": [
-    { "chainId": 8453, "request": { "from": "0x...", "to": "0x...", "data": "0x..." } }
+  "immediateTxs": [
+    {
+      "chainId": 8453,
+      "supportMode": "LIMITED_MAINNET",
+      "request": { "from": "0x...", "to": "0x...", "data": "0x..." }
+    }
   ],
-  "txs": [
+  "backgroundTxs": [
+    { "chainId": 42161, "request": { "from": "0x...", "to": "0x...", "data": "0x..." } }
+  ],
+  "deferredTxs": [
     { "chainId": 42161, "request": { "from": "0x...", "to": "0x...", "data": "0x..." } }
   ],
   "paymentOptions": [
@@ -24,11 +31,18 @@ Request:
 }
 ```
 
+Per-transaction `supportMode` is optional. If omitted, the top-level `supportMode` is used.
+
 Behavior:
-- Quotes all txs via `relayer_getFeeQuote`
+- Estimates gas per tx via viem public-client simulation (`eth_estimateGas`)
+- Quotes all txs via `relayer_getFeeQuote` using only `{ chainId, gas, token }`
+- Fee quote token policy:
+  - mainnet mode tx: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` (USDC)
+  - testnet mode tx: `0x0000000000000000000000000000000000000000` (native)
 - Debits gas tank in USDC units
-- Sends `priorityTxs` with `relayer_sendTransactionSync`
-- Sends `txs` with `relayer_sendTransaction`
+- Sends `immediateTxs` with `relayer_sendTransactionSync`
+- Sends `backgroundTxs` with `relayer_sendTransaction`
+- Stores `deferredTxs` in KV for later trigger
 
 On insufficient credit/floor breach, returns `402 payment_required`.
 
@@ -57,7 +71,7 @@ Response:
 }
 ```
 
-### `GET /v1/relay/status?chainId=...&id=...`
+### `GET /v1/relay/status?id=...&supportMode=...`
 
 Proxies `relayer_getStatus`.
 
@@ -114,7 +128,8 @@ Defaults:
 
 Required:
 - `RELAY_AUTH_TOKEN`
-- `GELATO_API_KEY`
+- `GELATO_MAINNET_API_KEY`
+- `GELATO_TESTNET_API_KEY`
 - `GAS_TANK_KV` (Wrangler KV binding)
 - `PINATA_JWT`
 - `PINATA_GATEWAY_BASE_URL`
@@ -122,15 +137,12 @@ Required:
 
 Optional:
 - `RELAY_AUTH_HMAC_SECRET`
-- `GELATO_RPC_TEMPLATE`
+- `GELATO_SYNC_TIMEOUT_MS` (wait timeout for `immediateTxs`)
 - `FAUCET_FUNDING_KV` (Wrangler KV binding; falls back to `GAS_TANK_KV` if omitted)
 - `PINATA_SIGN_EXPIRES_SECONDS`
 - `PINATA_MAX_FILE_SIZE_BYTES`
 - `PINATA_GROUP_FIELD` (`group_id` or `group`, default: `group_id`)
 - `FAUCET_PRIVATE_KEY`
-- `FAUCET_RPC_SEPOLIA`
-- `FAUCET_RPC_BASE_SEPOLIA`
-- `FAUCET_RPC_ARB_SEPOLIA`
 - `INITIAL_CREDIT_USDC`
 - `FLOOR_LIMITED_TESTNET_USDC`
 - `FLOOR_LIMITED_MAINNET_USDC`
@@ -147,7 +159,8 @@ wrangler kv namespace create GAS_TANK_KV
 3. Set required secrets:
 ```bash
 wrangler secret put RELAY_AUTH_TOKEN
-wrangler secret put GELATO_API_KEY
+wrangler secret put GELATO_MAINNET_API_KEY
+wrangler secret put GELATO_TESTNET_API_KEY
 wrangler secret put PINATA_JWT
 wrangler secret put FAUCET_PRIVATE_KEY
 ```
@@ -164,16 +177,16 @@ wrangler deploy
 
 `POST /v1/relay/submit` processing order:
 1. Verify bearer token (+ optional HMAC header).
-2. Validate payload shape (`account`, `supportMode`, `priorityTxs`, `txs`).
-3. Detect per-chain initialization requirement (`eth_getCode`) and mark exactly one valid initialize tx as free when needed.
-4. Quote only billable txs through Gelato `relayer_getFeeQuote`.
-   On already-initialized chains, auth-bearing transactions are allowed and billed normally.
-5. Read KV gas-tank balance for `gas-tank:<mode>:<account>`.
-6. Enforce mode floor (`LIMITED_*` can go negative by configured floor).
-7. Debit estimated total from KV.
-8. Submit all `priorityTxs` with `relayer_sendTransactionSync`.
-9. Submit all remaining `txs` with `relayer_sendTransaction`.
-10. Return relay task IDs + accounting summary.
+2. Validate payload shape (`account`, `supportMode`, `immediateTxs`, `backgroundTxs`, `deferredTxs`).
+3. Validate each transaction `request.from` and any EIP-7702 `authorizationList` signer against `account`.
+4. Simulate gas for relay-now txs (`immediateTxs + backgroundTxs`) via viem `eth_estimateGas`.
+5. Quote relay-now txs through Gelato `relayer_getFeeQuote` with `{ chainId, gas, token }`.
+6. Read KV gas-tank balance for `gas-tank:<mode>:<account>`.
+7. Enforce mode floor (`LIMITED_*` can go negative by configured floor).
+8. Debit estimated total from KV.
+9. Submit all `immediateTxs` with `relayer_sendTransactionSync`.
+10. Submit all `backgroundTxs` with `relayer_sendTransaction`.
+11. Persist all `deferredTxs` in KV and return IDs + accounting summary.
 
 `POST /v1/images/direct-upload` processing order:
 1. Verify bearer token (+ optional HMAC header).
@@ -186,8 +199,7 @@ wrangler deploy
 2. Validate faucet payload (`eoaAddress`, `supportMode`).
 3. For `LIMITED_TESTNET`, check KV key `faucet-funded:<mode>:<account>`.
 4. If funded/pending, return immediately without resubmitting transfers.
-5. If not funded, mark pending and queue testnet funding on configured chains.
-   If faucet RPC vars are unset, worker falls back to Gelato RPC template per chain.
+5. If not funded, mark pending and queue testnet funding on Sepolia/Base Sepolia/Arbitrum Sepolia.
 6. On success, persist funded marker in KV. On failure, clear pending marker.
 
 ## Local Dev

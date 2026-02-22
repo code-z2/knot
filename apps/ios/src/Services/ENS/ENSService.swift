@@ -69,9 +69,11 @@ final class ENSService {
 
     func resolveName(name: String) async throws -> String {
         do {
-            return try await client.resolveName(
-                ResolveNameRequest(name: name),
-            )
+            return try await withRetry {
+                try await self.client.resolveName(
+                    ResolveNameRequestModel(name: name),
+                )
+            }
         } catch {
             throw ENSServiceError.actionFailed(error)
         }
@@ -79,9 +81,11 @@ final class ENSService {
 
     func reverseAddress(address: String) async throws -> String {
         do {
-            return try await client.reverseAddress(
-                ReverseAddressRequest(address: address),
-            )
+            return try await withRetry {
+                try await self.client.reverseAddress(
+                    ReverseAddressRequestModel(address: address),
+                )
+            }
         } catch {
             throw ENSServiceError.actionFailed(error)
         }
@@ -93,15 +97,23 @@ final class ENSService {
         initialRecords: [ENSRecordDraft] = [],
         duration: UInt = 31_536_000,
     ) async throws -> ENSRegistrationPayloads {
+        print("⚙️ [ENSService] Resolving ENS Registration Payloads for \(name)")
         do {
-            let result = try await client.registerName(
-                RegisterNameRequest(
-                    name: name,
-                    ownerAddress: ownerAddress,
-                    duration: duration,
-                    initialTextRecords: initialRecords.map { InitialTextRecord(key: $0.key, value: $0.value) },
-                ),
-            )
+            let result = try await withRetry {
+                try await self.client.registerName(
+                    RegisterNameRequestModel(
+                        name: name,
+                        ownerAddress: ownerAddress,
+                        duration: duration,
+                        initialTextRecords: initialRecords.map {
+                            InitialTextRecordModel(key: $0.key, value: $0.value)
+                        },
+                    ),
+                )
+            }
+            print("✅ [ENSService] Payloads determined.")
+            print("   - Commit Call Value (Wei): \(result.commitCall.valueWei)")
+            print("   - Register Call Value (Wei): \(result.registerCall.valueWei)")
             return ENSRegistrationPayloads(
                 commitCall: result.commitCall,
                 registerCall: result.registerCall,
@@ -112,59 +124,21 @@ final class ENSService {
         }
     }
 
-    func quoteName(
-        name: String,
-        duration: UInt = 31_536_000,
-    ) async throws -> ENSNameQuote {
-        do {
-            let quote = try await client.quoteRegistration(
-                RegisterNameRequest(
-                    name: name,
-                    ownerAddress: "0x0000000000000000000000000000000000000000",
-                    duration: duration,
-                ),
-            )
-            return ENSNameQuote(
-                normalizedName: quote.normalizedName,
-                available: quote.available,
-                rentPriceWei: quote.rentPriceWei,
-            )
-        } catch {
-            throw ENSServiceError.actionFailed(error)
-        }
-    }
-
-    func addRecordPayload(
+    func setTextRecordPayload(
         name: String,
         key: String,
         value: String,
     ) async throws -> Call {
         do {
-            return try await client.addRecord(
-                AddRecordRequest(
-                    name: name,
-                    recordKey: key,
-                    recordValue: value,
-                ),
-            )
-        } catch {
-            throw ENSServiceError.actionFailed(error)
-        }
-    }
-
-    func updateRecordPayload(
-        name: String,
-        key: String,
-        value: String,
-    ) async throws -> Call {
-        do {
-            return try await client.updateRecord(
-                UpdateRecordRequest(
-                    name: name,
-                    recordKey: key,
-                    recordValue: value,
-                ),
-            )
+            return try await withRetry {
+                try await self.client.setTextRecord(
+                    TextRecordRequestModel(
+                        name: name,
+                        recordKey: key,
+                        recordValue: value,
+                    ),
+                )
+            }
         } catch {
             throw ENSServiceError.actionFailed(error)
         }
@@ -175,11 +149,61 @@ final class ENSService {
         key: String,
     ) async throws -> String {
         do {
-            return try await client.textRecord(
-                TextRecordRequest(name: name, recordKey: key),
-            )
+            return try await withRetry {
+                try await self.client.textRecord(
+                    TextRecordRequestModel(name: name, recordKey: key),
+                )
+            }
         } catch {
             throw ENSServiceError.actionFailed(error)
         }
+    }
+
+    private func withRetry<T>(
+        maxAttempts: Int = 2,
+        operation: @escaping () async throws -> T,
+    ) async throws -> T {
+        precondition(maxAttempts >= 1)
+        var attempt = 0
+        var lastError: Error?
+
+        while attempt < maxAttempts {
+            do {
+                return try await operation()
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+                attempt += 1
+                guard attempt < maxAttempts, shouldRetry(error: error) else {
+                    throw error
+                }
+                do {
+                    try await Task.sleep(for: .milliseconds(250))
+                } catch {
+                    throw error
+                }
+            }
+        }
+
+        throw lastError
+            ?? ENSServiceError.actionFailed(
+                NSError(
+                    domain: "ENSService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown ENS error"],
+                ),
+            )
+    }
+
+    private func shouldRetry(error: Error) -> Bool {
+        if error is URLError {
+            return true
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            return true
+        }
+
+        return false
     }
 }

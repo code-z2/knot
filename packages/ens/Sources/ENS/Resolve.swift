@@ -3,7 +3,7 @@ import Web3Core
 import web3swift
 
 public extension ENSClient {
-    func resolveName(_ request: ResolveNameRequest) async throws -> String {
+    func resolveName(_ request: ResolveNameRequestModel) async throws -> String {
         let name = Self.normalizedENSName(request.name)
         print("[ENSClient] resolveName: normalized=\(name), chainID=\(configuration.chainID)")
         guard !name.isEmpty else { throw ENSError.invalidName }
@@ -49,7 +49,7 @@ public extension ENSClient {
         return address.address
     }
 
-    func reverseAddress(_ request: ReverseAddressRequest) async throws -> String {
+    func reverseAddress(_ request: ReverseAddressRequestModel) async throws -> String {
         guard let address = EthereumAddress(request.address) else {
             throw ENSError.invalidAddress(request.address)
         }

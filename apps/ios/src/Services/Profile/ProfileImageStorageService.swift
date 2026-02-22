@@ -7,6 +7,17 @@ enum ProfileImageStorageError: LocalizedError {
     case requestFailed(statusCode: Int, reason: String?)
     case pendingUpload
 
+    var isRetryable: Bool {
+        switch self {
+        case .missingCacheDirectory, .pendingUpload:
+            false
+        case .invalidResponse:
+            true
+        case let .requestFailed(statusCode, _):
+            statusCode == 429 || (500 ... 599).contains(statusCode)
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .missingCacheDirectory:
@@ -75,17 +86,21 @@ final class ProfileImageStorageService {
         fileName: String,
         mimeType: String,
     ) async throws -> URL {
-        let uploadSession = try await createDirectUploadSession(
-            eoaAddress: eoaAddress,
-            fileName: fileName,
-            mimeType: mimeType,
-        )
-        let cid = try await uploadBinary(
-            data: data,
-            mimeType: mimeType,
-            fileName: fileName,
-            uploadURL: uploadSession.uploadURL,
-        )
+        let uploadSession = try await withRetry {
+            try await self.createDirectUploadSession(
+                eoaAddress: eoaAddress,
+                fileName: fileName,
+                mimeType: mimeType,
+            )
+        }
+        let cid = try await withRetry {
+            try await self.uploadBinary(
+                data: data,
+                mimeType: mimeType,
+                fileName: fileName,
+                uploadURL: uploadSession.uploadURL,
+            )
+        }
 
         return try resolveDeliveryURL(
             gatewayBaseURL: uploadSession.gatewayBaseURL,
@@ -97,7 +112,7 @@ final class ProfileImageStorageService {
         eoaAddress: String,
         fileName: String,
         mimeType: String,
-    ) async throws -> RelayImageUploadSession {
+    ) async throws -> RelayImageUploadSessionModel {
         try await rpcClient.relayCreateImageUploadSession(
             eoaAddress: eoaAddress,
             fileName: fileName,
@@ -204,5 +219,48 @@ final class ProfileImageStorageService {
         let filteredScalars = value.lowercased().unicodeScalars.filter { allowed.contains($0) }
         let normalized = String(String.UnicodeScalarView(filteredScalars))
         return normalized.isEmpty ? "user" : normalized
+    }
+
+    private func withRetry<T>(
+        maxAttempts: Int = 2,
+        operation: @escaping () async throws -> T,
+    ) async throws -> T {
+        precondition(maxAttempts >= 1)
+        var attempt = 0
+        var lastError: Error?
+
+        while attempt < maxAttempts {
+            do {
+                return try await operation()
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+                attempt += 1
+                guard attempt < maxAttempts, shouldRetry(error: error) else {
+                    throw error
+                }
+                do {
+                    try await Task.sleep(for: .milliseconds(300))
+                } catch {
+                    throw error
+                }
+            }
+        }
+
+        throw lastError ?? ProfileImageStorageError.invalidResponse
+    }
+
+    private func shouldRetry(error: Error) -> Bool {
+        if let storageError = error as? ProfileImageStorageError {
+            return storageError.isRetryable
+        }
+
+        if error is URLError {
+            return true
+        }
+
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain
     }
 }

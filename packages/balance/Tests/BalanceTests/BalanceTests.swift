@@ -173,7 +173,7 @@ final class BalanceTests: XCTestCase {
         NSDecimalNumber(decimal: value).stringValue
     }
 
-    private func mapping(chainIDs: Set<UInt64>) -> ZerionChainMapping {
+    private func mapping(chainIDs: Set<UInt64>) -> ZerionChainMappingModel {
         let baseMapping: [UInt64: String] = [
             1: "ethereum",
             8453: "base",
@@ -193,7 +193,7 @@ final class BalanceTests: XCTestCase {
             chainIDByZerionID[zerionID] = chainID
         }
 
-        return ZerionChainMapping(
+        return ZerionChainMappingModel(
             zerionIDByChainID: zerionIDByChainID,
             chainIDByZerionID: chainIDByZerionID,
         )

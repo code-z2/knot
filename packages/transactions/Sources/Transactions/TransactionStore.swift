@@ -2,12 +2,12 @@ import Foundation
 import RPC
 
 /// Serializable cache payload for `TransactionStore`.
-public struct TransactionStoreSnapshot: Codable, Sendable {
-    public let sections: [TransactionDateSection]
+public struct TransactionStoreSnapshotModel: Codable, Sendable {
+    public let sections: [TransactionDateSectionModel]
     public let hasMore: Bool
     public let lastRefreshed: Date?
 
-    public init(sections: [TransactionDateSection], hasMore: Bool, lastRefreshed: Date?) {
+    public init(sections: [TransactionDateSectionModel], hasMore: Bool, lastRefreshed: Date?) {
         self.sections = sections
         self.hasMore = hasMore
         self.lastRefreshed = lastRefreshed
@@ -21,7 +21,7 @@ public struct TransactionStoreSnapshot: Codable, Sendable {
 @MainActor
 @Observable
 public final class TransactionStore {
-    public private(set) var sections: [TransactionDateSection] = []
+    public private(set) var sections: [TransactionDateSectionModel] = []
     public private(set) var isLoading: Bool = false
     public private(set) var hasMore: Bool = false
     public private(set) var lastRefreshed: Date?
@@ -165,7 +165,7 @@ public final class TransactionStore {
     }
 
     /// Merge new sections into existing (handle date-boundary merging).
-    private func mergeSections(_ newSections: [TransactionDateSection]) {
+    private func mergeSections(_ newSections: [TransactionDateSectionModel]) {
         guard !newSections.isEmpty else { return }
 
         if sections.isEmpty {
@@ -179,7 +179,7 @@ public final class TransactionStore {
         {
             var merged = sections
             let lastIndex = merged.count - 1
-            merged[lastIndex] = TransactionDateSection(
+            merged[lastIndex] = TransactionDateSectionModel(
                 id: lastExisting.id,
                 title: lastExisting.title,
                 transactions: lastExisting.transactions + firstNew.transactions,
@@ -191,15 +191,15 @@ public final class TransactionStore {
         }
     }
 
-    public func snapshot() -> TransactionStoreSnapshot {
-        TransactionStoreSnapshot(
+    public func snapshot() -> TransactionStoreSnapshotModel {
+        TransactionStoreSnapshotModel(
             sections: sections,
             hasMore: hasMore,
             lastRefreshed: lastRefreshed,
         )
     }
 
-    public func restore(from snapshot: TransactionStoreSnapshot) {
+    public func restore(from snapshot: TransactionStoreSnapshotModel) {
         sections = snapshot.sections
         hasMore = snapshot.hasMore
         lastRefreshed = snapshot.lastRefreshed

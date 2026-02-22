@@ -5,7 +5,7 @@ import Passkey
 import RPC
 internal import SignHandler
 
-typealias AccountIdentity = AccountSetup.AccountIdentity
+typealias AccountSession = AccountSetup.AccountSession
 
 enum AccountSetupServiceError: Error {
     case createWalletFailed(Error)
@@ -61,15 +61,15 @@ final class AccountSetupService {
         self.rpcClient = rpcClient ?? RPCClient()
     }
 
-    func createWallet() async throws -> AccountIdentity {
+    func createWallet() async throws -> AccountSession {
         let creationChainId = supportedChainIDs.first ?? 1
         do {
-            let created = try await service.createEOAAndPasskey(
+            let created = try await service.provisionAccount(
                 delegateAddress: defaultDelegateAddress,
                 chainId: creationChainId,
                 nonce: 0,
             )
-            return AccountIdentity(
+            return AccountSession(
                 eoaAddress: created.eoaAddress,
                 accumulatorAddress: created.accumulatorAddress,
                 passkeyCredentialID: created.passkey.credentialID,
@@ -79,26 +79,26 @@ final class AccountSetupService {
         }
     }
 
-    func signIn() async throws -> AccountIdentity {
+    func signIn() async throws -> AccountSession {
         do {
-            return try await service.signInWithPasskey()
+            return try await service.authenticateAccount()
         } catch {
             throw AccountSetupServiceError.signInFailed(error)
         }
     }
 
-    func restoreSession(eoaAddress: String) async throws -> AccountIdentity {
+    func restoreSession(eoaAddress: String) async throws -> AccountSession {
         do {
-            return try await service.restoreStoredSession(eoaAddress: eoaAddress)
+            return try await service.restoreAccount(eoaAddress: eoaAddress)
         } catch {
             throw AccountSetupServiceError.restoreSessionFailed(error)
         }
     }
 
-    func restoreSession(account: AccountIdentity) async throws -> AccountIdentity {
+    func restoreSession(account: AccountSession) async throws -> AccountSession {
         do {
-            let passkey = try await service.passkeyPublicKey(account: account)
-            let stored = try await service.storedAccounts()
+            let passkey = try await service.passkeyPublicKey(for: account)
+            let stored = try await service.listStoredAccounts()
             if let match = stored.first(where: {
                 $0.passkeyCredentialID == passkey.credentialID
             }) {
@@ -107,14 +107,6 @@ final class AccountSetupService {
             throw AccountSetupError.missingStoredAccount(account.eoaAddress)
         } catch {
             throw AccountSetupServiceError.restoreSessionFailed(error)
-        }
-    }
-
-    func knownAccounts() async throws -> [AccountIdentity] {
-        do {
-            return try await service.storedAccounts()
-        } catch {
-            throw AccountSetupServiceError.knownAccountsFailed(error)
         }
     }
 
@@ -130,17 +122,17 @@ final class AccountSetupService {
         await (try? localMnemonic(for: eoaAddress)) != nil
     }
 
-    func passkeyPublicKeyData(for account: AccountIdentity) async throws -> PasskeyPublicKey {
+    func passkeyPublicKeyData(for account: AccountSession) async throws -> PasskeyPublicKeyModel {
         do {
-            return try await service.passkeyPublicKey(account: account)
+            return try await service.passkeyPublicKey(for: account)
         } catch {
             throw AccountSetupServiceError.passkeyLookupFailed(error)
         }
     }
 
-    func signPayloadWithStoredPasskey(account: AccountIdentity, payload: Data) async throws -> Data {
+    func signWithStoredPasskey(account: AccountSession, payload: Data) async throws -> Data {
         do {
-            return try await service.signPayloadWithStoredPasskey(
+            return try await service.signWithStoredPasskey(
                 account: account,
                 payload: payload,
             )
@@ -149,9 +141,9 @@ final class AccountSetupService {
         }
     }
 
-    func signEthMessageDigestWithStoredWallet(account: AccountIdentity, digest32: Data) async throws -> Data {
+    func signEthDigestWithStoredWallet(account: AccountSession, digest32: Data) async throws -> Data {
         do {
-            return try await service.signEthMessageDigestWithStoredWallet(account: account, digest32: digest32)
+            return try await service.signEthDigestWithStoredWallet(account: account, digest32: digest32)
         } catch {
             throw AccountSetupServiceError.walletMaterialLookupFailed(error)
         }
@@ -159,8 +151,8 @@ final class AccountSetupService {
 
     func verifyWalletBackupAccess(eoaAddress: String) async throws {
         do {
-            let account = try await service.restoreStoredSession(eoaAddress: eoaAddress)
-            try await service.verifyStoredPasskeyForSensitiveAction(
+            let account = try await service.restoreAccount(eoaAddress: eoaAddress)
+            try await service.verifyStoredPasskey(
                 account: account,
                 action: "wallet-backup",
             )
@@ -169,8 +161,8 @@ final class AccountSetupService {
         }
     }
 
-    func storedSignedAuthorization(account: AccountIdentity, chainId: UInt64) async throws
-        -> EIP7702AuthorizationSigned
+    func jitSignedAuthorization(account: AccountSession, chainId: UInt64) async throws
+        -> EIP7702AuthorizationSignedModel
     {
         do {
             let nonceHex = try await rpcClient.makeRpcCall(
@@ -191,7 +183,7 @@ final class AccountSetupService {
                 )
             }
 
-            return try await service.signedAuthorization(
+            return try await service.signedAuthorizationForChain(
                 account: account,
                 chainId: chainId,
                 delegateAddress: defaultDelegateAddress,

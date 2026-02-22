@@ -1,4 +1,3 @@
-import AA
 import Balance
 import BigInt
 import Foundation
@@ -9,7 +8,7 @@ import Transactions
 ///
 /// Given a source asset, destination chain/token, and amount, the RouteComposer
 /// determines the optimal sequence of on-chain calls (transfers, approvals,
-/// swaps, bridges) and returns ready-to-sign `[ChainCalls]` + an optional `jobId`.
+/// swaps, bridges) and returns ready-to-sign `[ChainActionModel]` + an optional `jobId`.
 ///
 /// Routes are resolved across 5 cases:
 /// 1. Same-chain direct transfer
@@ -44,18 +43,18 @@ public actor RouteComposer {
     ///   - destTokenDecimals: Decimal places for the destination token.
     ///   - amount: Amount in human-readable decimal (source asset units).
     ///   - accumulatorAddress: Precomputed accumulator address for this user (from SmartAccountClient).
-    /// - Returns: A `TransferRoute` with calldata and visualization steps.
+    /// - Returns: A `TransferRouteModel` with calldata and visualization steps.
     public func getRoute(
         fromAddress: String,
         toAddress: String,
-        sourceAsset: TokenBalance,
+        sourceAsset: TokenBalanceModel,
         destChainId: UInt64,
         destToken: String,
         destTokenSymbol: String,
         destTokenDecimals: Int,
         amount: Decimal,
         accumulatorAddress: String?,
-    ) async throws -> TransferRoute {
+    ) async throws -> TransferRouteModel {
         // Validate inputs
         guard amount > 0 else {
             throw RouteError.insufficientBalance
@@ -120,7 +119,7 @@ public actor RouteComposer {
         // Try single source chain first (Cases 3 & 4)
         if let singleSource = sourceChainsWithBalance.first(where: { $0.balance >= amount && $0.chainID != destChainId }) {
             let sourceTokenAddress = singleSource.contractAddress
-            let isSourceFlightAsset = FlightAssets.isFlightAsset(
+            let isSourceFlightAsset = FlightAssetRegistry.isFlightAsset(
                 contractAddress: sourceTokenAddress, chainId: singleSource.chainID,
             )
 
@@ -183,12 +182,12 @@ public actor RouteComposer {
     private func buildDirectTransferRoute(
         fromAddress _: String,
         toAddress: String,
-        sourceAsset: TokenBalance,
+        sourceAsset: TokenBalanceModel,
         destChainId: UInt64,
         amount: Decimal,
         amountWei: String,
         chainName: String,
-    ) throws -> TransferRoute {
+    ) throws -> TransferRouteModel {
         let call: Call = if sourceAsset.isNative {
             ERC20Encoder.nativeTransferCall(to: toAddress, amountWei: amountWei)
         } else {
@@ -199,7 +198,7 @@ public actor RouteComposer {
             )
         }
 
-        let step = RouteStep(
+        let step = RouteStepModel(
             chainId: destChainId,
             chainName: chainName,
             action: .transfer,
@@ -209,9 +208,9 @@ public actor RouteComposer {
             outputSymbol: sourceAsset.symbol,
         )
 
-        return TransferRoute(
+        return TransferRouteModel(
             steps: [step],
-            chainCalls: [ChainCalls(chainId: destChainId, calls: [call])],
+            chainActions: [ChainActionModel(chainId: destChainId, calls: [call])],
             jobId: nil,
             destinationChainId: destChainId,
             estimatedAmountOut: amount,
@@ -224,7 +223,7 @@ public actor RouteComposer {
     private func buildSwapTransferRoute(
         fromAddress: String,
         toAddress _: String,
-        sourceAsset: TokenBalance,
+        sourceAsset: TokenBalanceModel,
         destChainId: UInt64,
         destToken: String,
         destTokenSymbol: String,
@@ -232,7 +231,7 @@ public actor RouteComposer {
         amount: Decimal,
         amountWei: String,
         chainName: String,
-    ) async throws -> TransferRoute {
+    ) async throws -> TransferRouteModel {
         let quote = try await swapProvider.getQuote(
             inputToken: sourceAsset.contractAddress,
             outputToken: destToken,
@@ -263,7 +262,7 @@ public actor RouteComposer {
 
         let outputAmount = weiToAmount(quote.outputAmountWei, decimals: destTokenDecimals)
 
-        let step = RouteStep(
+        let step = RouteStepModel(
             chainId: destChainId,
             chainName: chainName,
             action: .swap,
@@ -273,9 +272,9 @@ public actor RouteComposer {
             outputSymbol: destTokenSymbol,
         )
 
-        return TransferRoute(
+        return TransferRouteModel(
             steps: [step],
-            chainCalls: [ChainCalls(chainId: destChainId, calls: calls)],
+            chainActions: [ChainActionModel(chainId: destChainId, calls: calls)],
             jobId: nil,
             destinationChainId: destChainId,
             estimatedAmountOut: outputAmount,
@@ -288,7 +287,7 @@ public actor RouteComposer {
     private func buildSimpleBridgeRoute(
         fromAddress: String,
         toAddress: String,
-        sourceAsset: TokenBalance,
+        sourceAsset: TokenBalanceModel,
         sourceChainId: UInt64,
         sourceChainName: String,
         destChainId: UInt64,
@@ -296,7 +295,7 @@ public actor RouteComposer {
         destTokenSymbol: String,
         amount: Decimal,
         amountWei: String,
-    ) async throws -> TransferRoute {
+    ) async throws -> TransferRouteModel {
         let quote = try await bridgeProvider.getQuote(
             inputToken: sourceAsset.contractAddress,
             outputToken: destToken,
@@ -311,7 +310,7 @@ public actor RouteComposer {
 
         // Approve SpokePool if ERC20
         if !sourceAsset.isNative {
-            let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
+            let spokePool = try spokePoolAddress(chainId: sourceChainId)
             let approveCall = try ERC20Encoder.approveCall(
                 token: sourceAsset.contractAddress,
                 spender: spokePool,
@@ -332,7 +331,7 @@ public actor RouteComposer {
 
         let outputAmount = weiToAmount(quote.outputAmountWei, decimals: sourceAsset.decimals)
 
-        let step = RouteStep(
+        let step = RouteStepModel(
             chainId: sourceChainId,
             chainName: sourceChainName,
             action: .bridge,
@@ -342,9 +341,9 @@ public actor RouteComposer {
             outputSymbol: destTokenSymbol,
         )
 
-        return TransferRoute(
+        return TransferRouteModel(
             steps: [step],
-            chainCalls: [ChainCalls(chainId: sourceChainId, calls: calls)],
+            chainActions: [ChainActionModel(chainId: sourceChainId, calls: calls)],
             jobId: nil,
             destinationChainId: destChainId,
             estimatedAmountOut: outputAmount,
@@ -356,8 +355,8 @@ public actor RouteComposer {
 
     private func buildBridgeSwapRoute(
         fromAddress: String,
-        toAddress: String,
-        sourceAsset: TokenBalance,
+        toAddress _: String,
+        sourceAsset: TokenBalanceModel,
         sourceChainId: UInt64,
         sourceChainName: String,
         destChainId: UInt64,
@@ -367,9 +366,9 @@ public actor RouteComposer {
         amount: Decimal,
         amountWei: String,
         accumulatorAddress: String,
-    ) async throws -> TransferRoute {
+    ) async throws -> TransferRouteModel {
         // Find flight asset (bridge intermediary)
-        guard let flight = FlightAssets.bestFlightAsset(
+        guard let flight = FlightAssetRegistry.bestFlightAsset(
             sourceChain: sourceChainId, destChain: destChainId,
         ) else {
             throw RouteError.noRouteFound(
@@ -378,7 +377,7 @@ public actor RouteComposer {
         }
 
         var sourceCalls: [Call] = []
-        var steps: [RouteStep] = []
+        var steps: [RouteStepModel] = []
         var bridgeInputAmountWei = amountWei
         var bridgeInputToken = sourceAsset.contractAddress
 
@@ -412,7 +411,7 @@ public actor RouteComposer {
             ))
 
             let swapOutput = weiToAmount(swapQuote.outputAmountWei, decimals: flight.source.decimals)
-            steps.append(RouteStep(
+            steps.append(RouteStepModel(
                 chainId: sourceChainId,
                 chainName: sourceChainName,
                 action: .swap,
@@ -449,29 +448,7 @@ public actor RouteComposer {
             valueWei: destSwapQuote.swapValue,
         ))
 
-        let nonce = UInt64(Date().timeIntervalSince1970)
-
-        // Encode Accumulator message
-        let message = try AccumulatorEncoder.encodeMessage(
-            inputToken: flight.dest.contractAddress,
-            outputToken: destToken,
-            recipient: toAddress,
-            minInputWei: bridgeInputAmountWei,
-            minOutputWei: destSwapQuote.outputAmountWei,
-            swapCalls: destSwapCalls,
-            nonce: nonce,
-        )
-
-        // Compute jobId
-        let jobId = try AccumulatorEncoder.computeJobId(
-            owner: fromAddress,
-            inputToken: flight.dest.contractAddress,
-            outputToken: destToken,
-            recipient: toAddress,
-            minInputWei: bridgeInputAmountWei,
-            minOutputWei: destSwapQuote.outputAmountWei,
-            swapCalls: destSwapCalls,
-        )
+        let message = Data()
 
         // Step 3: Bridge flight asset → Accumulator with message
         let bridgeQuote = try await bridgeProvider.getQuote(
@@ -486,7 +463,7 @@ public actor RouteComposer {
 
         // Approve SpokePool for flight asset
         if !ERC20Encoder.isNative(bridgeInputToken) {
-            let spokePool = try AAConstants.spokePoolAddress(chainId: sourceChainId)
+            let spokePool = try spokePoolAddress(chainId: sourceChainId)
             try sourceCalls.append(ERC20Encoder.approveCall(
                 token: bridgeInputToken,
                 spender: spokePool,
@@ -505,7 +482,7 @@ public actor RouteComposer {
         sourceCalls.append(depositCall)
 
         let bridgeOutput = weiToAmount(bridgeQuote.outputAmountWei, decimals: flight.dest.decimals)
-        steps.append(RouteStep(
+        steps.append(RouteStepModel(
             chainId: sourceChainId,
             chainName: sourceChainName,
             action: .accumulate,
@@ -517,13 +494,13 @@ public actor RouteComposer {
 
         let finalOutput = weiToAmount(destSwapQuote.outputAmountWei, decimals: destTokenDecimals)
 
-        return TransferRoute(
+        return TransferRouteModel(
             steps: steps,
-            chainCalls: [
-                ChainCalls(chainId: sourceChainId, calls: sourceCalls),
-                ChainCalls(chainId: destChainId, calls: []), // registerJob injected by prelude
+            chainActions: [
+                ChainActionModel(chainId: sourceChainId, calls: sourceCalls),
+                ChainActionModel(chainId: destChainId, calls: []), // registerJob injected by prelude
             ],
-            jobId: jobId,
+            jobId: nil,
             destinationChainId: destChainId,
             estimatedAmountOut: finalOutput,
             estimatedAmountOutSymbol: destTokenSymbol,
@@ -534,24 +511,24 @@ public actor RouteComposer {
 
     private func buildAccumulateRoute(
         fromAddress: String,
-        toAddress: String,
-        sourceAsset: TokenBalance,
-        sourceChainsWithBalance: [ChainBalance],
+        toAddress _: String,
+        sourceAsset: TokenBalanceModel,
+        sourceChainsWithBalance: [ChainBalanceModel],
         destChainId: UInt64,
         destToken: String,
         destTokenSymbol: String,
         destTokenDecimals: Int,
         totalAmount: Decimal,
         accumulatorAddress: String,
-    ) async throws -> TransferRoute {
+    ) async throws -> TransferRouteModel {
         // Find flight asset for each source chain → dest chain
-        guard let destFlight = FlightAssets.byChain[destChainId]?.first else {
+        guard let destFlight = FlightAssetRegistry.byChain[destChainId]?.first else {
             throw RouteError.noRouteFound(reason: "No flight asset on destination chain \(destChainId)")
         }
 
         // Determine how much to pull from each source chain
         var remaining = totalAmount
-        var allocations: [(chain: ChainBalance, amount: Decimal)] = []
+        var allocations: [(chain: ChainBalanceModel, amount: Decimal)] = []
 
         for chain in sourceChainsWithBalance {
             guard remaining > 0 else { break }
@@ -601,36 +578,16 @@ public actor RouteComposer {
             finalOutputSymbol = destTokenSymbol
         }
 
-        let nonce = UInt64(Date().timeIntervalSince1970)
-
-        let message = try AccumulatorEncoder.encodeMessage(
-            inputToken: destFlight.contractAddress,
-            outputToken: destToken,
-            recipient: toAddress,
-            minInputWei: totalBridgeInputWei,
-            minOutputWei: destMinOutputWei,
-            swapCalls: destSwapCalls,
-            nonce: nonce,
-        )
-
-        let jobId = try AccumulatorEncoder.computeJobId(
-            owner: fromAddress,
-            inputToken: destFlight.contractAddress,
-            outputToken: destToken,
-            recipient: toAddress,
-            minInputWei: totalBridgeInputWei,
-            minOutputWei: destMinOutputWei,
-            swapCalls: destSwapCalls,
-        )
+        let message = Data()
 
         // Build bridge calls for each source chain
-        var allChainCalls: [ChainCalls] = []
-        var steps: [RouteStep] = []
+        var allChainActions: [ChainActionModel] = []
+        var steps: [RouteStepModel] = []
 
         for (chain, allocationAmount) in allocations {
             let allocationWei = amountToWei(allocationAmount, decimals: sourceAsset.decimals)
 
-            guard let sourceFlight = FlightAssets.bestFlightAsset(
+            guard let sourceFlight = FlightAssetRegistry.bestFlightAsset(
                 sourceChain: chain.chainID, destChain: destChainId,
             ) else {
                 throw RouteError.noRouteFound(
@@ -638,7 +595,7 @@ public actor RouteComposer {
                 )
             }
 
-            var chainCallsList: [Call] = []
+            var chainActionsList: [Call] = []
             var bridgeAmountWei = allocationWei
             var bridgeToken = sourceAsset.contractAddress
 
@@ -656,14 +613,14 @@ public actor RouteComposer {
                 )
 
                 if !sourceAsset.isNative {
-                    try chainCallsList.append(ERC20Encoder.approveCall(
+                    try chainActionsList.append(ERC20Encoder.approveCall(
                         token: sourceAsset.contractAddress,
                         spender: swapQuote.approvalTarget,
                         amountWei: allocationWei,
                     ))
                 }
 
-                chainCallsList.append(Call(
+                chainActionsList.append(Call(
                     to: swapQuote.swapTarget,
                     dataHex: "0x" + swapQuote.swapCalldata.map { String(format: "%02x", $0) }.joined(),
                     valueWei: swapQuote.swapValue,
@@ -672,7 +629,7 @@ public actor RouteComposer {
                 bridgeAmountWei = swapQuote.outputAmountWei
                 bridgeToken = sourceFlight.source.contractAddress
 
-                steps.append(RouteStep(
+                steps.append(RouteStepModel(
                     chainId: chain.chainID,
                     chainName: chain.chainName,
                     action: .swap,
@@ -696,8 +653,8 @@ public actor RouteComposer {
 
             // Approve SpokePool
             if !ERC20Encoder.isNative(bridgeToken) {
-                let spokePool = try AAConstants.spokePoolAddress(chainId: chain.chainID)
-                try chainCallsList.append(ERC20Encoder.approveCall(
+                let spokePool = try spokePoolAddress(chainId: chain.chainID)
+                try chainActionsList.append(ERC20Encoder.approveCall(
                     token: bridgeToken,
                     spender: spokePool,
                     amountWei: bridgeAmountWei,
@@ -712,10 +669,10 @@ public actor RouteComposer {
                 sourceChainId: chain.chainID,
                 destinationChainId: destChainId,
             )
-            chainCallsList.append(depositCall)
+            chainActionsList.append(depositCall)
 
             let bridgeOutput = weiToAmount(bridgeQuote.outputAmountWei, decimals: sourceFlight.dest.decimals)
-            steps.append(RouteStep(
+            steps.append(RouteStepModel(
                 chainId: chain.chainID,
                 chainName: chain.chainName,
                 action: .accumulate,
@@ -725,18 +682,18 @@ public actor RouteComposer {
                 outputSymbol: sourceFlight.dest.symbol,
             ))
 
-            allChainCalls.append(ChainCalls(chainId: chain.chainID, calls: chainCallsList))
+            allChainActions.append(ChainActionModel(chainId: chain.chainID, calls: chainActionsList))
         }
 
         // Add destination chain entry so relay execution can prioritize destination init/validation.
-        allChainCalls.append(ChainCalls(chainId: destChainId, calls: []))
+        allChainActions.append(ChainActionModel(chainId: destChainId, calls: []))
 
         let finalOutput = weiToAmount(destMinOutputWei, decimals: destTokenDecimals)
 
-        return TransferRoute(
+        return TransferRouteModel(
             steps: steps,
-            chainCalls: allChainCalls,
-            jobId: jobId,
+            chainActions: allChainActions,
+            jobId: nil,
             destinationChainId: destChainId,
             estimatedAmountOut: finalOutput,
             estimatedAmountOutSymbol: finalOutputSymbol,
@@ -778,5 +735,12 @@ public actor RouteComposer {
             result /= 10
         }
         return result
+    }
+
+    private func spokePoolAddress(chainId: UInt64) throws -> String {
+        guard let spokePool = ChainRegistry.spokePoolAddress(chainID: chainId) else {
+            throw RouteError.unsupportedChain(chainId)
+        }
+        return spokePool
     }
 }

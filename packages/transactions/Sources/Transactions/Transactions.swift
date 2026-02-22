@@ -11,13 +11,3 @@ public struct Call: Sendable, Codable, Equatable {
         self.valueWei = valueWei
     }
 }
-
-public struct ChainCalls: Sendable, Codable, Equatable {
-    public let chainId: UInt64
-    public let calls: [Call]
-
-    public init(chainId: UInt64, calls: [Call]) {
-        self.chainId = chainId
-        self.calls = calls
-    }
-}

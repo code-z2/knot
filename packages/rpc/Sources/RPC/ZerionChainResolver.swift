@@ -2,7 +2,7 @@ import Foundation
 
 /// Resolved Zerion chain mapping: bidirectional map between numeric EVM chain IDs
 /// and Zerion's string chain identifiers.
-public struct ZerionChainMapping: Sendable {
+public struct ZerionChainMappingModel: Sendable {
     /// Numeric chain ID → Zerion string identifier (e.g. 1 → "ethereum").
     public let zerionIDByChainID: [UInt64: String]
     /// Zerion string identifier → Numeric chain ID (e.g. "ethereum" → 1).
@@ -13,7 +13,7 @@ public struct ZerionChainMapping: Sendable {
         self.chainIDByZerionID = chainIDByZerionID
     }
 
-    public static let empty = ZerionChainMapping(zerionIDByChainID: [:], chainIDByZerionID: [:])
+    public static let empty = ZerionChainMappingModel(zerionIDByChainID: [:], chainIDByZerionID: [:])
 
     public var isEmpty: Bool {
         zerionIDByChainID.isEmpty
@@ -30,7 +30,7 @@ public struct ZerionChainMapping: Sendable {
         chainIDByZerionID[zerionChainID.lowercased()]
     }
 
-    public func filtered(to supportedChainIDs: Set<UInt64>) -> ZerionChainMapping {
+    public func filtered(to supportedChainIDs: Set<UInt64>) -> ZerionChainMappingModel {
         guard !supportedChainIDs.isEmpty else { return .empty }
         var nextZerionByChain: [UInt64: String] = [:]
         var nextChainByZerion: [String: UInt64] = [:]
@@ -41,7 +41,7 @@ public struct ZerionChainMapping: Sendable {
             nextChainByZerion[zerionID] = chainID
         }
 
-        return ZerionChainMapping(
+        return ZerionChainMappingModel(
             zerionIDByChainID: nextZerionByChain,
             chainIDByZerionID: nextChainByZerion,
         )
@@ -55,7 +55,7 @@ public struct ZerionChainMapping: Sendable {
 public actor ZerionChainResolver {
     public static let shared = ZerionChainResolver()
 
-    private var cachedMappings: [String: ZerionChainMapping] = [:]
+    private var cachedMappings: [String: ZerionChainMappingModel] = [:]
     private let session: URLSession
 
     public init(session: URLSession = .shared) {
@@ -75,7 +75,7 @@ public actor ZerionChainResolver {
         apiKey: String,
         mode: ChainSupportMode,
         supportedChainIDs: Set<UInt64>,
-    ) async throws -> ZerionChainMapping {
+    ) async throws -> ZerionChainMappingModel {
         let key = cacheKey(mode: mode, supportedChainIDs: supportedChainIDs)
         if let cached = cachedMappings[key] {
             return cached
@@ -114,7 +114,7 @@ public actor ZerionChainResolver {
         apiBaseURL: String,
         apiKey: String,
         includeTestnets: Bool,
-    ) async throws -> ZerionChainMapping {
+    ) async throws -> ZerionChainMappingModel {
         // Build URL: {apiBaseURL}/v1/chains/
         let baseURL =
             apiBaseURL
@@ -167,7 +167,7 @@ public actor ZerionChainResolver {
             chainIDByZerionID[zerionID] = chainID
         }
 
-        return ZerionChainMapping(
+        return ZerionChainMappingModel(
             zerionIDByChainID: zerionIDByChainID,
             chainIDByZerionID: chainIDByZerionID,
         )
@@ -220,11 +220,4 @@ public actor ZerionChainResolver {
 
         return nil
     }
-}
-
-public enum ZerionChainResolverError: Error {
-    case invalidURL(String)
-    case httpError(statusCode: Int)
-    case noSupportedChainsResolved(mode: ChainSupportMode, supportedChainIDs: [UInt64])
-    case invalidResponse
 }
