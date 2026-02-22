@@ -1,32 +1,14 @@
 import Foundation
 import RPC
 
-public enum TransactionProviderError: LocalizedError {
-    case invalidURL(String)
-    case httpError(statusCode: Int)
-    case apiError(message: String)
-    case decodingFailed
-
-    public var errorDescription: String? {
-        switch self {
-        case let .invalidURL(url):
-            "Invalid transactions API URL: \(url)"
-        case let .httpError(statusCode):
-            "Transactions API returned HTTP \(statusCode)."
-        case let .apiError(message):
-            "Transactions API error: \(message)"
-        case .decodingFailed:
-            "Failed to decode transactions response."
-        }
-    }
-}
-
 /// Fetches multichain transaction history from Zerion wallet transactions endpoint.
 public actor ZerionTransactionProvider {
     private let session: URLSession
+    private let visibilityPolicy: TransactionActivityVisibilityPolicy
 
     public init(session: URLSession = .shared) {
         self.session = session
+        visibilityPolicy = TransactionActivityVisibilityPolicy()
     }
 
     public func fetchTransactions(
@@ -38,8 +20,8 @@ public actor ZerionTransactionProvider {
         includeTestnets: Bool,
         cursorAfter: String?,
         includeTrash: Bool = false,
-        zerionChainMapping: ZerionChainMapping,
-    ) async throws -> TransactionPage {
+        zerionChainMapping: ZerionChainMappingModel,
+    ) async throws -> TransactionPageModel {
         let walletPage = try await fetchWalletPage(
             address: walletAddress,
             transactionsAPIURL: transactionsAPIURL,
@@ -69,9 +51,13 @@ public actor ZerionTransactionProvider {
 
         let userAddress = walletAddress.lowercased()
         let accumulator = accumulatorAddress?.lowercased()
+        let ownedAddresses = makeOwnedAddressSet(
+            userAddress: userAddress,
+            accumulatorAddress: accumulator,
+        )
 
         var seen = Set<String>()
-        var records: [TransactionRecord] = []
+        var records: [TransactionRecordModel] = []
 
         for item in allItems {
             let record = classify(
@@ -81,6 +67,12 @@ public actor ZerionTransactionProvider {
                 zerionChainMapping: zerionChainMapping,
             )
 
+            guard visibilityPolicy.shouldInclude(
+                item: item,
+                record: record,
+                ownedAddresses: ownedAddresses,
+                accumulatorAddress: accumulator,
+            ) else { continue }
             guard !record.txHash.isEmpty else { continue }
             guard seen.insert(record.id).inserted else { continue }
             records.append(record)
@@ -88,7 +80,7 @@ public actor ZerionTransactionProvider {
 
         records.sort { $0.blockSignedAt > $1.blockSignedAt }
 
-        return TransactionPage(
+        return TransactionPageModel(
             sections: groupByDate(records),
             cursorAfter: walletPage.cursorAfter,
             hasMore: walletPage.hasMore,
@@ -109,7 +101,7 @@ public actor ZerionTransactionProvider {
         includeTestnets: Bool,
         cursorAfter: String?,
         includeTrash: Bool,
-        zerionChainMapping: ZerionChainMapping,
+        zerionChainMapping: ZerionChainMappingModel,
     ) async throws -> WalletTransactionPage {
         let endpointURLString = transactionsAPIURL.replacingOccurrences(
             of: "{walletAddress}",
@@ -197,8 +189,8 @@ public actor ZerionTransactionProvider {
         item: ZerionTransactionItem,
         userAddress: String,
         accumulatorAddress: String?,
-        zerionChainMapping: ZerionChainMapping,
-    ) -> TransactionRecord {
+        zerionChainMapping: ZerionChainMappingModel,
+    ) -> TransactionRecordModel {
         let chainKey = item.relationships?.chain?.data?.id?.lowercased() ?? ""
         let chainID = zerionChainMapping.chainID(zerionChainID: chainKey) ?? 0
         let chainDefinition = ChainRegistry.resolveOrFallback(chainID: chainID)
@@ -207,8 +199,8 @@ public actor ZerionTransactionProvider {
         let from = item.attributes.sentFrom?.lowercased() ?? ""
         let to = item.attributes.sentTo?.lowercased() ?? ""
         let status = (item.attributes.status ?? "").lowercased() == "confirmed"
-            ? TxRecordStatus.success
-            : TxRecordStatus.failed
+            ? TransactionRecordStatus.success
+            : TransactionRecordStatus.failed
 
         var ownedAddresses = Set<String>([userAddress])
         if let accumulatorAddress {
@@ -227,10 +219,10 @@ public actor ZerionTransactionProvider {
         let amountText = transfer?.amountText ?? ""
         let valueQuoteUSD = transfer?.valueUSD ?? 0
 
-        let variant: TxRecordVariant = if let accumulatorAddress,
-                                          from == accumulatorAddress,
-                                          !ownedAddresses.contains(to),
-                                          ["send", "trade", "execute", "withdraw"].contains(operationType)
+        let variant: TransactionRecordVariant = if let accumulatorAddress,
+                                                   from == accumulatorAddress,
+                                                   !ownedAddresses.contains(to),
+                                                   ["send", "trade", "execute", "withdraw"].contains(operationType)
         {
             .multichain
         } else if operationType == "receive" || (ownedAddresses.contains(to) && !ownedAddresses.contains(from)) {
@@ -245,7 +237,7 @@ public actor ZerionTransactionProvider {
 
         let date = parseDate(item.attributes.minedAt)
 
-        return TransactionRecord(
+        return TransactionRecordModel(
             id: "\(chainID):\(txHash)",
             status: status,
             variant: variant,
@@ -263,6 +255,17 @@ public actor ZerionTransactionProvider {
             accumulatedFromNetworkAssetNames: [],
             multichainRecipient: variant == .multichain ? to : nil,
         )
+    }
+
+    private func makeOwnedAddressSet(
+        userAddress: String,
+        accumulatorAddress: String?,
+    ) -> Set<String> {
+        var addresses = Set<String>([userAddress])
+        if let accumulatorAddress, !accumulatorAddress.isEmpty {
+            addresses.insert(accumulatorAddress)
+        }
+        return addresses
     }
 
     private struct PrimaryTransfer {
@@ -348,7 +351,7 @@ public actor ZerionTransactionProvider {
             ?? Date.distantPast
     }
 
-    private func groupByDate(_ records: [TransactionRecord]) -> [TransactionDateSection] {
+    private func groupByDate(_ records: [TransactionRecordModel]) -> [TransactionDateSectionModel] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: records) { record in
             calendar.startOfDay(for: record.blockSignedAt)
@@ -361,7 +364,7 @@ public actor ZerionTransactionProvider {
         idFormatter.dateFormat = "yyyy-MM-dd"
 
         return grouped.map { date, txs in
-            TransactionDateSection(
+            TransactionDateSectionModel(
                 id: idFormatter.string(from: date),
                 title: titleFormatter.string(from: date),
                 transactions: txs,

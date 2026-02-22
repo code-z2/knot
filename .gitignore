@@ -28,6 +28,7 @@ DerivedData/
 # Foundry
 contracts/cache/
 contracts/out/
+contracts/lib/
 contracts/broadcast/**/dry-run/
 contracts/broadcast/*/31337/
 
@@ -46,3 +47,6 @@ dist/
 .venv-codex/
 *.mcp.json
 .wrangler
+.bun-cache
+.bun-tmp
+.swiftpm/

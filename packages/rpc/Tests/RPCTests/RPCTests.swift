@@ -3,9 +3,9 @@ import XCTest
 
 final class RPCTests: XCTestCase {
     func testGetConfiguredUrls() async throws {
-        let resolver = StaticRPCEndpointResolver(
+        let resolver = StaticRPCEndpointResolverService(
             endpointsByChain: [
-                1: ChainEndpoints(
+                1: ChainEndpointsModel(
                     rpcURL: "https://rpc.example",
                     walletAPIURL: "https://wallet.example",
                     walletAPIBearerToken: "wallet-token-123",

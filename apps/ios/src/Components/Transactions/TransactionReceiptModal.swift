@@ -3,14 +3,14 @@ import SwiftUI
 import Transactions
 
 struct TransactionReceiptModal: View {
-    let transaction: TransactionRecord
+    let transaction: TransactionRecordModel
     let displayCurrencyCode: String
     let displayLocale: Locale
     let usdToSelectedRate: Decimal
     let onOpenExplorer: (URL) -> Void
 
     init(
-        transaction: TransactionRecord,
+        transaction: TransactionRecordModel,
         displayCurrencyCode: String = "USD",
         displayLocale: Locale = .current,
         usdToSelectedRate: Decimal = 1,
@@ -60,32 +60,32 @@ struct TransactionReceiptModal: View {
             }
 
             VStack(alignment: .leading, spacing: AppSpacing.md) {
-                receiptField(label: LocalizedStringKey(transaction.uiCounterpartyLabelKey)) {
+                TransactionReceiptField(label: LocalizedStringKey(transaction.uiCounterpartyLabelKey)) {
                     AppIconTextBadge(
                         text: transaction.uiCounterpartyValue,
                         icon: transaction.uiCounterpartyIcon,
                     )
                 }
 
-                receiptField(label: "transaction_receipt_time") {
+                TransactionReceiptField(label: "transaction_receipt_time") {
                     Text(transaction.uiTimestampText)
                         .font(.custom("RobotoMono-Medium", size: 14))
                         .foregroundStyle(AppThemeColor.labelPrimary)
                 }
 
-                receiptField(label: "transaction_receipt_type") {
+                TransactionReceiptField(label: "transaction_receipt_type") {
                     Text(LocalizedStringKey(transaction.uiTypeKey))
                         .font(.custom("RobotoMono-Medium", size: 14))
                         .foregroundStyle(AppThemeColor.labelPrimary)
                 }
 
-                receiptField(label: "transaction_receipt_fee") {
+                TransactionReceiptField(label: "transaction_receipt_fee") {
                     Text(receiptFeeText)
                         .font(.custom("RobotoMono-Medium", size: 14))
                         .foregroundStyle(AppThemeColor.labelPrimary)
                 }
 
-                receiptField(label: "transaction_receipt_network") {
+                TransactionReceiptField(label: "transaction_receipt_network") {
                     AppIconTextBadge(
                         text: transaction.chainName,
                         icon: .network(transaction.networkAssetName),
@@ -93,7 +93,7 @@ struct TransactionReceiptModal: View {
                 }
 
                 if !transaction.accumulatedFromNetworkAssetNames.isEmpty {
-                    receiptField(label: "transaction_receipt_accumulated_from") {
+                    TransactionReceiptField(label: "transaction_receipt_accumulated_from") {
                         MultiChainIconGroup(networkAssetNames: transaction.accumulatedFromNetworkAssetNames)
                     }
                 }
@@ -112,19 +112,6 @@ struct TransactionReceiptModal: View {
         }
         .padding(.horizontal, 38)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    }
-
-    private func receiptField(
-        label: LocalizedStringKey,
-        @ViewBuilder content: () -> some View,
-    ) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            Text(label)
-                .font(.custom("RobotoMono-Regular", size: 12))
-                .foregroundStyle(AppThemeColor.labelSecondary)
-
-            content()
-        }
     }
 
     private func openExplorer() {

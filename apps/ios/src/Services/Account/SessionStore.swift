@@ -15,10 +15,6 @@ final class SessionStore {
         defaults.string(forKey: Key.activeEOAAddress)
     }
 
-    var hasActiveSession: Bool {
-        activeEOAAddress != nil
-    }
-
     func setActiveSession(eoaAddress: String) {
         defaults.set(eoaAddress, forKey: Key.activeEOAAddress)
     }

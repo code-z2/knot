@@ -4,7 +4,7 @@ public struct RPCEnvironment: Sendable, Equatable {
     public let mode: ChainSupportMode
     public let chainIDs: [UInt64]
     public let endpointConfig: RPCEndpointBuilderConfig
-    public let relayConfig: RelayProxyConfig
+    public let relayConfig: RelayProxyConfigModel
 
     public init(
         mode: ChainSupportMode,
@@ -14,7 +14,7 @@ public struct RPCEnvironment: Sendable, Equatable {
         self.mode = mode
         self.chainIDs = chainIDs ?? mode.defaultChainIDs
         self.endpointConfig = endpointConfig
-        relayConfig = RelayProxyConfig(
+        relayConfig = RelayProxyConfigModel(
             baseURL: endpointConfig.relayProxyBaseURL,
             uploadBaseURL: endpointConfig.uploadProxyBaseURL,
             clientToken: endpointConfig.relayProxyClientToken,
@@ -22,13 +22,13 @@ public struct RPCEnvironment: Sendable, Equatable {
         )
     }
 
-    public var endpointsByChain: [UInt64: ChainEndpoints] {
+    public var endpointsByChain: [UInt64: ChainEndpointsModel] {
         let defaults = makeRPCDefaultEndpoints(config: endpointConfig)
         let allowed = Set(chainIDs)
         return defaults.filter { allowed.contains($0.key) }
     }
 
-    public func makeResolver() -> StaticRPCEndpointResolver {
-        StaticRPCEndpointResolver(endpointsByChain: endpointsByChain)
+    public func makeResolver() -> StaticRPCEndpointResolverService {
+        StaticRPCEndpointResolverService(endpointsByChain: endpointsByChain)
     }
 }

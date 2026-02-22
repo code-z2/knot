@@ -38,10 +38,6 @@ struct LanguageOption: Identifiable, Equatable, Sendable {
     var id: String {
         code
     }
-
-    var listLabel: String {
-        "\(flag) \(displayName)"
-    }
 }
 
 @MainActor
@@ -68,7 +64,9 @@ final class PreferencesStore {
 
     var selectedCurrencyCode: String {
         didSet {
-            let normalized = PreferencesStore.normalizeCurrencyCode(selectedCurrencyCode, supported: supportedCurrencies)
+            let normalized = PreferencesStore.normalizeCurrencyCode(
+                selectedCurrencyCode, supported: supportedCurrencies,
+            )
             if selectedCurrencyCode != normalized {
                 selectedCurrencyCode = normalized
                 return
@@ -86,7 +84,9 @@ final class PreferencesStore {
 
     var languageCode: String {
         didSet {
-            let normalized = PreferencesStore.normalizeLanguageCode(languageCode, supported: supportedLanguages)
+            let normalized = PreferencesStore.normalizeLanguageCode(
+                languageCode, supported: supportedLanguages,
+            )
             if languageCode != normalized {
                 languageCode = normalized
                 return
@@ -142,7 +142,9 @@ final class PreferencesStore {
             hasExplicitCurrencySelection = defaults.bool(forKey: Key.hasExplicitCurrencySelection)
         }
         if let storedCurrency {
-            selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(storedCurrency, supported: supportedCurrencies)
+            selectedCurrencyCode = PreferencesStore.normalizeCurrencyCode(
+                storedCurrency, supported: supportedCurrencies,
+            )
         } else {
             selectedCurrencyCode = PreferencesStore.suggestedCurrencyCode(
                 forLanguageCode: resolvedLanguage,
@@ -168,34 +170,6 @@ final class PreferencesStore {
         )
         chainSupportMode = resolvedMode
         ChainSupportRuntime.setPreferredMode(resolvedMode, defaults: defaults)
-    }
-
-    func updateSupportedCurrencies(_ currencies: [CurrencyOption]) {
-        supportedCurrencies = currencies
-        if hasExplicitCurrencySelection {
-            let normalized = PreferencesStore.normalizeCurrencyCode(selectedCurrencyCode, supported: currencies)
-            if selectedCurrencyCode != normalized {
-                selectedCurrencyCode = normalized
-            }
-        } else {
-            let suggested = PreferencesStore.suggestedCurrencyCode(
-                forLanguageCode: languageCode,
-                supported: currencies,
-            )
-            if selectedCurrencyCode != suggested {
-                suppressCurrencyTracking = true
-                selectedCurrencyCode = suggested
-                suppressCurrencyTracking = false
-            }
-        }
-    }
-
-    func updateSupportedLanguages(_ languages: [LanguageOption]) {
-        supportedLanguages = languages
-        let normalized = PreferencesStore.normalizeLanguageCode(languageCode, supported: languages)
-        if languageCode != normalized {
-            languageCode = normalized
-        }
     }
 
     var selectedCurrency: CurrencyOption? {

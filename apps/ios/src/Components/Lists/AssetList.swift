@@ -5,7 +5,7 @@ private let suggestedSymbols: Set<String> = ["ETH", "USDC", "USDT"]
 
 enum AssetListState: Equatable {
     case loading
-    case loaded([TokenBalance])
+    case loaded([TokenBalanceModel])
 }
 
 struct AssetList: View {
@@ -15,7 +15,7 @@ struct AssetList: View {
     var displayLocale: Locale = .current
     var usdToSelectedRate: Decimal = 1
     var showSectionLabels = true
-    var onSelect: ((TokenBalance) -> Void)?
+    var onSelect: ((TokenBalanceModel) -> Void)?
 
     var body: some View {
         Group {
@@ -47,14 +47,14 @@ struct AssetList: View {
 
 private struct AssetListContent: View {
     let query: String
-    let assets: [TokenBalance]
+    let assets: [TokenBalanceModel]
     let displayCurrencyCode: String
     let displayLocale: Locale
     let usdToSelectedRate: Decimal
     let showSectionLabels: Bool
-    let onSelect: ((TokenBalance) -> Void)?
+    let onSelect: ((TokenBalanceModel) -> Void)?
 
-    private var filteredAssets: [TokenBalance] {
+    private var filteredAssets: [TokenBalanceModel] {
         SearchSystem.filter(
             query: query,
             items: assets,
@@ -73,11 +73,11 @@ private struct AssetListContent: View {
         )
     }
 
-    private var suggestedAssets: [TokenBalance] {
+    private var suggestedAssets: [TokenBalanceModel] {
         filteredAssets.filter { suggestedSymbols.contains($0.symbol.uppercased()) }
     }
 
-    private var allAssets: [TokenBalance] {
+    private var allAssets: [TokenBalanceModel] {
         filteredAssets.filter { !suggestedSymbols.contains($0.symbol.uppercased()) }
     }
 
@@ -100,7 +100,7 @@ private struct AssetListContent: View {
         }
     }
 
-    private func section(title: LocalizedStringKey, assets: [TokenBalance]) -> some View {
+    private func section(title: LocalizedStringKey, assets: [TokenBalanceModel]) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             if showSectionLabels {
                 Text(title)
@@ -122,7 +122,7 @@ private struct AssetListContent: View {
         }
     }
 
-    private func formatValueText(for asset: TokenBalance) -> String {
+    private func formatValueText(for asset: TokenBalanceModel) -> String {
         CurrencyDisplayFormatter.format(
             amount: asset.totalValueUSD * usdToSelectedRate,
             currencyCode: displayCurrencyCode,
@@ -132,7 +132,7 @@ private struct AssetListContent: View {
 }
 
 private struct AssetItem: View {
-    let asset: TokenBalance
+    let asset: TokenBalanceModel
     let valueText: String
     var onTap: (() -> Void)?
 

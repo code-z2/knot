@@ -15,18 +15,12 @@ pattern = "upload.knot.fi"
 custom_domain = true
 
 [vars]
-GELATO_RPC_TEMPLATE = "https://api.gelato.cloud/rpc/{chainId}?apiKey={apiKey}"
-INITIAL_CREDIT_USDC = "2"
-FLOOR_LIMITED_TESTNET_USDC = "-10"
-FLOOR_LIMITED_MAINNET_USDC = "-2"
-FLOOR_FULL_MAINNET_USDC = "0"
-USDC_DECIMALS = "6"
+INITIAL_CREDIT_NATIVE = "2"
+FLOOR_LIMITED_TESTNET_NATIVE = "-10"
+FLOOR_LIMITED_MAINNET_NATIVE = "-2"
+FLOOR_FULL_MAINNET_NATIVE = "0"
 PINATA_SIGN_EXPIRES_SECONDS = "120"
 PINATA_MAX_FILE_SIZE_BYTES = "10485760"
-PINATA_GROUP_FIELD = "group_id"
-FAUCET_RPC_SEPOLIA = ""
-FAUCET_RPC_BASE_SEPOLIA = ""
-FAUCET_RPC_ARB_SEPOLIA = ""
 
 [[kv_namespaces]]
 binding = "GAS_TANK_KV"
@@ -35,3 +29,11 @@ id = "9899238f13454a319ec6ea19a20e6f18"
 [[kv_namespaces]]
 binding = "FAUCET_FUNDING_KV"
 id = "9899238f13454a319ec6ea19a20e6f18"
+
+[[durable_objects.bindings]]
+name = "FAUCET_TRACKER_DO"
+class_name = "FaucetTracker"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["FaucetTracker"]

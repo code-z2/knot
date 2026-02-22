@@ -4,14 +4,14 @@ import XCTest
 
 final class PasskeyTests: XCTestCase {
     func testRelyingPartyConfig() {
-        let config = PasskeyRelyingParty(rpID: "knot.fi", rpName: "knot")
+        let config = PasskeyRelyingPartyModel(rpID: "knot.fi", rpName: "knot")
         XCTAssertEqual(config.rpID, "knot.fi")
     }
 
     func testAssertionVerifierAcceptsValidSignature() throws {
         let privateKey = P256.Signing.PrivateKey()
         let x963 = privateKey.publicKey.x963Representation
-        let passkey = PasskeyPublicKey(
+        let passkey = PasskeyPublicKeyModel(
             x: Data(x963[1 ..< 33]),
             y: Data(x963[33 ..< 65]),
             credentialID: Data([0xAA, 0xBB, 0xCC]),
@@ -21,7 +21,7 @@ final class PasskeyTests: XCTestCase {
         let authData = makeAuthData(rpId: "knot.fi", flags: 0x05)
         let signedData = authData + Data(SHA256.hash(data: clientDataJSON))
         let rawSignature = try privateKey.signature(for: signedData).rawRepresentation
-        let assertion = PasskeySignature(
+        let assertion = PasskeySignatureModel(
             r: Data(rawSignature.prefix(32)),
             s: Data(rawSignature.suffix(32)),
             clientDataJSON: clientDataJSON,
@@ -42,7 +42,7 @@ final class PasskeyTests: XCTestCase {
     func testAssertionVerifierRejectsMissingUserVerification() throws {
         let privateKey = P256.Signing.PrivateKey()
         let x963 = privateKey.publicKey.x963Representation
-        let passkey = PasskeyPublicKey(
+        let passkey = PasskeyPublicKeyModel(
             x: Data(x963[1 ..< 33]),
             y: Data(x963[33 ..< 65]),
             credentialID: Data([0xAA, 0xBB, 0xCC]),
@@ -52,7 +52,7 @@ final class PasskeyTests: XCTestCase {
         let authData = makeAuthData(rpId: "knot.fi", flags: 0x01)
         let signedData = authData + Data(SHA256.hash(data: clientDataJSON))
         let rawSignature = try privateKey.signature(for: signedData).rawRepresentation
-        let assertion = PasskeySignature(
+        let assertion = PasskeySignatureModel(
             r: Data(rawSignature.prefix(32)),
             s: Data(rawSignature.suffix(32)),
             clientDataJSON: clientDataJSON,

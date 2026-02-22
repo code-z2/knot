@@ -5,26 +5,23 @@ import Passkey
 import Security
 import SignHandler
 
-public struct CreatedAccount: Equatable, Sendable {
+public struct AccountProvisioningResult: Equatable, Sendable {
     public let eoaAddress: String
     public let accumulatorAddress: String
-    public let passkey: PasskeyPublicKey
-    public let signedAuthorization: EIP7702AuthorizationSigned
+    public let passkey: PasskeyPublicKeyModel
 
     public init(
         eoaAddress: String,
         accumulatorAddress: String,
-        passkey: PasskeyPublicKey,
-        signedAuthorization: EIP7702AuthorizationSigned,
+        passkey: PasskeyPublicKeyModel,
     ) {
         self.eoaAddress = eoaAddress
         self.accumulatorAddress = accumulatorAddress
         self.passkey = passkey
-        self.signedAuthorization = signedAuthorization
     }
 }
 
-public struct AccountIdentity: Equatable, Sendable {
+public struct AccountSession: Equatable, Sendable {
     public let eoaAddress: String
     public let accumulatorAddress: String
     public let passkeyCredentialID: Data
@@ -36,153 +33,60 @@ public struct AccountIdentity: Equatable, Sendable {
     }
 }
 
-public enum AccountSetupError: Error {
-    case missingStoredPasskey
-    case walletGenerationFailed(Error)
-    case passkeyRegistrationFailed(Error)
-    case authorizationSigningFailed(Error)
-    case walletStorageFailed(Error)
-    case authorizationStorageFailed(Error)
-    case passkeyAssertionFailed(Error)
-    case authorizationRecoveryFailed(Error)
-    case authorizationDecodeFailed(Error)
-    case accumulatorDerivationFailed(Error)
-    case missingStoredAccount(String)
-}
-
-extension AccountSetupError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .missingStoredPasskey:
-            "No stored passkey public data found."
-        case let .walletGenerationFailed(error):
-            "Failed to generate wallet material: \(error.localizedDescription)"
-        case let .passkeyRegistrationFailed(error):
-            "Passkey registration failed: \(error.localizedDescription)"
-        case let .authorizationSigningFailed(error):
-            "Failed to sign EIP-7702 authorization: \(error.localizedDescription)"
-        case let .walletStorageFailed(error):
-            "Failed to persist wallet material locally: \(error.localizedDescription)"
-        case let .authorizationStorageFailed(error):
-            "Failed to save signed authorization: \(error.localizedDescription)"
-        case let .passkeyAssertionFailed(error):
-            "Passkey assertion failed during sign-in: \(error.localizedDescription)"
-        case let .authorizationRecoveryFailed(error):
-            "Failed to recover signer from signed authorization: \(error.localizedDescription)"
-        case let .authorizationDecodeFailed(error):
-            "Stored authorization data could not be decoded: \(error.localizedDescription)"
-        case let .accumulatorDerivationFailed(error):
-            "Failed to derive accumulator address: \(error.localizedDescription)"
-        case let .missingStoredAccount(eoaAddress):
-            "No stored account found for EOA \(eoaAddress)."
-        }
-    }
-}
-
 public protocol WalletMaterialStoring {
-    func save(_ wallet: WalletMaterial, for eoaAddress: String) throws
-    func read(for eoaAddress: String) throws -> WalletMaterial
-    func readAll() throws -> [String: WalletMaterial]
-}
-
-public struct LocalWalletMaterialStore: WalletMaterialStoring {
-    private let fileURL: URL
-
-    public init(filename: String = "wallet-materials.json") {
-        let baseDirectory =
-            FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? FileManager.default.temporaryDirectory
-        fileURL = baseDirectory.appendingPathComponent(filename)
-    }
-
-    public func save(_ wallet: WalletMaterial, for eoaAddress: String) throws {
-        let key = Self.normalizedAddressKey(eoaAddress)
-        var all = (try? readAll()) ?? [:]
-        all[key] = wallet
-        let data = try JSONEncoder().encode(all)
-        let directory = fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true,
-            attributes: nil,
-        )
-        try data.write(to: fileURL, options: .atomic)
-
-        var resourceValues = URLResourceValues()
-        resourceValues.isExcludedFromBackup = true
-        var writableURL = fileURL
-        try? writableURL.setResourceValues(resourceValues)
-        try? FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.complete],
-            ofItemAtPath: fileURL.path,
-        )
-    }
-
-    public func read(for eoaAddress: String) throws -> WalletMaterial {
-        let key = Self.normalizedAddressKey(eoaAddress)
-        let all = try readAll()
-        guard let wallet = all[key] else {
-            throw CocoaError(.fileReadNoSuchFile)
-        }
-        return wallet
-    }
-
-    public func readAll() throws -> [String: WalletMaterial] {
-        let data = try Data(contentsOf: fileURL)
-        return try JSONDecoder().decode([String: WalletMaterial].self, from: data)
-    }
-
-    private static func normalizedAddressKey(_ eoaAddress: String) -> String {
-        eoaAddress.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    }
+    func save(_ wallet: WalletMaterialModel, for eoaAddress: String) throws
+    func read(for eoaAddress: String) throws -> WalletMaterialModel
 }
 
 public actor AccountSetupService {
     private enum KeychainAccount {
-        static let accounts = "accounts.v1"
+        static let accounts = "accounts.v2"
     }
 
     private struct StoredAccountRecord: Codable, Equatable, Sendable {
-        let passkey: PasskeyPublicKey
-        let signedAuthorization: EIP7702AuthorizationSigned
+        let eoaAddress: String
+        let passkey: PasskeyPublicKeyModel
         let accumulatorAddress: String?
     }
 
     private let walletFactory: WalletMaterialFactory
-    private let passkeyService: PasskeyServicing
-    private let keychain: KeychainStoring
+    private let passkeyService: PasskeyServiceProviding
+    private let keychain: KeychainStoreProviding
     private let walletStore: WalletMaterialStoring
+    private let smartAccountClient: SmartAccountClient
     private let keychainService: String
-    private let relyingParty: PasskeyRelyingParty
+    private let relyingParty: PasskeyRelyingPartyModel
 
     public init(
         walletFactory: WalletMaterialFactory = .init(),
-        passkeyService: PasskeyServicing,
-        keychain: KeychainStoring = KeychainStore(),
-        walletStore: WalletMaterialStoring = LocalWalletMaterialStore(),
+        passkeyService: PasskeyServiceProviding,
+        keychain: KeychainStoreProviding = KeychainStoreService(),
+        walletStore: WalletMaterialStoring = KeychainWalletMaterialStore(),
+        smartAccountClient: SmartAccountClient = .init(),
         keychainService: String = "fi.knot.keychain",
-        relyingParty: PasskeyRelyingParty = .init(rpID: "knot.fi", rpName: "Knot"),
+        relyingParty: PasskeyRelyingPartyModel = .init(rpID: "knot.fi", rpName: "Knot"),
     ) {
         self.walletFactory = walletFactory
         self.passkeyService = passkeyService
         self.keychain = keychain
         self.walletStore = walletStore
+        self.smartAccountClient = smartAccountClient
         self.keychainService = keychainService
         self.relyingParty = relyingParty
     }
 
-    public func createEOAAndPasskey(
+    public func provisionAccount(
         delegateAddress: String,
         chainId: UInt64 = 1,
         nonce: UInt64 = 0,
-    ) async throws -> CreatedAccount {
-        let wallet: WalletMaterial
+    ) async throws -> AccountProvisioningResult {
+        let wallet: WalletMaterialModel
         do {
             wallet = try walletFactory.createNewEOA()
         } catch {
             throw AccountSetupError.walletGenerationFailed(error)
         }
-        return try await createEOAAndPasskey(
+        return try await provisionAccount(
             wallet: wallet,
             delegateAddress: delegateAddress,
             chainId: chainId,
@@ -190,15 +94,17 @@ public actor AccountSetupService {
         )
     }
 
-    private func createEOAAndPasskey(
-        wallet: WalletMaterial,
+    private func provisionAccount(
+        wallet: WalletMaterialModel,
         delegateAddress: String,
         chainId: UInt64,
         nonce: UInt64,
-    ) async throws -> CreatedAccount {
+    ) async throws -> AccountProvisioningResult {
+        _ = delegateAddress
+        _ = nonce
         let userID = Data(UUID().uuidString.utf8)
 
-        let passkey: PasskeyPublicKey
+        let passkey: PasskeyPublicKeyModel
         do {
             passkey = try await passkeyService.register(
                 rpId: relyingParty.rpID,
@@ -211,24 +117,12 @@ public actor AccountSetupService {
             throw AccountSetupError.passkeyRegistrationFailed(error)
         }
 
-        let unsigned = EIP7702AuthorizationUnsigned(
-            chainId: chainId,
-            delegateAddress: delegateAddress,
-            nonce: nonce,
-        )
-        let signedAuthorization: EIP7702AuthorizationSigned
-        do {
-            signedAuthorization = try EIP7702AuthorizationCodec.signAuthorization(
-                unsigned,
-                privateKeyHex: wallet.privateKeyHex,
-            )
-        } catch {
-            throw AccountSetupError.authorizationSigningFailed(error)
-        }
-
         let accumulatorAddress: String
         do {
-            accumulatorAddress = try deriveAccumulatorAddress(eoaAddress: wallet.eoaAddress)
+            accumulatorAddress = try await deriveAccumulatorAddress(
+                eoaAddress: wallet.eoaAddress,
+                chainId: chainId,
+            )
         } catch {
             throw AccountSetupError.accumulatorDerivationFailed(error)
         }
@@ -244,8 +138,8 @@ public actor AccountSetupService {
             upsertStoredAccount(
                 &accounts,
                 record: StoredAccountRecord(
+                    eoaAddress: wallet.eoaAddress,
                     passkey: passkey,
-                    signedAuthorization: signedAuthorization,
                     accumulatorAddress: accumulatorAddress,
                 ),
             )
@@ -254,22 +148,21 @@ public actor AccountSetupService {
             throw AccountSetupError.authorizationStorageFailed(error)
         }
 
-        return CreatedAccount(
+        return AccountProvisioningResult(
             eoaAddress: wallet.eoaAddress,
             accumulatorAddress: accumulatorAddress,
             passkey: passkey,
-            signedAuthorization: signedAuthorization,
         )
     }
 
-    public func signInWithPasskey() async throws -> AccountIdentity {
-        let storedAccounts = try ensureAccumulatorAddresses(loadStoredAccountRecords())
-        guard !storedAccounts.isEmpty else {
+    public func authenticateAccount() async throws -> AccountSession {
+        let listStoredAccounts = try loadStoredAccountRecords()
+        guard !listStoredAccounts.isEmpty else {
             throw AccountSetupError.missingStoredPasskey
         }
-        let allowedCredentialIDs = storedAccounts.map(\.passkey.credentialID)
+        let allowedCredentialIDs = listStoredAccounts.map(\.passkey.credentialID)
 
-        let signature: PasskeySignature
+        let signature: PasskeySignatureModel
 
         do {
             signature = try await passkeyService.sign(
@@ -282,92 +175,79 @@ public actor AccountSetupService {
         }
 
         guard
-            let matched = storedAccounts.first(where: {
+            let matched = listStoredAccounts.first(where: {
                 $0.passkey.credentialID == signature.credentialID
             })
         else {
             throw AccountSetupError.missingStoredPasskey
         }
 
-        let recoveredAddress: String
-        do {
-            recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(
-                matched.signedAuthorization,
-            )
-        } catch {
-            throw AccountSetupError.authorizationRecoveryFailed(error)
+        let eoaAddress = normalizedAddressKey(matched.eoaAddress)
+        guard !eoaAddress.isEmpty else {
+            throw AccountSetupError.missingStoredAccount(matched.eoaAddress)
         }
-        let accumulatorAddress =
-            if let storedAccumulator = matched.accumulatorAddress {
-                storedAccumulator
-            } else {
-                try deriveAccumulatorAddress(eoaAddress: recoveredAddress)
-            }
+        guard
+            let accumulatorAddress = matched.accumulatorAddress?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased(),
+            !accumulatorAddress.isEmpty
+        else {
+            throw AccountSetupError.missingStoredAccumulator(eoaAddress)
+        }
 
-        return AccountIdentity(
-            eoaAddress: recoveredAddress,
+        return AccountSession(
+            eoaAddress: eoaAddress,
             accumulatorAddress: accumulatorAddress,
             passkeyCredentialID: matched.passkey.credentialID,
         )
     }
 
-    public func storedWalletMaterial(eoaAddress: String) throws -> WalletMaterial {
+    public func storedWalletMaterial(eoaAddress: String) throws -> WalletMaterialModel {
         try walletStore.read(for: eoaAddress)
     }
 
-    public func storedWalletMaterials() throws -> [String: WalletMaterial] {
-        (try? walletStore.readAll()) ?? [:]
-    }
-
-    public func storedAccounts() throws -> [AccountIdentity] {
-        try ensureAccumulatorAddresses(loadStoredAccountRecords()).map { record in
-            let recoveredAddress: String
-            do {
-                recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(
-                    record.signedAuthorization,
-                )
-            } catch {
-                throw AccountSetupError.authorizationRecoveryFailed(error)
+    public func listStoredAccounts() async throws -> [AccountSession] {
+        let records = try loadStoredAccountRecords()
+        return try records.map { record in
+            let eoaAddress = normalizedAddressKey(record.eoaAddress)
+            guard !eoaAddress.isEmpty else {
+                throw AccountSetupError.missingStoredAccount(record.eoaAddress)
             }
-            let accumulatorAddress =
-                if let storedAccumulator = record.accumulatorAddress {
-                    storedAccumulator
-                } else {
-                    try deriveAccumulatorAddress(eoaAddress: recoveredAddress)
-                }
+            guard
+                let accumulatorAddress = record.accumulatorAddress?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased(),
+                !accumulatorAddress.isEmpty
+            else {
+                throw AccountSetupError.missingStoredAccumulator(eoaAddress)
+            }
 
-            return AccountIdentity(
-                eoaAddress: recoveredAddress,
+            return AccountSession(
+                eoaAddress: eoaAddress,
                 accumulatorAddress: accumulatorAddress,
                 passkeyCredentialID: record.passkey.credentialID,
             )
         }
     }
 
-    public func restoreStoredSession(eoaAddress: String) throws -> AccountIdentity {
+    public func restoreAccount(eoaAddress: String) async throws -> AccountSession {
         let normalized = normalizedAddressKey(eoaAddress)
-        let records = try ensureAccumulatorAddresses(loadStoredAccountRecords())
+        let records = try loadStoredAccountRecords()
 
         for record in records {
-            let recoveredAddress: String
-            do {
-                recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(
-                    record.signedAuthorization,
-                )
-            } catch {
-                throw AccountSetupError.authorizationRecoveryFailed(error)
-            }
+            let recordAddress = normalizedAddressKey(record.eoaAddress)
+            if recordAddress == normalized {
+                guard
+                    let accumulatorAddress = record.accumulatorAddress?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased(),
+                    !accumulatorAddress.isEmpty
+                else {
+                    throw AccountSetupError.missingStoredAccumulator(recordAddress)
+                }
 
-            if normalizedAddressKey(recoveredAddress) == normalized {
-                let accumulatorAddress =
-                    if let storedAccumulator = record.accumulatorAddress {
-                        storedAccumulator
-                    } else {
-                        try deriveAccumulatorAddress(eoaAddress: recoveredAddress)
-                    }
-
-                return AccountIdentity(
-                    eoaAddress: recoveredAddress,
+                return AccountSession(
+                    eoaAddress: recordAddress,
                     accumulatorAddress: accumulatorAddress,
                     passkeyCredentialID: record.passkey.credentialID,
                 )
@@ -377,12 +257,12 @@ public actor AccountSetupService {
         throw AccountSetupError.missingStoredAccount(eoaAddress)
     }
 
-    public func signPayloadWithStoredPasskey(
-        account: AccountIdentity,
+    public func signWithStoredPasskey(
+        account: AccountSession,
         payload: Data,
     ) async throws -> Data {
-        let passkey = try passkeyPublicKey(account: account)
-        let signature: PasskeySignature
+        let passkey = try passkeyPublicKey(for: account)
+        let signature: PasskeySignatureModel
         do {
             signature = try await passkeyService.sign(
                 rpId: relyingParty.rpID,
@@ -400,15 +280,15 @@ public actor AccountSetupService {
         }
     }
 
-    public func verifyStoredPasskeyForSensitiveAction(
-        account: AccountIdentity,
+    public func verifyStoredPasskey(
+        account: AccountSession,
         action: String,
     ) async throws {
-        let passkey = try passkeyPublicKey(account: account)
+        let passkey = try passkeyPublicKey(for: account)
         var payload = Data("knot:\(action):\(normalizedAddressKey(account.eoaAddress)):".utf8)
         payload.append(randomChallenge(length: 32))
 
-        let signature: PasskeySignature
+        let signature: PasskeySignatureModel
         do {
             signature = try await passkeyService.sign(
                 rpId: relyingParty.rpID,
@@ -433,8 +313,8 @@ public actor AccountSetupService {
 
     /// Signs a 32-byte digest using the stored EOA private key as an Ethereum signed message.
     /// Signature format is 65-byte recoverable `[r || s || v]` with `v` in 27/28 domain.
-    public func signEthMessageDigestWithStoredWallet(
-        account: AccountIdentity,
+    public func signEthDigestWithStoredWallet(
+        account: AccountSession,
         digest32: Data,
     ) throws -> Data {
         let wallet = try walletStore.read(for: account.eoaAddress)
@@ -442,7 +322,7 @@ public actor AccountSetupService {
         return try ECDSASignatureCodec.signDigest(ethSignedDigest, privateKeyHex: wallet.privateKeyHex)
     }
 
-    public func passkeyPublicKey(account: AccountIdentity) throws -> PasskeyPublicKey {
+    public func passkeyPublicKey(for account: AccountSession) throws -> PasskeyPublicKeyModel {
         let records = try loadStoredAccountRecords()
         if let matched = records.first(where: { $0.passkey.credentialID == account.passkeyCredentialID }) {
             return matched.passkey
@@ -450,28 +330,20 @@ public actor AccountSetupService {
         throw AccountSetupError.missingStoredAccount(account.eoaAddress)
     }
 
-    public func signedAuthorization(
-        account: AccountIdentity,
+    public func signedAuthorizationForChain(
+        account: AccountSession,
         chainId: UInt64,
         delegateAddress: String,
         nonce: UInt64 = 0,
-    ) throws -> EIP7702AuthorizationSigned {
+    ) throws -> EIP7702AuthorizationSignedModel {
         let records = try loadStoredAccountRecords()
-        guard
-            let matched = records.first(where: {
-                $0.passkey.credentialID == account.passkeyCredentialID
-            })
-        else {
+        guard records.contains(where: { $0.passkey.credentialID == account.passkeyCredentialID }) else {
             throw AccountSetupError.missingStoredAccount(account.eoaAddress)
-        }
-
-        if matched.signedAuthorization.chainId == chainId {
-            return matched.signedAuthorization
         }
 
         // JIT Signing
         let wallet = try walletStore.read(for: account.eoaAddress)
-        let unsigned = EIP7702AuthorizationUnsigned(
+        let unsigned = EIP7702AuthorizationUnsignedModel(
             chainId: chainId,
             delegateAddress: delegateAddress,
             nonce: nonce,
@@ -496,6 +368,8 @@ public actor AccountSetupService {
             return []
         } catch let decodingError as DecodingError {
             throw AccountSetupError.authorizationDecodeFailed(decodingError)
+        } catch KeychainStoreError.invalidData {
+            throw AccountSetupError.authorizationDecodeFailed(KeychainStoreError.invalidData)
         } catch {
             throw error
         }
@@ -520,10 +394,7 @@ public actor AccountSetupService {
             return
         }
         if let addressIndex = records.firstIndex(where: { existing in
-            let lhs = try? EIP7702AuthorizationCodec.recoverAuthorityAddress(existing.signedAuthorization)
-            let rhs = try? EIP7702AuthorizationCodec.recoverAuthorityAddress(record.signedAuthorization)
-            guard let lhs, let rhs else { return false }
-            return normalizedAddressKey(lhs) == normalizedAddressKey(rhs)
+            normalizedAddressKey(existing.eoaAddress) == normalizedAddressKey(record.eoaAddress)
         }) {
             records[addressIndex] = record
             return
@@ -535,60 +406,7 @@ public actor AccountSetupService {
         eoaAddress.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    private func deriveAccumulatorAddress(eoaAddress: String) throws -> String {
-        try SmartAccount.AccumulatorFactory.deriveAddress(userAccount: eoaAddress).lowercased()
-    }
-
-    private func ensureAccumulatorAddresses(_ records: [StoredAccountRecord]) throws
-        -> [StoredAccountRecord]
-    {
-        var updatedRecords: [StoredAccountRecord] = []
-        updatedRecords.reserveCapacity(records.count)
-        var hasChanges = false
-
-        for record in records {
-            let rawStored = record.accumulatorAddress
-            let normalizedStored = rawStored?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-
-            if let normalizedStored, !normalizedStored.isEmpty {
-                if rawStored != .some(normalizedStored) {
-                    hasChanges = true
-                }
-                updatedRecords.append(
-                    StoredAccountRecord(
-                        passkey: record.passkey,
-                        signedAuthorization: record.signedAuthorization,
-                        accumulatorAddress: normalizedStored,
-                    ),
-                )
-                continue
-            }
-
-            let recoveredAddress: String
-            do {
-                recoveredAddress = try EIP7702AuthorizationCodec.recoverAuthorityAddress(
-                    record.signedAuthorization,
-                )
-            } catch {
-                throw AccountSetupError.authorizationRecoveryFailed(error)
-            }
-            let derivedAddress = try deriveAccumulatorAddress(eoaAddress: recoveredAddress)
-            hasChanges = true
-            updatedRecords.append(
-                StoredAccountRecord(
-                    passkey: record.passkey,
-                    signedAuthorization: record.signedAuthorization,
-                    accumulatorAddress: derivedAddress,
-                ),
-            )
-        }
-
-        if hasChanges {
-            try persistStoredAccountRecords(updatedRecords)
-        }
-
-        return updatedRecords
+    private func deriveAccumulatorAddress(eoaAddress: String, chainId: UInt64) async throws -> String {
+        try await smartAccountClient.computeAccumulatorAddress(account: eoaAddress, chainId: chainId)
     }
 }

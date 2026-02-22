@@ -1,26 +1,6 @@
 import Foundation
 import RPC
 
-public enum BalanceProviderError: LocalizedError {
-    case invalidURL(String)
-    case httpError(statusCode: Int)
-    case apiError(message: String)
-    case decodingFailed
-
-    public var errorDescription: String? {
-        switch self {
-        case let .invalidURL(url):
-            "Invalid balances API URL: \(url)"
-        case let .httpError(statusCode):
-            "Balance API returned HTTP \(statusCode)."
-        case let .apiError(message):
-            "Balance API error: \(message)"
-        case .decodingFailed:
-            "Failed to decode balance response."
-        }
-    }
-}
-
 /// Fetches multichain wallet balances from Zerion positions endpoint and
 /// groups them into canonical token buckets.
 public actor ZerionBalanceProvider {
@@ -61,8 +41,8 @@ public actor ZerionBalanceProvider {
         includeTestnets: Bool,
         dustThresholdUSD: Decimal = 0.01,
         includeTrash: Bool = false,
-        zerionChainMapping: ZerionChainMapping,
-    ) async throws -> [TokenBalance] {
+        zerionChainMapping: ZerionChainMappingModel,
+    ) async throws -> [TokenBalanceModel] {
         let endpointURLString = positionsAPIURL.replacingOccurrences(
             of: "{walletAddress}",
             with: walletAddress,
@@ -246,7 +226,7 @@ public actor ZerionBalanceProvider {
             groups[groupKey] = group
         }
 
-        var balances: [TokenBalance] = []
+        var balances: [TokenBalanceModel] = []
         balances.reserveCapacity(groups.count)
 
         for group in groups.values {
@@ -256,7 +236,7 @@ public actor ZerionBalanceProvider {
 
             let chainBalances = group.chainBalances.values
                 .map {
-                    ChainBalance(
+                    ChainBalanceModel(
                         chainID: $0.chainID,
                         chainName: $0.chainName,
                         balance: $0.balance,
@@ -267,7 +247,7 @@ public actor ZerionBalanceProvider {
                 .sorted { $0.valueUSD > $1.valueUSD }
 
             balances.append(
-                TokenBalance(
+                TokenBalanceModel(
                     id: group.id,
                     symbol: group.symbol,
                     name: group.name,

@@ -2,11 +2,9 @@ import AuthenticationServices
 import CryptoKit
 import Foundation
 import SwiftCBOR
-#if canImport(UIKit)
-    import UIKit
-#endif
+import UIKit
 
-public struct PasskeyRelyingParty: Sendable, Equatable {
+public struct PasskeyRelyingPartyModel: Sendable, Equatable {
     public let rpID: String
     public let rpName: String
 
@@ -16,7 +14,7 @@ public struct PasskeyRelyingParty: Sendable, Equatable {
     }
 }
 
-public struct PasskeyPublicKey: Sendable, Equatable, Codable {
+public struct PasskeyPublicKeyModel: Sendable, Equatable, Codable {
     public let x: Data
     public let y: Data
     public let credentialID: Data
@@ -32,7 +30,7 @@ public struct PasskeyPublicKey: Sendable, Equatable, Codable {
     }
 }
 
-public struct PasskeySignature: Sendable, Equatable, Codable {
+public struct PasskeySignatureModel: Sendable, Equatable, Codable {
     public let r: Data
     public let s: Data
     public let clientDataJSON: Data
@@ -47,9 +45,9 @@ public struct PasskeySignature: Sendable, Equatable, Codable {
         self.credentialID = credentialID
     }
 
-    public func normalized() -> PasskeySignature {
+    public func normalized() -> PasskeySignatureModel {
         let normalizedS = SignatureNormalizer.normalizeP256S(s)
-        return PasskeySignature(
+        return PasskeySignatureModel(
             r: SignatureNormalizer.leftPadTo32(r),
             s: normalizedS,
             clientDataJSON: clientDataJSON,
@@ -90,63 +88,11 @@ public struct PasskeySignature: Sendable, Equatable, Codable {
     }
 }
 
-public enum PasskeyServiceError: Error {
-    case missingWindowAnchor
-    case unsupportedResponse
-    case malformedAttestationObject
-    case malformedAuthenticatorData
-    case malformedCoseKey
-    case malformedSignature
-    case malformedClientDataJSON
-    case challengeMismatch
-    case relyingPartyMismatch
-    case credentialIDMismatch
-    case userVerificationRequired
-    case signatureVerificationFailed
-    case authorizationFailed(code: Int?, message: String)
-}
-
-extension PasskeyServiceError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .missingWindowAnchor:
-            return "No presentation anchor is available for passkey prompt."
-        case .unsupportedResponse:
-            return "Received unsupported passkey response type."
-        case .malformedAttestationObject:
-            return "Passkey attestation object is malformed."
-        case .malformedAuthenticatorData:
-            return "Passkey authenticator data is malformed."
-        case .malformedCoseKey:
-            return "Passkey COSE public key is malformed."
-        case .malformedSignature:
-            return "Passkey signature payload is malformed."
-        case .malformedClientDataJSON:
-            return "Passkey clientDataJSON is malformed."
-        case .challengeMismatch:
-            return "Passkey challenge does not match the expected payload."
-        case .relyingPartyMismatch:
-            return "Passkey relying party does not match."
-        case .credentialIDMismatch:
-            return "Passkey credential ID does not match the expected credential."
-        case .userVerificationRequired:
-            return "Passkey user verification is required."
-        case .signatureVerificationFailed:
-            return "Passkey signature verification failed."
-        case let .authorizationFailed(code, message):
-            if let code {
-                return "Passkey authorization failed (\(code)): \(message)"
-            }
-            return "Passkey authorization failed: \(message)"
-        }
-    }
-}
-
 public enum PasskeyAssertionVerifier {
     public static func verify(
-        signature: PasskeySignature,
+        signature: PasskeySignatureModel,
         payload: Data,
-        expectedPasskey: PasskeyPublicKey,
+        expectedPasskey: PasskeyPublicKeyModel,
         rpId: String,
     ) throws {
         guard signature.credentialID == expectedPasskey.credentialID else {
@@ -195,24 +141,24 @@ public enum PasskeyAssertionVerifier {
     }
 }
 
-public protocol PasskeyServicing {
+public protocol PasskeyServiceProviding {
     func register(
         rpId: String,
         rpName: String,
         challenge: Data,
         userName: String,
         userID: Data,
-    ) async throws -> PasskeyPublicKey
+    ) async throws -> PasskeyPublicKeyModel
 
     func sign(
         rpId: String,
         payload: Data,
         allowedCredentialIDs: [Data]?,
-    ) async throws -> PasskeySignature
+    ) async throws -> PasskeySignatureModel
 }
 
 @MainActor
-public final class PasskeyService: NSObject, PasskeyServicing {
+public final class PasskeyService: NSObject, PasskeyServiceProviding {
     private weak var anchor: ASPresentationAnchor?
     private var continuation: CheckedContinuation<ResultPayload, Error>?
 
@@ -226,7 +172,7 @@ public final class PasskeyService: NSObject, PasskeyServicing {
         challenge: Data,
         userName: String,
         userID: Data,
-    ) async throws -> PasskeyPublicKey {
+    ) async throws -> PasskeyPublicKeyModel {
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: rpId)
         let request = provider.createCredentialRegistrationRequest(
             challenge: challenge,
@@ -241,7 +187,7 @@ public final class PasskeyService: NSObject, PasskeyServicing {
 
         let parsed = try WebAuthnAttestationParser.parse(registration.rawAttestationObject ?? Data())
 
-        return PasskeyPublicKey(
+        return PasskeyPublicKeyModel(
             x: parsed.x,
             y: parsed.y,
             credentialID: registration.credentialID,
@@ -252,7 +198,7 @@ public final class PasskeyService: NSObject, PasskeyServicing {
         rpId: String,
         payload: Data,
         allowedCredentialIDs: [Data]? = nil,
-    ) async throws -> PasskeySignature {
+    ) async throws -> PasskeySignatureModel {
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: rpId)
         let challenge = Data(SHA256.hash(data: payload))
         let request = provider.createCredentialAssertionRequest(challenge: challenge)
@@ -269,7 +215,7 @@ public final class PasskeyService: NSObject, PasskeyServicing {
 
         let (r, s) = try DERP256SignatureParser.parse(assertion.signature)
 
-        return PasskeySignature(
+        return PasskeySignatureModel(
             r: r,
             s: s,
             clientDataJSON: assertion.rawClientDataJSON,
@@ -335,13 +281,11 @@ extension PasskeyService: ASAuthorizationControllerPresentationContextProviding 
         if let anchor {
             return anchor
         }
-        #if canImport(UIKit)
-            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
-            {
-                return window
-            }
-        #endif
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
+        {
+            return window
+        }
         return ASPresentationAnchor()
     }
 }

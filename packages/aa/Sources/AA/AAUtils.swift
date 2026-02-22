@@ -6,19 +6,23 @@ enum AAUtils {
     static let eip712DomainTypeHash = Data(
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)".utf8,
     ).sha3(.keccak256)
-    static let accountDomainNameHash = Data("UnifiedTokenAccount".utf8).sha3(.keccak256)
+    static let accountDomainNameHash = Data("UnifiedAccount".utf8).sha3(.keccak256)
     static let accountDomainVersionHash = Data("1".utf8).sha3(.keccak256)
-    static let executeTypeHash = Data(
-        "Execute(address target,uint256 value,bytes32 dataHash,uint256 nonce,uint256 deadline)".utf8,
+
+    /// EIP-712 typehash for the executeX leaf: `ExecuteX(bytes32 callsHash, bytes32 salt)`
+    static let executeXTypeHash = Data(
+        "ExecuteX(bytes32 callsHash,bytes32 salt)".utf8,
     ).sha3(.keccak256)
-    static let executeBatchTypeHash = Data(
-        "ExecuteBatch(bytes32 callsHash,uint256 nonce,uint256 deadline)".utf8,
+
+    /// EIP-712 typehash for Accumulator execution params.
+    static let executionParamsTypeHash = Data(
+        "ExecutionParams(bytes32 salt,uint32 fillDeadline,uint256 sumOutput,address outputToken,uint256 finalMinOutput,address finalOutputToken,address recipient,address destinationCaller,bytes32 destCallsHash)"
+            .utf8,
     ).sha3(.keccak256)
-    static let superIntentExecutionTypeHash = Data(
-        "SuperIntentExecution(bytes32 superIntentHash,uint32 fillDeadline)".utf8,
-    ).sha3(.keccak256)
-    static let superIntentTypeHash = Data(
-        "SuperIntentData(uint256 destChainId,bytes32 salt,uint256 finalMinOutput,bytes32[] packedMinOutputs,bytes32[] packedInputAmounts,bytes32[] packedInputTokens,address outputToken,address finalOutputToken,address recipient,ChainCalls[] chainCalls)ChainCalls(uint256 chainId,bytes calls)"
+
+    /// EIP-712 typehash for DispatchOrder, used as `orderDataType` in OnchainCrossChainOrder.
+    static let dispatchOrderTypeHash = Data(
+        "DispatchOrder(bytes32 salt,uint256 destChainId,address outputToken,uint256 sumOutput,uint256 inputAmount,address inputToken,uint256 minOutput)"
             .utf8,
     ).sha3(.keccak256)
 

@@ -10,7 +10,7 @@ actor ENSQuoteWorker {
 
     func quote(name: String) async throws -> ENSNameQuote {
         let quote = try await client.quoteRegistration(
-            RegisterNameRequest(
+            RegisterNameRequestModel(
                 name: name,
                 ownerAddress: "0x0000000000000000000000000000000000000000",
                 duration: 31_536_000,
@@ -35,4 +35,11 @@ enum NameInfoTone {
     case info
     case success
     case error
+}
+
+enum ProfileAsyncStateModel: Equatable {
+    case idle
+    case inProgress
+    case succeeded
+    case failed(String)
 }

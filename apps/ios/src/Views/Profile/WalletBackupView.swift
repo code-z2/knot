@@ -1,14 +1,13 @@
 import SwiftUI
-import UIKit
 
 struct WalletBackupView: View {
     let mnemonic: String
     var onBack: () -> Void = {}
-    @State private var isMnemonicRevealed = false
-    @State private var didCopy = false
-    @State private var copyResetTask: Task<Void, Never>?
-    @State private var revealTrigger = 0
-    @State private var copyTrigger = 0
+    @State var isMnemonicRevealed = false
+    @State var didCopy = false
+    @State var copyResetTask: Task<Void, Never>?
+    @State var revealTrigger = 0
+    @State var copyTrigger = 0
 
     var body: some View {
         ZStack {
@@ -23,63 +22,18 @@ struct WalletBackupView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("wallet_backup_secret_phrase")
-                            .font(.custom("Roboto-Regular", size: 14))
-                            .foregroundStyle(AppThemeColor.labelSecondary)
-                            .padding(.horizontal, 10)
-
-                        ZStack(alignment: .topLeading) {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(AppThemeColor.backgroundSecondary)
-                                .frame(height: 154)
-
-                            Text(mnemonic)
-                                .font(.custom("RobotoMono-Regular", size: 14))
-                                .foregroundStyle(AppThemeColor.labelPrimary)
-                                .padding(.horizontal, 18)
-                                .padding(.top, AppSpacing.md)
-                                .multilineTextAlignment(.leading)
-                                .blur(radius: isMnemonicRevealed ? 0 : 6)
-
-                            if !isMnemonicRevealed {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .glassEffect(.clear.interactive(), in: .rect)
-                                    .clipShape(.rect(cornerRadius: 16))
-                                    .frame(height: 154)
-                                    .overlay {
-                                        Button {
-                                            revealTrigger += 1
-                                            withAnimation(AppAnimation.gentle) {
-                                                isMnemonicRevealed = true
-                                            }
-                                        } label: {
-                                            Text("wallet_backup_tap_to_reveal")
-                                                .font(.custom("Roboto-Medium", size: 14))
-                                                .foregroundStyle(AppThemeColor.labelSecondary)
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, AppSpacing.xs)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                            }
-                        }
-                        .frame(width: 351)
-                    }
+                    WalletBackupPhraseCard(
+                        mnemonic: mnemonic,
+                        isMnemonicRevealed: $isMnemonicRevealed,
+                        onRevealTap: handleRevealTap,
+                    )
                 }
 
                 Button {
-                    copyTrigger += 1
-                    UIPasteboard.general.string = mnemonic
-                    didCopy = true
-                    copyResetTask?.cancel()
-                    copyResetTask = Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(1.1))
-                        didCopy = false
-                    }
+                    handleCopyTap()
                 } label: {
                     HStack(spacing: 10) {
-                        Text(didCopy ? "receive_copied" : "wallet_backup_copy")
+                        Text(copyButtonTitle)
                             .font(.custom("Roboto-Bold", size: 15))
                             .foregroundStyle(AppThemeColor.accentBrown)
                             .contentTransition(.numericText())
@@ -119,6 +73,10 @@ struct WalletBackupView: View {
         }
         .sensoryFeedback(AppHaptic.lightImpact.sensoryFeedback, trigger: revealTrigger) { _, _ in true }
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: copyTrigger) { _, _ in true }
+    }
+
+    private var copyButtonTitle: LocalizedStringKey {
+        didCopy ? "receive_copied" : "wallet_backup_copy"
     }
 }
 

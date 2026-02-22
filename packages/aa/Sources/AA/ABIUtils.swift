@@ -137,34 +137,6 @@ public enum ABIEncoder {
         }
         return out
     }
-
-    public static func encodeChainCallsTuple(_ bundle: ChainCalls) throws -> Data {
-        let chainId = ABIWord.uint(BigUInt(bundle.chainId))
-        let calls = try encodeCallTupleArray(bundle.calls)
-        let callsOffset = ABIWord.uint(BigUInt(64))
-        return chainId + callsOffset + calls
-    }
-
-    public static func encodeChainCallsArray(_ bundles: [ChainCalls]) throws -> Data {
-        var out = ABIWord.uint(BigUInt(bundles.count))
-        if bundles.isEmpty {
-            return out
-        }
-
-        let encodedBundles = try bundles.map { try encodeChainCallsTuple($0) }
-        var offsets = Data()
-        var currentOffset = 32 + (bundles.count * 32)
-        for encoded in encodedBundles {
-            offsets.append(ABIWord.uint(BigUInt(currentOffset)))
-            currentOffset += encoded.count
-        }
-
-        out.append(offsets)
-        for encoded in encodedBundles {
-            out.append(encoded)
-        }
-        return out
-    }
 }
 
 public enum ABIUtils {

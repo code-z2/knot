@@ -2,14 +2,14 @@ import Foundation
 import RPC
 
 /// Serializable cache payload for `BalanceStore`.
-public struct BalanceStoreSnapshot: Codable, Sendable {
-    public let balances: [TokenBalance]
+public struct BalanceStoreSnapshotModel: Codable, Sendable {
+    public let balances: [TokenBalanceModel]
     public let activeChainIDs: [UInt64]
     public let totalValueUSD: Decimal
     public let lastRefreshed: Date?
 
     public init(
-        balances: [TokenBalance],
+        balances: [TokenBalanceModel],
         activeChainIDs: [UInt64],
         totalValueUSD: Decimal,
         lastRefreshed: Date?,
@@ -28,7 +28,7 @@ public struct BalanceStoreSnapshot: Codable, Sendable {
 @MainActor
 @Observable
 public final class BalanceStore {
-    public private(set) var balances: [TokenBalance] = []
+    public private(set) var balances: [TokenBalanceModel] = []
     public private(set) var activeChainIDs: [UInt64] = []
     public private(set) var totalValueUSD: Decimal = 0
     public private(set) var isLoading: Bool = false
@@ -135,12 +135,12 @@ public final class BalanceStore {
     }
 
     /// Lookup balance for a specific token by symbol.
-    public func balance(forSymbol symbol: String) -> TokenBalance? {
+    public func balance(forSymbol symbol: String) -> TokenBalanceModel? {
         balances.first { $0.symbol.caseInsensitiveCompare(symbol) == .orderedSame }
     }
 
-    public func snapshot() -> BalanceStoreSnapshot {
-        BalanceStoreSnapshot(
+    public func snapshot() -> BalanceStoreSnapshotModel {
+        BalanceStoreSnapshotModel(
             balances: balances,
             activeChainIDs: activeChainIDs,
             totalValueUSD: totalValueUSD,
@@ -148,7 +148,7 @@ public final class BalanceStore {
         )
     }
 
-    public func restore(from snapshot: BalanceStoreSnapshot) {
+    public func restore(from snapshot: BalanceStoreSnapshotModel) {
         balances = snapshot.balances
         activeChainIDs = snapshot.activeChainIDs
         totalValueUSD = snapshot.totalValueUSD

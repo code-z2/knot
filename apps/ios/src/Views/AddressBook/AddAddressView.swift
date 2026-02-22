@@ -6,30 +6,30 @@ enum AddAddressField: Hashable {
 }
 
 struct AddAddressView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
 
     let beneficiaries: [Beneficiary]
     let ensService: ENSService
     let onSave: @MainActor @Sendable (AddBeneficiaryDraft) async -> Void
     let addressValidationMode: DropdownInputValidationMode
 
-    @State private var activeField: AddAddressField?
+    @State var activeField: AddAddressField?
 
-    @State private var addressQuery = ""
-    @State private var chainQuery = ""
-    @State private var alias = ""
+    @State var addressQuery = ""
+    @State var chainQuery = ""
+    @State var alias = ""
 
-    @State private var selectedBeneficiary: Beneficiary?
-    @State private var selectedChain: ChainOption?
-    @State private var finalizedAddressValue: String?
-    @State private var isSaving = false
-    @State private var addressDetectionTask: Task<Void, Never>?
-    @State private var addressValidationState: AddressValidationState = .idle
-    @State private var ensResolvedAddress: String?
-    @State private var addressValidationTask: Task<Void, Never>?
-    @State private var isAddressInputFocused = false
-    @State private var isChainInputFocused = false
-    @State private var isAliasInputFocused = false
+    @State var selectedBeneficiary: Beneficiary?
+    @State var selectedChain: ChainOption?
+    @State var finalizedAddressValue: String?
+    @State var isSaving = false
+    @State var addressDetectionTask: Task<Void, Never>?
+    @State var addressValidationState: AddressValidationState = .idle
+    @State var ensResolvedAddress: String?
+    @State var addressValidationTask: Task<Void, Never>?
+    @State var isAddressInputFocused = false
+    @State var isChainInputFocused = false
+    @State var isAliasInputFocused = false
 
     init(
         beneficiaries: [Beneficiary],
@@ -92,7 +92,7 @@ struct AddAddressView: View {
         }
     }
 
-    private var addressInputField: some View {
+    var addressInputField: some View {
         DropdownInputField(
             variant: .address,
             properties: .init(
@@ -113,7 +113,7 @@ struct AddAddressView: View {
         }
     }
 
-    private var chainInputField: some View {
+    var chainInputField: some View {
         DropdownInputField(
             variant: .chain,
             properties: .init(
@@ -134,7 +134,7 @@ struct AddAddressView: View {
         }
     }
 
-    private var aliasInputField: some View {
+    var aliasInputField: some View {
         DropdownInputField(
             variant: .noDropdown,
             properties: .init(
@@ -154,65 +154,42 @@ struct AddAddressView: View {
         }
     }
 
-    private var addButton: some View {
-        Button {
-            Task {
-                await save()
-            }
-        } label: {
-            Text("address_book_add")
-                .font(.custom("Roboto-Bold", size: 15))
-                .foregroundStyle(AppThemeColor.backgroundPrimary)
-                .padding(.horizontal, 17)
-                .padding(.vertical, 15)
-                .frame(minWidth: 100)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(!canSave || isSaving)
-        .opacity(canSave && !isSaving ? 1 : 0)
-        .animation(AppAnimation.standard, value: canSave)
-        .tint(AppThemeColor.accentBrown)
+    var addButton: some View {
+        AddAddressPrimaryButton(
+            canSave: canSave,
+            isSaving: isSaving,
+            onTap: {
+                Task { await save() }
+            },
+        )
     }
 
-    private var addressDropdown: some View {
-        Group {
-            if filteredBeneficiaries.isEmpty {
-                Text("address_book_no_beneficiaries_found")
-                    .font(.custom("Roboto-Regular", size: 13))
-                    .foregroundStyle(AppThemeColor.labelSecondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 36)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 6) {
-                        ForEach(filteredBeneficiaries) { beneficiary in
-                            BeneficiaryRow(beneficiary: beneficiary) {
-                                selectedBeneficiary = beneficiary
-                                finalizedAddressValue = beneficiary.address
-                                addressQuery = ""
-                                addressValidationState = .valid
-                                ensResolvedAddress = nil
-                                focusFirstIncompleteField()
-                            }
-                        }
-                    }
-                }
-                .frame(maxHeight: 182)
-            }
-        }
+    var addressDropdown: some View {
+        AddAddressAddressDropdownView(
+            beneficiaries: filteredBeneficiaries,
+            onSelect: { beneficiary in
+                selectedBeneficiary = beneficiary
+                finalizedAddressValue = beneficiary.address
+                addressQuery = ""
+                addressValidationState = .valid
+                ensResolvedAddress = nil
+                focusFirstIncompleteField()
+            },
+        )
     }
 
-    private var chainDropdown: some View {
-        ChainList(query: chainQuery) { chain in
-            selectedChain = chain
-            chainQuery = ""
-            focusFirstIncompleteField()
-        }
-        .frame(maxHeight: 360)
+    var chainDropdown: some View {
+        AddAddressChainDropdownView(
+            query: $chainQuery,
+            onSelect: { chain in
+                selectedChain = chain
+                chainQuery = ""
+                focusFirstIncompleteField()
+            },
+        )
     }
 
-    private var filteredBeneficiaries: [Beneficiary] {
+    var filteredBeneficiaries: [Beneficiary] {
         SearchSystem.filter(
             query: addressQuery,
             items: beneficiaries,
@@ -227,7 +204,7 @@ struct AddAddressView: View {
         )
     }
 
-    private var addressBadge: DropdownBadgeValue? {
+    var addressBadge: DropdownBadgeValue? {
         let rawValue = selectedBeneficiary?.address ?? finalizedAddressValue
         guard let rawValue, !rawValue.isEmpty else { return nil }
         return DropdownBadgeValue(
@@ -236,14 +213,14 @@ struct AddAddressView: View {
         )
     }
 
-    private var chainBadge: DropdownBadgeValue? {
+    var chainBadge: DropdownBadgeValue? {
         guard let selectedChain else { return nil }
         return DropdownBadgeValue(
             text: selectedChain.name, iconAssetName: selectedChain.assetName, iconStyle: .network,
         )
     }
 
-    private var resolvedAddress: String? {
+    var resolvedAddress: String? {
         if let selectedBeneficiary {
             return selectedBeneficiary.address.trimmingCharacters(in: .whitespacesAndNewlines)
         }
@@ -268,253 +245,10 @@ struct AddAddressView: View {
         return candidate
     }
 
-    private var canSave: Bool {
+    var canSave: Bool {
         guard addressValidationState == .valid else { return false }
         guard let resolvedAddress, !resolvedAddress.isEmpty else { return false }
         guard selectedChain != nil else { return false }
         return !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func expandedBinding(for field: AddAddressField) -> Binding<Bool> {
-        Binding(
-            get: { activeField == field },
-            set: { isExpanded in
-                if isExpanded {
-                    activate(field)
-                } else if activeField == field {
-                    collapseAllFields()
-                }
-            },
-        )
-    }
-
-    private func activate(_ field: AddAddressField) {
-        if activeField == .address, field != .address {
-            finalizeAddressIfNeeded()
-        }
-
-        activeField = field
-
-        if field == .chain, let selectedChain, chainQuery.isEmpty {
-            chainQuery = selectedChain.name
-        }
-
-        switch field {
-        case .address:
-            isAddressInputFocused = true
-            isChainInputFocused = false
-            isAliasInputFocused = false
-        case .chain:
-            isAddressInputFocused = false
-            isChainInputFocused = true
-            isAliasInputFocused = false
-        }
-    }
-
-    private func collapseAllFields() {
-        if activeField == .address {
-            finalizeAddressIfNeeded()
-        }
-
-        if selectedChain == nil {
-            chainQuery = ""
-        } else {
-            chainQuery = selectedChain?.name ?? ""
-        }
-
-        activeField = nil
-        isAddressInputFocused = false
-        isChainInputFocused = false
-        isAliasInputFocused = false
-    }
-
-    private func clearAddressSelectionAndStartEditing() {
-        selectedBeneficiary = nil
-        finalizedAddressValue = nil
-        addressQuery = ""
-        addressValidationState = .idle
-        ensResolvedAddress = nil
-        addressValidationTask?.cancel()
-        activate(.address)
-    }
-
-    private func clearChainSelectionAndStartEditing() {
-        selectedChain = nil
-        chainQuery = ""
-        activate(.chain)
-    }
-
-    private func focusFirstIncompleteField() {
-        if addressBadge == nil {
-            activate(.address)
-            return
-        }
-
-        if chainBadge == nil {
-            activate(.chain)
-            return
-        }
-
-        activeField = nil
-        isAddressInputFocused = false
-        isChainInputFocused = false
-        isAliasInputFocused = alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func handleAddressQueryDidChange(_ newValue: String) {
-        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if !trimmed.isEmpty, selectedBeneficiary != nil || finalizedAddressValue != nil {
-            selectedBeneficiary = nil
-            finalizedAddressValue = nil
-        }
-
-        addressDetectionTask?.cancel()
-
-        guard !trimmed.isEmpty else { return }
-
-        let snapshot = trimmed
-        let mode = addressValidationMode
-
-        addressDetectionTask = Task(priority: .userInitiated) { @MainActor in
-            let detection = AddressInputParser.detectCandidate(snapshot, mode: mode)
-
-            guard !Task.isCancelled else { return }
-
-            applyAddressDetectionResult(detection, sourceInput: snapshot)
-        }
-    }
-
-    @MainActor
-    private func applyAddressDetectionResult(
-        _ detection: AddressDetectionResult,
-        sourceInput: String,
-    ) {
-        let current = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard current == sourceInput else { return }
-        guard selectedBeneficiary == nil else { return }
-
-        switch detection {
-        case let .evmAddress(address):
-            finalizedAddressValue = address
-            selectedBeneficiary = nil
-            addressQuery = ""
-            validateAddress(address)
-            focusFirstIncompleteField()
-        case let .ensName(ensName):
-            finalizedAddressValue = ensName
-            selectedBeneficiary = nil
-            addressQuery = ""
-            validateAddress(ensName)
-            focusFirstIncompleteField()
-        case .invalid:
-            finalizedAddressValue = nil
-            addressValidationState = .idle
-            ensResolvedAddress = nil
-        }
-    }
-
-    private func finalizeAddressIfNeeded() {
-        if let selectedBeneficiary {
-            finalizedAddressValue = selectedBeneficiary.address
-            if addressValidationState != .valid {
-                validateAddress(selectedBeneficiary.address)
-            }
-            return
-        }
-
-        let candidate = addressQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty else {
-            return
-        }
-
-        if isAddressInputValid(candidate) {
-            finalizedAddressValue = candidate
-            if addressValidationState != .valid {
-                validateAddress(candidate)
-            }
-        } else {
-            finalizedAddressValue = nil
-        }
-    }
-
-    private func isAddressInputValid(_ input: String) -> Bool {
-        switch addressValidationMode {
-        case .flexible:
-            !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .strictAddressOrENS:
-            AddressInputParser.isLikelyEVMAddress(input) || AddressInputParser.isLikelyENSName(input)
-        }
-    }
-
-    /// Validate the finalized address: EVM addresses are valid immediately,
-    /// ENS names are resolved asynchronously via `ENSService`.
-    private func validateAddress(_ value: String) {
-        addressValidationTask?.cancel()
-
-        if AddressInputParser.isLikelyEVMAddress(value) {
-            addressValidationState = .valid
-            ensResolvedAddress = nil
-            return
-        }
-
-        if AddressInputParser.isLikelyENSName(value) {
-            addressValidationState = .validating
-            ensResolvedAddress = nil
-            addressValidationTask = Task {
-                do {
-                    let resolved = try await ensService.resolveName(name: value)
-                    guard !Task.isCancelled else { return }
-                    ensResolvedAddress = resolved
-                    addressValidationState = .valid
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    ensResolvedAddress = nil
-                    addressValidationState = .invalid
-                }
-            }
-            return
-        }
-
-        addressValidationState = .invalid
-        ensResolvedAddress = nil
-    }
-
-    private func displayAddressOrENS(_ value: String) -> String {
-        if AddressInputParser.isLikelyEVMAddress(value) {
-            return AddressShortener.shortened(value)
-        }
-        return value
-    }
-
-    @MainActor
-    private func save() async {
-        guard !isSaving else { return }
-
-        finalizeAddressIfNeeded()
-
-        guard
-            let address = resolvedAddress,
-            let chain = selectedChain?.name,
-            !address.isEmpty
-        else {
-            return
-        }
-
-        let trimmedAlias = alias.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedAlias.isEmpty else { return }
-
-        isSaving = true
-        defer { isSaving = false }
-
-        await onSave(
-            .init(
-                name: trimmedAlias,
-                address: address,
-                chain: chain,
-            ),
-        )
-
-        dismiss()
     }
 }

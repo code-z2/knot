@@ -30,10 +30,35 @@ final class WalletActivityCache {
 
 @main
 struct AppEntry: App {
+    init() {
+        Self.ensureApplicationSupportDirectory()
+    }
+
     var body: some Scene {
         WindowGroup {
             AppRootView()
         }
         .modelContainer(for: [WalletActivityCache.self])
+    }
+
+    private static func ensureApplicationSupportDirectory() {
+        guard
+            let appSupportURL = FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+            ).first
+        else {
+            return
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: appSupportURL,
+                withIntermediateDirectories: true,
+                attributes: nil,
+            )
+        } catch {
+            print("⚠️ [AppEntry] Failed to create Application Support directory: \(error.localizedDescription)")
+        }
     }
 }

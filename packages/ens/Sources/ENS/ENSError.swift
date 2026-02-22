@@ -2,10 +2,15 @@ import Foundation
 
 public enum ENSError: Error {
     case invalidRPCURL
+
     case invalidAddress(String)
+
     case invalidName
+
     case ensUnavailable
+
     case nameUnavailable(String)
+
     case missingResult(String)
 }
 

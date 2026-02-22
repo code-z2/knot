@@ -20,10 +20,10 @@ struct TransactionsView: View {
         self.currencyRateStore = currencyRateStore
     }
 
-    @State private var isBalanceHidden = false
-    @State private var selectedTransaction: TransactionRecord?
-    @State private var selectionTrigger = 0
-    @Environment(\.openURL) private var openURL
+    @State var isBalanceHidden = false
+    @State var selectedTransaction: TransactionRecordModel?
+    @State var selectionTrigger = 0
+    @Environment(\.openURL) var openURL
 
     var body: some View {
         ZStack {
@@ -46,7 +46,7 @@ struct TransactionsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView(showsIndicators: false) {
+                ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         AccountTransactionsList(
                             sections: transactionStore.sections,
@@ -73,6 +73,7 @@ struct TransactionsView: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -101,45 +102,6 @@ struct TransactionsView: View {
         }
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true
         }
-    }
-
-    private func presentReceipt(for transaction: TransactionRecord) {
-        selectionTrigger += 1
-        selectedTransaction = transaction
-    }
-
-    private func dismissReceipt() {
-        selectedTransaction = nil
-    }
-
-    private func openExplorer(_ url: URL) {
-        dismissReceipt()
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(180))
-            openURL(url, prefersInApp: true)
-        }
-    }
-}
-
-private struct TransactionsAppHeader: View {
-    let balanceText: String
-    @Binding var isBalanceHidden: Bool
-
-    var body: some View {
-        VStack(spacing: 0) {
-            TransactionBalanceSummary(
-                balanceText: balanceText,
-                isBalanceHidden: $isBalanceHidden,
-            )
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.top, 35)
-            .padding(.bottom, 10)
-
-            Rectangle()
-                .fill(AppThemeColor.separatorNonOpaque)
-                .frame(height: 1)
-        }
-        .background(AppThemeColor.backgroundPrimary)
     }
 }
 

@@ -1,93 +1,7 @@
 import Foundation
 
-public struct ChainDefinition: Sendable, Hashable, Identifiable {
-    public let chainID: UInt64
-    public let slug: String
-    public let name: String
-    public let assetName: String
-    public let keywords: [String]
-    public let rpcURL: String?
-    public let explorerBaseURL: String?
-    public let isTestnet: Bool
-    public let spokePoolAddress: String?
-    public let wrappedNativeTokenAddress: String?
-
-    public var id: UInt64 {
-        chainID
-    }
-
-    public init(
-        chainID: UInt64,
-        slug: String,
-        name: String,
-        assetName: String,
-        keywords: [String],
-        rpcURL: String?,
-        explorerBaseURL: String?,
-        isTestnet: Bool = false,
-        spokePoolAddress: String? = nil,
-        wrappedNativeTokenAddress: String? = nil,
-    ) {
-        self.chainID = chainID
-        self.slug = slug
-        self.name = name
-        self.assetName = assetName
-        self.keywords = keywords
-        self.rpcURL = rpcURL
-        self.explorerBaseURL = explorerBaseURL
-        self.isTestnet = isTestnet
-        self.spokePoolAddress = spokePoolAddress
-        self.wrappedNativeTokenAddress = wrappedNativeTokenAddress
-    }
-
-    public func makeEndpoints(config: RPCEndpointBuilderConfig) -> ChainEndpoints? {
-        let templatedRPCURL = makeURL(
-            chainID: chainID,
-            slug: slug,
-            template: config.jsonRPCURLTemplate,
-            apiKey: config.jsonRPCAPIKey,
-        )
-        let resolvedRPCURL = firstNonEmpty(templatedRPCURL, rpcURL ?? "")
-        guard !resolvedRPCURL.isEmpty else {
-            return nil
-        }
-
-        let walletAPIURL = makeURL(
-            chainID: chainID,
-            slug: slug,
-            template: config.walletAPIURLTemplate,
-        )
-        let addressActivityAPIURL = makeURL(
-            chainID: chainID,
-            slug: slug,
-            template: config.addressActivityAPIURLTemplate,
-        )
-        return ChainEndpoints(
-            rpcURL: resolvedRPCURL,
-            walletAPIURL: walletAPIURL,
-            walletAPIBearerToken: config.walletAPIKey,
-            addressActivityAPIURL: addressActivityAPIURL,
-            addressActivityAPIBearerToken: config.addressActivityAPIKey,
-        )
-    }
-
-    public func addressURL(address: String) -> URL? {
-        guard let explorerBaseURL else { return nil }
-        let normalized = address.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return nil }
-        return URL(string: "\(explorerBaseURL)/address/\(normalized)")
-    }
-
-    public func transactionURL(transactionHash: String) -> URL? {
-        guard let explorerBaseURL else { return nil }
-        let normalized = transactionHash.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return nil }
-        return URL(string: "\(explorerBaseURL)/tx/\(normalized)")
-    }
-}
-
 public enum ChainRegistry {
-    public static let known: [ChainDefinition] = [
+    public static let known: [ChainDefinitionModel] = [
         .init(
             chainID: 1,
             slug: "eth-mainnet",
@@ -188,6 +102,7 @@ public enum ChainRegistry {
             rpcURL: nil,
             explorerBaseURL: nil,
             spokePoolAddress: "0xd2ecb3afe598b746F8123CaE365a598DA831A449",
+            wrappedNativeTokenAddress: "0xee8c0e9f1bffb4eb878d8f15f368a02a35481242",
         ),
         .init(
             chainID: 56,
@@ -253,6 +168,7 @@ public enum ChainRegistry {
             rpcURL: nil,
             explorerBaseURL: "https://plasmascan.to",
             spokePoolAddress: "0x50039fAEfebef707cFD94D6d462fE6D10B39207a",
+            wrappedNativeTokenAddress: "0x9895D81bB462A195b4922ED7De0e3ACD007c32CB",
         ),
         .init(
             chainID: 534_352,
@@ -329,6 +245,7 @@ public enum ChainRegistry {
             rpcURL: nil,
             explorerBaseURL: "https://hyperevmscan.io",
             spokePoolAddress: "0x35E63eA3eb0fb7A3bc543C71FB66412e1F6B0E04",
+            wrappedNativeTokenAddress: "0xBe6727B535545C67d5cAa73dEa54865B92CF7907", // uETH
         ),
         .init(
             chainID: 57073,
@@ -343,19 +260,19 @@ public enum ChainRegistry {
         ),
     ]
 
-    private static let knownByChainID: [UInt64: ChainDefinition] = Dictionary(
+    private static let knownByChainID: [UInt64: ChainDefinitionModel] = Dictionary(
         uniqueKeysWithValues: known.map { ($0.chainID, $0) },
     )
 
-    public static func resolve(chainID: UInt64) -> ChainDefinition? {
+    public static func resolve(chainID: UInt64) -> ChainDefinitionModel? {
         knownByChainID[chainID]
     }
 
-    public static func resolveOrFallback(chainID: UInt64) -> ChainDefinition {
+    public static func resolveOrFallback(chainID: UInt64) -> ChainDefinitionModel {
         if let known = resolve(chainID: chainID) {
             return known
         }
-        return ChainDefinition(
+        return ChainDefinitionModel(
             chainID: chainID,
             slug: "chain-\(chainID)",
             name: "Chain \(chainID)",
@@ -381,39 +298,9 @@ public enum ChainRegistry {
 
     public static func getChains(
         bundle: Bundle = .main,
-    ) -> [ChainDefinition] {
+    ) -> [ChainDefinitionModel] {
         let configuredChainIDs = ChainSupportRuntime.resolveSupportedChainIDs(bundle: bundle)
         guard !configuredChainIDs.isEmpty else { return [] }
         return configuredChainIDs.map(resolveOrFallback(chainID:))
     }
-}
-
-private func makeURL(chainID: UInt64, slug: String, template: String) -> String {
-    makeURL(chainID: chainID, slug: slug, template: template, apiKey: "")
-}
-
-private func makeURL(chainID: UInt64, slug: String, template: String, apiKey: String) -> String {
-    var resolved = template.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !resolved.isEmpty else { return "" }
-
-    resolved = resolved.replacingOccurrences(of: "{chainId}", with: String(chainID))
-    resolved = resolved.replacingOccurrences(of: "{slug}", with: slug)
-
-    if resolved.contains("{apiKey}") {
-        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return "" }
-        resolved = resolved.replacingOccurrences(of: "{apiKey}", with: key)
-    }
-
-    return resolved
-}
-
-private func firstNonEmpty(_ candidates: String...) -> String {
-    for candidate in candidates {
-        let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            return trimmed
-        }
-    }
-    return ""
 }

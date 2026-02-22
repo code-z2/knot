@@ -20,7 +20,7 @@ public struct LiFiSwapProvider: SwapProvider, Sendable {
         inputAmountWei: String,
         chainId: UInt64,
         fromAddress: String,
-    ) async throws -> SwapQuote {
+    ) async throws -> SwapQuoteModel {
         var components = URLComponents(string: "\(baseURL)/quote")!
         components.queryItems = [
             URLQueryItem(name: "fromChain", value: String(chainId)),
@@ -71,7 +71,7 @@ public struct LiFiSwapProvider: SwapProvider, Sendable {
         outputToken: String,
         inputAmountWei: String,
         chainId: UInt64,
-    ) throws -> SwapQuote {
+    ) throws -> SwapQuoteModel {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw RouteError.quoteUnavailable(provider: "LiFi", reason: "Invalid JSON response")
         }
@@ -116,7 +116,7 @@ public struct LiFiSwapProvider: SwapProvider, Sendable {
         let inputDecimal = Decimal(string: inputAmountWei) ?? .zero
         let outputDecimal = Decimal(string: toAmountStr) ?? .zero
 
-        return SwapQuote(
+        return SwapQuoteModel(
             inputAmount: inputDecimal,
             outputAmount: outputDecimal,
             inputToken: inputToken,

@@ -20,5 +20,5 @@ public protocol SwapProvider: Sendable {
         inputAmountWei: String,
         chainId: UInt64,
         fromAddress: String,
-    ) async throws -> SwapQuote
+    ) async throws -> SwapQuoteModel
 }

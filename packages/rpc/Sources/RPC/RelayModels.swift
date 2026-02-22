@@ -1,20 +1,26 @@
 import Foundation
 
-public enum RelaySupportMode: String, Sendable, Codable {
-    case limitedTestnet = "LIMITED_TESTNET"
-    case limitedMainnet = "LIMITED_MAINNET"
-    case fullMainnet = "FULL_MAINNET"
-}
-
-public struct RelayAuthorization: Sendable, Codable, Equatable {
+public struct RelayAuthorizationModel: Sendable, Codable, Equatable {
     public let address: String
-    public let chainId: String
-    public let nonce: String
-    public let r: String
-    public let s: String
-    public let yParity: String
 
-    public init(address: String, chainId: String, nonce: String, r: String, s: String, yParity: String) {
+    public let chainId: UInt64
+
+    public let nonce: UInt64
+
+    public let r: String
+
+    public let s: String
+
+    public let yParity: UInt8
+
+    public init(
+        address: String,
+        chainId: UInt64,
+        nonce: UInt64,
+        r: String,
+        s: String,
+        yParity: UInt8,
+    ) {
         self.address = address
         self.chainId = chainId
         self.nonce = nonce
@@ -24,14 +30,19 @@ public struct RelayAuthorization: Sendable, Codable, Equatable {
     }
 }
 
-public struct RelayTransactionRequest: Sendable, Codable, Equatable {
+public struct RelayTransactionRequestModel: Sendable, Codable, Equatable {
     public let from: String
+
     public let to: String
+
     public let data: String
+
     public let value: String
-    public let gasLimit: String?
+
     public let isSponsored: Bool
-    public let authorization: RelayAuthorization?
+
+    public let authorizationList: [RelayAuthorizationModel]
+
     public let paymentToken: String?
 
     public init(
@@ -39,35 +50,36 @@ public struct RelayTransactionRequest: Sendable, Codable, Equatable {
         to: String,
         data: String,
         value: String = "0x0",
-        gasLimit: String? = nil,
         isSponsored: Bool = true,
-        authorization: RelayAuthorization? = nil,
+        authorizationList: [RelayAuthorizationModel] = [],
         paymentToken: String? = nil,
     ) {
         self.from = from
         self.to = to
         self.data = data
         self.value = value
-        self.gasLimit = gasLimit
         self.isSponsored = isSponsored
-        self.authorization = authorization
+        self.authorizationList = authorizationList
         self.paymentToken = paymentToken
     }
 }
 
-public struct RelayTx: Sendable, Codable, Equatable {
+public struct RelayTransactionEnvelopeModel: Sendable, Codable, Equatable {
     public let chainId: UInt64
-    public let request: RelayTransactionRequest
 
-    public init(chainId: UInt64, request: RelayTransactionRequest) {
+    public let request: RelayTransactionRequestModel
+
+    public init(chainId: UInt64, request: RelayTransactionRequestModel) {
         self.chainId = chainId
         self.request = request
     }
 }
 
-public struct RelaySubmission: Sendable, Decodable, Equatable {
+public struct RelaySubmissionModel: Sendable, Decodable, Equatable {
     public let chainId: UInt64
+
     public let id: String
+
     public let transactionHash: String?
 
     public init(chainId: UInt64, id: String, transactionHash: String?) {
@@ -77,12 +89,17 @@ public struct RelaySubmission: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelayStatus: Sendable, Decodable, Equatable {
+public struct RelayStatusModel: Sendable, Decodable, Equatable {
     public let id: String
+
     public let rawStatus: String
+
     public let state: String
+
     public let transactionHash: String?
+
     public let blockNumber: String?
+
     public let failureReason: String?
 
     public init(
@@ -102,11 +119,14 @@ public struct RelayStatus: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelaySubmitResult: Sendable, Decodable, Equatable {
+public struct RelaySubmitResultModel: Sendable, Decodable, Equatable {
     public struct Accounting: Sendable, Decodable, Equatable {
         public let supportMode: String
+
         public let estimatedDebitUsdc: String
+
         public let balanceBeforeUsdc: String
+
         public let balanceAfterUsdc: String
 
         public init(
@@ -123,27 +143,60 @@ public struct RelaySubmitResult: Sendable, Decodable, Equatable {
     }
 
     public let ok: Bool
+
     public let accounting: Accounting?
-    public let prioritySubmissions: [RelaySubmission]
-    public let submissions: [RelaySubmission]
+
+    public let immediateSubmissions: [RelaySubmissionModel]
+
+    public let backgroundSubmissions: [RelaySubmissionModel]
+
+    public let deferredSubmissions: [RelaySubmissionModel]
 
     public init(
         ok: Bool,
         accounting: Accounting?,
-        prioritySubmissions: [RelaySubmission],
-        submissions: [RelaySubmission],
+        immediateSubmissions: [RelaySubmissionModel],
+        backgroundSubmissions: [RelaySubmissionModel],
+        deferredSubmissions: [RelaySubmissionModel] = [],
     ) {
         self.ok = ok
         self.accounting = accounting
-        self.prioritySubmissions = prioritySubmissions
-        self.submissions = submissions
+        self.immediateSubmissions = immediateSubmissions
+        self.backgroundSubmissions = backgroundSubmissions
+        self.deferredSubmissions = deferredSubmissions
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case accounting
+        case immediateSubmissions
+        case backgroundSubmissions
+        case deferredSubmissions
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ok = try container.decode(Bool.self, forKey: .ok)
+        accounting = try container.decodeIfPresent(Accounting.self, forKey: .accounting)
+        immediateSubmissions =
+            try container.decodeIfPresent([RelaySubmissionModel].self, forKey: .immediateSubmissions)
+                ?? []
+        backgroundSubmissions =
+            try container.decodeIfPresent([RelaySubmissionModel].self, forKey: .backgroundSubmissions)
+                ?? []
+        deferredSubmissions =
+            try container.decodeIfPresent([RelaySubmissionModel].self, forKey: .deferredSubmissions)
+                ?? []
     }
 }
 
-public struct RelayCreditResult: Sendable, Decodable, Equatable {
+public struct RelayCreditResultModel: Sendable, Decodable, Equatable {
     public let ok: Bool
+
     public let account: String
+
     public let supportMode: String
+
     public let balanceUsdc: String
 
     public init(ok: Bool, account: String, supportMode: String, balanceUsdc: String) {
@@ -154,10 +207,13 @@ public struct RelayCreditResult: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelayImageUploadSession: Sendable, Decodable, Equatable {
+public struct RelayImageUploadSessionModel: Sendable, Decodable, Equatable {
     public let ok: Bool
+
     public let uploadURL: URL
+
     public let imageID: String
+
     public let gatewayBaseURL: String
 
     public init(ok: Bool, uploadURL: URL, imageID: String, gatewayBaseURL: String) {
@@ -168,8 +224,9 @@ public struct RelayImageUploadSession: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelayFaucetFundResult: Sendable, Decodable, Equatable {
+public struct RelayFaucetFundResultModel: Sendable, Decodable, Equatable {
     public let ok: Bool
+
     public let status: String
 
     public init(ok: Bool, status: String) {
@@ -178,10 +235,13 @@ public struct RelayFaucetFundResult: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelayPaymentOption: Sendable, Codable, Equatable {
+public struct RelayPaymentOptionModel: Sendable, Codable, Equatable {
     public let chainId: UInt64
+
     public let tokenAddress: String
+
     public let symbol: String
+
     public let amount: String
 
     public init(chainId: UInt64, tokenAddress: String, symbol: String, amount: String) {
@@ -192,18 +252,28 @@ public struct RelayPaymentOption: Sendable, Codable, Equatable {
     }
 }
 
-public struct RelayPaymentRequired: Sendable, Decodable, Equatable {
+public struct RelayPaymentRequiredModel: Sendable, Decodable, Equatable {
     public let ok: Bool
+
     public let error: String
+
     public let account: String
+
     public let supportMode: String
+
     public let estimatedDebitUsdc: String
+
     public let balanceUsdc: String
+
     public let postDebitUsdc: String
+
     public let minimumAllowedUsdc: String
+
     public let requiredTopUpUsdc: String
+
     public let suggestedTopUpUsdc: String
-    public let paymentOptions: [RelayPaymentOption]
+
+    public let paymentOptions: [RelayPaymentOptionModel]
 
     public init(
         ok: Bool,
@@ -216,7 +286,7 @@ public struct RelayPaymentRequired: Sendable, Decodable, Equatable {
         minimumAllowedUsdc: String,
         requiredTopUpUsdc: String,
         suggestedTopUpUsdc: String,
-        paymentOptions: [RelayPaymentOption],
+        paymentOptions: [RelayPaymentOptionModel],
     ) {
         self.ok = ok
         self.error = error
@@ -232,10 +302,13 @@ public struct RelayPaymentRequired: Sendable, Decodable, Equatable {
     }
 }
 
-public struct RelayProxyConfig: Sendable, Equatable {
+public struct RelayProxyConfigModel: Sendable, Equatable {
     public let baseURL: String
+
     public let uploadBaseURL: String
+
     public let clientToken: String
+
     public let hmacSecret: String
 
     public init(
@@ -251,76 +324,18 @@ public struct RelayProxyConfig: Sendable, Equatable {
     }
 }
 
-struct RelaySubmitAuthorizationPayload: Encodable {
-    let address: String
-    let chainId: String
-    let nonce: String
-    let r: String
-    let s: String
-    let yParity: String
-
-    init(_ auth: RelayAuthorization) {
-        address = auth.address
-        chainId = auth.chainId
-        nonce = auth.nonce
-        r = auth.r
-        s = auth.s
-        yParity = auth.yParity
-    }
-}
-
-struct RelaySubmitRequestPayload: Encodable {
-    let from: String
-    let to: String
-    let data: String
-    let value: String
-    let gasLimit: String?
-    let isSponsored: Bool
-    let authorizationList: [RelaySubmitAuthorizationPayload]?
-    let eip7702Auth: RelaySubmitAuthorizationPayload?
-    let paymentToken: String?
-
-    init(_ request: RelayTransactionRequest) {
-        from = request.from
-        to = request.to
-        data = request.data
-        value = request.value
-        gasLimit = request.gasLimit
-        isSponsored = request.isSponsored
-        if let auth = request.authorization {
-            let encoded = RelaySubmitAuthorizationPayload(auth)
-            authorizationList = [encoded]
-            eip7702Auth = encoded
-        } else {
-            authorizationList = nil
-            eip7702Auth = nil
-        }
-        paymentToken = request.paymentToken
-    }
-}
-
-struct RelaySubmitTxPayload: Encodable {
-    let chainId: UInt64
-    let request: RelaySubmitRequestPayload
-
-    init(_ tx: RelayTx) {
-        chainId = tx.chainId
-        request = RelaySubmitRequestPayload(tx.request)
-    }
-}
-
 struct RelaySubmitRequest: Encodable {
     let account: String
     let supportMode: String
-    let priorityTxs: [RelaySubmitTxPayload]
-    let txs: [RelaySubmitTxPayload]
-    let paymentOptions: [RelayPaymentOption]
+    let immediateTxs: [RelayTransactionEnvelopeModel]
+    let backgroundTxs: [RelayTransactionEnvelopeModel]
+    let deferredTxs: [RelayTransactionEnvelopeModel]
+    let paymentOptions: [RelayPaymentOptionModel]
 }
 
 struct RelayStatusResponse: Decodable {
     let ok: Bool
-    let chainId: UInt64
-    let status: RelayStatus
+    let status: RelayStatusModel
 }
 
 struct RelayImageUploadSessionRequestPayload: Encodable {

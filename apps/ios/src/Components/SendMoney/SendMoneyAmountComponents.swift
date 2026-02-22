@@ -76,7 +76,7 @@ struct SendMoneyAmountDisplay: View {
 }
 
 struct SendMoneyBalanceWidget: View {
-    let asset: TokenBalance
+    let asset: TokenBalanceModel
     let balanceText: String
     let onSwitchTap: () -> Void
 
