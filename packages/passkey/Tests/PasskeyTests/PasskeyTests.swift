@@ -77,7 +77,7 @@ final class PasskeyTests: XCTestCase {
     }
 
     private func makeClientDataJSON(payload: Data) -> Data {
-        let challenge = Data(SHA256.hash(data: payload)).base64urlNoPadding()
+        let challenge = payload.base64urlNoPadding()
         let json = #"{"type":"webauthn.get","challenge":"\#(challenge)","origin":"https://knot.fi"}"#
         return Data(json.utf8)
     }

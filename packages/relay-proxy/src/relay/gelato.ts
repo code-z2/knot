@@ -188,7 +188,7 @@ function createClient(
   apiKey: string,
   testnet: boolean,
 ): GelatoEvmRelayerClient {
-  return createGelatoEvmRelayerClient({ apiKey, testnet });
+  return createGelatoEvmRelayerClient({ apiKey, testnet, ws: { disable: true } });
 }
 
 function getApiKey(isTestnet: boolean, env: Env): string {

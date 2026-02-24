@@ -13,7 +13,6 @@
 "preferences_business" = "వ్యాపారం కోసం Knot";
 "sheet_currency_title" = "కరెన్సీ";
 "sheet_language_title" = "భాష";
-
 "home_title" = "హోమ్";
 "home_balance_title" = "బ్యాలెన్స్";
 "home_add_money" = "డబ్బు జోడించు";
@@ -28,7 +27,6 @@
 "home_address_book" = "చిరునామా పుస్తకం";
 "home_ai_agent" = "AI ఏజెంట్";
 "home_logout" = "లాగ్ అవుట్";
-
 "address_book_title" = "చిరునామా పుస్తకం";
 "search_placeholder" = "శోధించు";
 "empty_beneficiary" = "మీరు లబ్ధిదారులెవరినీ జోడించలేదు";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "స్వీకరించు";
 "receive_share" = "భాగస్వామ్యం చేయి";
+"receive_wallet_address" = "వాలెట్ చిరునామా";
 "receive_copied" = "కాపీ చేయబడింది";
 "receive_tap_to_copy" = "కాపీ చేయడానికి నొక్కండి";
-
 "wallet_backup_title" = "వాలెట్ బ్యాకప్";
 "wallet_backup_instructions" = "క్రింది క్రమంలో పదాలను వ్రాసి సురక్షితమైన ప్రదేశంలో ఉంచండి. భాగస్వామ్యం చేయవద్దు!";
 "wallet_backup_secret_phrase" = "రహస్య వాక్యం";
 "wallet_backup_copy" = "క్లిప్‌బోర్డ్‌కు కాపీ చేయి";
-
-"onboarding_title" = "చైన్‌లను దాటవేయి\nకేవలం చెల్లించు.";
+"onboarding_title" = "చైన్‌లను దాటవేయి\\nకేవలం చెల్లించు.";
 "onboarding_subtitle" = "ఏజెంటిక్ పేమెంట్ వాలెట్. మొత్తాన్ని నమోదు చేయండి మరియు వాలెట్ మీ కోసం చైన్‌లను నిర్వహించనివ్వండి";
 "onboarding_create_wallet" = "వాలెట్ సృష్టించు";
 "onboarding_log_in" = "లాగ్ ఇన్";
-
 "session_key_title" = "సెషన్ కీ";
 "session_key_coming_soon" = "త్వరలో వస్తుంది";
-"session_key_description" = "ప్రతి కాంటాక్ట్‌లెస్ సెషన్ కీ కార్డ్\nమీ వాలెట్ నుండి ఖర్చు చేయడానికి అనుమతులు ఉన్న\nఒక తాత్కాలిక వాలెట్.\nసెటప్ తర్వాత మీరు ఈ అనుమతులను\nఅనుకూలీకరించవచ్చు.";
-
+"session_key_description" = "ప్రతి కాంటాక్ట్‌లెస్ సెషన్ కీ కార్డ్\\nమీ వాలెట్ నుండి ఖర్చు చేయడానికి అనుమతులు ఉన్న\\nఒక తాత్కాలిక వాలెట్.\\nసెటప్ తర్వాత మీరు ఈ అనుమతులను\\nఅనుకూలీకరించవచ్చు.";
 "profile_title" = "ప్రొఫైల్";
 "profile_save" = "సేవ్ చేయి";
 "profile_saving" = "సేవ్ చేస్తోంది";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "దయచేసి సేవ్ చేయడానికి ముందు అందుబాటులో ఉన్న ENS పేరును ఉపయోగించండి.";
 "profile_no_changes_to_save" = "సేవ్ చేయడానికి ENS మార్పులు లేవు";
 "profile_saved_changes" = "%d ENS మార్పు(లు) సేవ్ చేయబడ్డాయి";
-
 "toggle_accessibility" = "టోగుల్";
 "button_label_default" = "స్ట్రింగ్ విలువ";
 "address_book_add" = "జోడించు";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "లావాదేవీలు";
 "profile_cancel" = "రద్దు చేయి";
 "profile_change_photo_title" = "ఫోటో మార్చు";
+"profile_checking_name" = "లభ్యతను పరిశీలిస్తోంది...";
 "profile_commit_submitted_progress" = "కమిట్ సమర్పించబడింది. ENS నమోదును ఖరారు చేస్తోంది...";
 "profile_enter_name_placeholder" = "పేరును నమోదు చేయండి";
 "profile_files" = "ఫైల్‌ని ఎంచుకోండి";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "గొలుసు";
 "send_money_chain_placeholder" = "నెట్‌వర్క్‌ని ఎంచుకోండి";
 "send_money_confirm" = "నిర్ధారించు";
+"confirm_title" = "ధృవీకరణ";
+"confirm_sign" = "నిర్ధారించి Passkey తో సంతకం చేయండి";
 "send_money_continue" = "కొనసాగించు";
 "send_money_enter_amount_title" = "మొత్తాన్ని నమోదు చేయండి";
 "send_money_failed" = "విఫలమైంది";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "కు";
 "send_money_view_tx" = "Txని చూడు";
 "transaction_balance_label" = "బ్యాలెన్స్";
-"transaction_receipt_accumulated_from" = "నుండి సేకరించబడింది";
-"transaction_receipt_fee" = "రుసుము";
-"transaction_receipt_network" = "నెట్‌వర్క్";
-"transaction_receipt_time" = "సమయం";
-"transaction_receipt_type" = "రకం";
-"transaction_view_tx" = "Txని చూడు";
-"wallet_backup_tap_to_reveal" = "బహిర్గతం చేయడానికి నొక్కండి";
-
 "transaction_status_success" = "విజయం";
 "transaction_status_failed" = "విఫలం";
 "transaction_row_received_usdc" = "USDC స్వీకరించబడింది";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "కాంట్రాక్ట్ ఇంటరాక్షన్";
 "transaction_type_multichain_transfer" = "మల్టీ-చైన్ బదిలీ";
 "transaction_receipt_subtitle_gas_fee" = "గ్యాస్ ఫీ";
+"transaction_receipt_accumulated_from" = "నుండి సేకరించబడింది";
+"transaction_receipt_fee" = "రుసుము";
+"transaction_receipt_network" = "నెట్‌వర్క్";
+"transaction_receipt_time" = "సమయం";
+"transaction_receipt_type" = "రకం";
+"transaction_view_tx" = "Txని చూడు";
+"wallet_backup_tap_to_reveal" = "బహిర్గతం చేయడానికి నొక్కండి";
 "transaction_row_prefix_on" = "పై";
 "transaction_row_prefix_from" = "నుంచి";
 "transaction_row_action_sent" = "పంపబడింది";
 "transaction_row_action_received" = "స్వీకరించబడింది";
-
 "transaction_empty_title" = "ఇటీవలి కార్యాచరణ లేదు";
 "transaction_empty_subtitle" = "మీరు నిధులు పంపిన తర్వాత లేదా స్వీకరించిన తర్వాత మీ లావాదేవీలు ఇక్కడ కనిపిస్తాయి.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "స్వీకరించు";
+"transaction_receipt_type_transfer" = "బదిలీ";
+"transaction_receipt_type_transfer_multi_chain" = "మల్టీ-చైన్ బదిలీ";
+"transaction_receipt_type_contract" = "కాంట్రాక్ట్ ఇంటరాక్షన్";
+"transaction_receipt_type_ens_commit" = "ENS పేరు కమిట్‌మెంట్";
+"transaction_receipt_type_ens_register" = "ENS పేరు నమోదు";
+"transaction_receipt_type_ens_update" = "ENS ప్రొఫైల్ నవీకరణ";
+"transaction_receipt_network_unknown" = "తెలియని నెట్‌వర్క్";
+"send_money_confirm_title" = "లావాదేవీని నిర్ధారించండి";
+"send_money_confirm_sign" = "నిర్ధారించి Passkey తో సంతకం చేయండి";
+"ens_confirm_commit_title" = "ENS కమిట్‌ను నిర్ధారించండి";
+"ens_confirm_register_title" = "ENS నమోదు నిర్ధారించండి";
+"ens_confirm_sign" = "నిర్ధారించి Passkey తో సంతకం చేయండి";
+"transaction_receipt_type_approval" = "టోకెన్ ఆమోదం";
+"transaction_receipt_contract_ens_registrar" = "ENS రిజిస్ట్రార్";
+"transaction_receipt_contract_ens_resolver" = "ENS పబ్లిక్ రిజాల్వర్";

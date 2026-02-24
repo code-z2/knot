@@ -13,7 +13,6 @@
 "preferences_business" = "व्यवसाय के लिए Knot";
 "sheet_currency_title" = "मुद्रा";
 "sheet_language_title" = "भाषा";
-
 "home_title" = "होम";
 "home_balance_title" = "शेष राशि";
 "home_add_money" = "पैसे जोड़ें";
@@ -28,7 +27,6 @@
 "home_address_book" = "पता पुस्तिका";
 "home_ai_agent" = "AI एजेंट";
 "home_logout" = "लॉग आउट";
-
 "address_book_title" = "पता पुस्तिका";
 "search_placeholder" = "खोजें";
 "empty_beneficiary" = "आपने कोई लाभार्थी नहीं जोड़ा है";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "प्राप्त करें";
 "receive_share" = "साझा करें";
+"receive_wallet_address" = "वॉलेट पता";
 "receive_copied" = "कॉपी किया गया";
 "receive_tap_to_copy" = "कॉपी करने के लिए टैप करें";
-
 "wallet_backup_title" = "वॉलेट बैकअप";
 "wallet_backup_instructions" = "नीचे दिए गए क्रम में शब्द लिखें और उन्हें सुरक्षित रखें। साझा न करें!";
 "wallet_backup_secret_phrase" = "गुप्त वाक्यांश";
 "wallet_backup_copy" = "क्लिपबोर्ड पर कॉपी करें";
-
-"onboarding_title" = "चेन छोड़ें\nबस भुगतान करें।";
+"onboarding_title" = "चेन छोड़ें\\nबस भुगतान करें।";
 "onboarding_subtitle" = "एजेंटिक भुगतान वॉलेट। एक राशि दर्ज करें और वॉलेट को आपके लिए चेन संभालने दें";
 "onboarding_create_wallet" = "वॉलेट बनाएं";
 "onboarding_log_in" = "लॉग इन करें";
-
 "session_key_title" = "सत्र कुंजी";
 "session_key_coming_soon" = "जल्द आ रहा है";
-"session_key_description" = "प्रत्येक संपर्क रहित सत्र कुंजी कार्ड\nएक अस्थायी वॉलेट है जिसमें\nआपके वॉलेट से खर्च करने की अनुमति होती है।\nआप सेटअप के बाद इन अनुमतियों को\nअनुकूलित कर सकते हैं।";
-
+"session_key_description" = "प्रत्येक संपर्क रहित सत्र कुंजी कार्ड\\nएक अस्थायी वॉलेट है जिसमें\\nआपके वॉलेट से खर्च करने की अनुमति होती है।\\nआप सेटअप के बाद इन अनुमतियों को\\nअनुकूलित कर सकते हैं।";
 "profile_title" = "प्रोफ़ाइल";
 "profile_save" = "सहेजें";
 "profile_saving" = "सहेजा जा रहा है";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "सहेजने से पहले कृपया एक उपलब्ध ENS नाम का उपयोग करें।";
 "profile_no_changes_to_save" = "सहेजने के लिए कोई ENS परिवर्तन नहीं";
 "profile_saved_changes" = "%d ENS परिवर्तन सहेजे गए";
-
 "toggle_accessibility" = "टॉगल करें";
 "button_label_default" = "स्ट्रिंग मान";
 "address_book_add" = "जोड़ें";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "लेनदेन";
 "profile_cancel" = "रद्द करें";
 "profile_change_photo_title" = "फ़ोटो बदलें";
+"profile_checking_name" = "उपलब्धता जांची जा रही है...";
 "profile_commit_submitted_progress" = "कमिट सबमिट किया गया। ENS पंजीकरण को अंतिम रूप दिया जा रहा है...";
 "profile_enter_name_placeholder" = "एक नाम दर्ज करें";
 "profile_files" = "फ़ाइल चुनें";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "चेन";
 "send_money_chain_placeholder" = "नेटवर्क चुनें";
 "send_money_confirm" = "पुष्टि करें";
+"confirm_title" = "पुष्टि";
+"confirm_sign" = "पुष्टि करें और पासकी से हस्ताक्षर करें";
 "send_money_continue" = "जारी रखें";
 "send_money_enter_amount_title" = "राशि दर्ज करें";
 "send_money_failed" = "विफल";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "को";
 "send_money_view_tx" = "Tx देखें";
 "transaction_balance_label" = "शेष";
-"transaction_receipt_accumulated_from" = "से संचित";
-"transaction_receipt_fee" = "शुल्क";
-"transaction_receipt_network" = "नेटवर्क";
-"transaction_receipt_time" = "समय";
-"transaction_receipt_type" = "प्रकार";
-"transaction_view_tx" = "Tx देखें";
-"wallet_backup_tap_to_reveal" = "प्रकट करने के लिए टैप करें";
-
 "transaction_status_success" = "सफल";
 "transaction_status_failed" = "विफल";
 "transaction_row_received_usdc" = "USDC प्राप्त";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "कॉन्ट्रैक्ट इंटरैक्शन";
 "transaction_type_multichain_transfer" = "मल्टी-चेन ट्रांसफर";
 "transaction_receipt_subtitle_gas_fee" = "गैस शुल्क";
+"transaction_receipt_accumulated_from" = "से संचित";
+"transaction_receipt_fee" = "शुल्क";
+"transaction_receipt_network" = "नेटवर्क";
+"transaction_receipt_time" = "समय";
+"transaction_receipt_type" = "प्रकार";
+"transaction_view_tx" = "Tx देखें";
+"wallet_backup_tap_to_reveal" = "प्रकट करने के लिए टैप करें";
 "transaction_row_prefix_on" = "पर";
 "transaction_row_prefix_from" = "से";
 "transaction_row_action_sent" = "भेजा गया";
 "transaction_row_action_received" = "प्राप्त हुआ";
-
 "transaction_empty_title" = "कोई हालिया गतिविधि नहीं";
 "transaction_empty_subtitle" = "पैसे भेजने या प्राप्त करने के बाद आपके लेनदेन यहां दिखाई देंगे।";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "प्राप्त करें";
+"transaction_receipt_type_transfer" = "ट्रांसफ़र";
+"transaction_receipt_type_transfer_multi_chain" = "मल्टी-चेन ट्रांसफर";
+"transaction_receipt_type_contract" = "कॉन्ट्रैक्ट इंटरैक्शन";
+"transaction_receipt_type_ens_commit" = "ENS नाम प्रतिबद्धता";
+"transaction_receipt_type_ens_register" = "ENS नाम पंजीकरण";
+"transaction_receipt_type_ens_update" = "ENS प्रोफ़ाइल अपडेट";
+"transaction_receipt_network_unknown" = "अज्ञात नेटवर्क";
+"send_money_confirm_title" = "लेन-देन की पुष्टि करें";
+"send_money_confirm_sign" = "पुष्टि करें और पासकी से हस्ताक्षर करें";
+"ens_confirm_commit_title" = "ENS कमिट की पुष्टि करें";
+"ens_confirm_register_title" = "ENS पंजीकरण की पुष्टि करें";
+"ens_confirm_sign" = "पुष्टि करें और पासकी से हस्ताक्षर करें";
+"transaction_receipt_type_approval" = "टोकन अनुमोदन";
+"transaction_receipt_contract_ens_registrar" = "ENS रजिस्ट्रार";
+"transaction_receipt_contract_ens_resolver" = "ENS पब्लिक रिज़ॉल्वर";

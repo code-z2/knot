@@ -13,7 +13,6 @@
 "preferences_business" = "Knot kwa Biashara";
 "sheet_currency_title" = "Sarafu";
 "sheet_language_title" = "Lugha";
-
 "home_title" = "Nyumbani";
 "home_balance_title" = "Salio";
 "home_add_money" = "Weka Pesaa";
@@ -28,7 +27,6 @@
 "home_address_book" = "Kitabu cha Anwani";
 "home_ai_agent" = "Wakala wa AI";
 "home_logout" = "Ondoka";
-
 "address_book_title" = "Kitabu cha Anwani";
 "search_placeholder" = "Tafuta";
 "empty_beneficiary" = "Hujamuongeza mfaidika yeyote";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Pokea";
 "receive_share" = "Shiriki";
+"receive_wallet_address" = "Anwani ya Mkoba";
 "receive_copied" = "imenakiliwa";
 "receive_tap_to_copy" = "gusa kunakili";
-
 "wallet_backup_title" = "Hifadhi Nakala ya Mkoba";
 "wallet_backup_instructions" = "Andika maneno kwa mpangilio hapa chini na uyatunze mahali salama. Usishiriki!";
 "wallet_backup_secret_phrase" = "Maneno ya Siri";
 "wallet_backup_copy" = "Nakili kwenye Ubao wa Kunakili";
-
-"onboarding_title" = "Ruka Mitandao\nLipa Tu.";
+"onboarding_title" = "Ruka Mitandao\\nLipa Tu.";
 "onboarding_subtitle" = "Mkoba wa malipo wa wakala. Ingiza kiasi na uache mkoba ukushughulikie mitandao";
 "onboarding_create_wallet" = "Unda Mkoba";
 "onboarding_log_in" = "Ingia";
-
 "session_key_title" = "Ufunguo wa Kikao";
 "session_key_coming_soon" = "Inakuja Hivi Karibuni";
-"session_key_description" = "Kila kadi ya ufunguo wa kikao kisichotumia mguso\nni mkoba wa muda wenye\nruhusa ya kutumia kutoka kwa mkoba wako.\nUnaweza kubadilisha ruhusa hizi\nsaada ya usanidi.";
-
+"session_key_description" = "Kila kadi ya ufunguo wa kikao kisichotumia mguso\\nni mkoba wa muda wenye\\nruhusa ya kutumia kutoka kwa mkoba wako.\\nUnaweza kubadilisha ruhusa hizi\\nsaada ya usanidi.";
 "profile_title" = "Wasifu";
 "profile_save" = "Hifadhi";
 "profile_saving" = "Inahifadhi";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "Tafadhali tumia jina la ENS linalopatikana kabla ya kuhifadhi.";
 "profile_no_changes_to_save" = "Hakuna mabadiliko ya ENS ya kuhifadhi";
 "profile_saved_changes" = "Imehifadhiwa mabadiliko %d ya ENS";
-
 "toggle_accessibility" = "Badilisha";
 "button_label_default" = "Thamani ya kamba";
 "address_book_add" = "Ongeza";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "Miamala";
 "profile_cancel" = "Ghairi";
 "profile_change_photo_title" = "Badilisha picha";
+"profile_checking_name" = "Inakagua upatikanaji...";
 "profile_commit_submitted_progress" = "Ahadi imewasilishwa. Inakamilisha usajili wa ENS...";
 "profile_enter_name_placeholder" = "Ingiza jina";
 "profile_files" = "Chagua Faili";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "Mnyororo";
 "send_money_chain_placeholder" = "Chagua mtandao";
 "send_money_confirm" = "Thibitisha";
+"confirm_title" = "Uthibitisho";
+"confirm_sign" = "Thibitisha na utie saini kwa Passkey";
 "send_money_continue" = "Endelea";
 "send_money_enter_amount_title" = "Ingiza kiasi";
 "send_money_failed" = "Imeshindwa";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "Kwa";
 "send_money_view_tx" = "Angalia Tx";
 "transaction_balance_label" = "Salio";
-"transaction_receipt_accumulated_from" = "Imekusanywa kutoka";
-"transaction_receipt_fee" = "Ada";
-"transaction_receipt_network" = "Mtandao";
-"transaction_receipt_time" = "Muda";
-"transaction_receipt_type" = "Aina";
-"transaction_view_tx" = "Angalia Tx";
-"wallet_backup_tap_to_reveal" = "Gusa ili kufunua";
-
 "transaction_status_success" = "imefanikiwa";
 "transaction_status_failed" = "imeshindwa";
 "transaction_row_received_usdc" = "USDC imepokelewa";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "Muingiliano wa mkataba";
 "transaction_type_multichain_transfer" = "Uhamisho wa minyororo mingi";
 "transaction_receipt_subtitle_gas_fee" = "ada ya gesi";
+"transaction_receipt_accumulated_from" = "Imekusanywa kutoka";
+"transaction_receipt_fee" = "Ada";
+"transaction_receipt_network" = "Mtandao";
+"transaction_receipt_time" = "Muda";
+"transaction_receipt_type" = "Aina";
+"transaction_view_tx" = "Angalia Tx";
+"wallet_backup_tap_to_reveal" = "Gusa ili kufunua";
 "transaction_row_prefix_on" = "kwenye";
 "transaction_row_prefix_from" = "kutoka";
 "transaction_row_action_sent" = "imetumwa";
 "transaction_row_action_received" = "imepokelewa";
-
 "transaction_empty_title" = "Hakuna shughuli za hivi karibuni";
 "transaction_empty_subtitle" = "Ununuzi wako utaonekana hapa baada ya kutuma au kupokea fedha.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "Pokea";
+"transaction_receipt_type_transfer" = "Hamisho";
+"transaction_receipt_type_transfer_multi_chain" = "Uhamisho wa minyororo mingi";
+"transaction_receipt_type_contract" = "Muingiliano wa mkataba";
+"transaction_receipt_type_ens_commit" = "Ahadi ya jina la ENS";
+"transaction_receipt_type_ens_register" = "Usajili wa jina la ENS";
+"transaction_receipt_type_ens_update" = "Sasisho la wasifu wa ENS";
+"transaction_receipt_network_unknown" = "Mtandao usiojulikana";
+"send_money_confirm_title" = "Thibitisha muamala";
+"send_money_confirm_sign" = "Thibitisha na utie saini kwa Passkey";
+"ens_confirm_commit_title" = "Thibitisha commit ya ENS";
+"ens_confirm_register_title" = "Thibitisha usajili wa ENS";
+"ens_confirm_sign" = "Thibitisha na utie saini kwa Passkey";
+"transaction_receipt_type_approval" = "Uidhinishaji wa tokeni";
+"transaction_receipt_contract_ens_registrar" = "Msajili wa ENS";
+"transaction_receipt_contract_ens_resolver" = "Kitatua cha umma cha ENS";

@@ -13,7 +13,6 @@
 "preferences_business" = "کاروبار کے لیے Knot";
 "sheet_currency_title" = "کرنسی";
 "sheet_language_title" = "زبان";
-
 "home_title" = "ہوم";
 "home_balance_title" = "بیلنس";
 "home_add_money" = "رقم شامل کریں";
@@ -28,7 +27,6 @@
 "home_address_book" = "ایڈریس بک";
 "home_ai_agent" = "AI ایجنٹ";
 "home_logout" = "لاگ آؤٹ";
-
 "address_book_title" = "ایڈریس بک";
 "search_placeholder" = "تلاش";
 "empty_beneficiary" = "آپ نے کوئی فائدہ اٹھانے والا شامل نہیں کیا";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "ایلس";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "وصول کریں";
 "receive_share" = "شیئر کریں";
+"receive_wallet_address" = "والیٹ کا پتہ";
 "receive_copied" = "کاپی ہو گیا";
 "receive_tap_to_copy" = "کاپی کرنے کے لیے ٹیپ کریں";
-
 "wallet_backup_title" = "والیٹ بیک اپ";
 "wallet_backup_instructions" = "الفاظ کو نیچے دی گئی ترتیب میں لکھیں اور محفوظ جگہ پر رکھیں۔ شیئر نہ کریں!";
 "wallet_backup_secret_phrase" = "خفیہ جملہ";
 "wallet_backup_copy" = "کلپ بورڈ پر کاپی کریں";
-
-"onboarding_title" = "چینز چھوڑیں\nبس ادائیگی کریں۔";
+"onboarding_title" = "چینز چھوڑیں\\nبس ادائیگی کریں۔";
 "onboarding_subtitle" = "ایجنٹک پیمنٹ والیٹ۔ رقم درج کریں اور والیٹ کو آپ کے لیے چینز سنبھالنے دیں";
 "onboarding_create_wallet" = "والیٹ بنائیں";
 "onboarding_log_in" = "لاگ ان";
-
 "session_key_title" = "سیشن کی";
 "session_key_coming_soon" = "جلد آ رہا ہے";
-"session_key_description" = "ہر کانٹیکٹ لیس سیشن کی کارڈ\nایک عارضی والیٹ ہے جس میں\nآپ کے والیٹ سے خرچ کرنے کی اجازت ہے۔\nآپ سیٹ اپ کے بعد ان اجازتوں کو\nحسب ضرورت بنا سکتے ہیں۔";
-
+"session_key_description" = "ہر کانٹیکٹ لیس سیشن کی کارڈ\\nایک عارضی والیٹ ہے جس میں\\nآپ کے والیٹ سے خرچ کرنے کی اجازت ہے۔\\nآپ سیٹ اپ کے بعد ان اجازتوں کو\\nحسب ضرورت بنا سکتے ہیں۔";
 "profile_title" = "پروفائل";
 "profile_save" = "محفوظ کریں";
 "profile_saving" = "محفوظ ہو رہا ہے";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "براہ کرم محفوظ کرنے سے پہلے دستیاب ENS نام استعمال کریں۔";
 "profile_no_changes_to_save" = "محفوظ کرنے کے لیے کوئی ENS تبدیلیاں نہیں";
 "profile_saved_changes" = "%d ENS تبدیلی(یاں) محفوظ ہو گئیں";
-
 "toggle_accessibility" = "تبدیل کریں";
 "button_label_default" = "سٹرنگ ویلیو";
 "address_book_add" = "شامل کریں";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "لین دین";
 "profile_cancel" = "منسوخ کریں";
 "profile_change_photo_title" = "تصویر تبدیل کریں";
+"profile_checking_name" = "دستیابی چیک کی جا رہی ہے...";
 "profile_commit_submitted_progress" = "کمٹ بھیج دیا گیا۔ ENS رجسٹریشن مکمل کی جا رہی ہے...";
 "profile_enter_name_placeholder" = "نام درج کریں";
 "profile_files" = "فائل منتخب کریں";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "چین";
 "send_money_chain_placeholder" = "نیٹ ورک منتخب کریں";
 "send_money_confirm" = "تصدیق کریں";
+"confirm_title" = "تصدیق";
+"confirm_sign" = "تصدیق کریں اور Passkey سے دستخط کریں";
 "send_money_continue" = "جاری رکھیں";
 "send_money_enter_amount_title" = "رقم درج کریں";
 "send_money_failed" = "ناکام";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "کو";
 "send_money_view_tx" = "Tx دیکھیں";
 "transaction_balance_label" = "بیلنس";
-"transaction_receipt_accumulated_from" = "سے جمع شدہ";
-"transaction_receipt_fee" = "فیس";
-"transaction_receipt_network" = "نیٹ ورک";
-"transaction_receipt_time" = "وقت";
-"transaction_receipt_type" = "قسم";
-"transaction_view_tx" = "Tx دیکھیں";
-"wallet_backup_tap_to_reveal" = "ظاہر کرنے کے لیے تھپتھپائیں";
-
 "transaction_status_success" = "کامیاب";
 "transaction_status_failed" = "ناکام";
 "transaction_row_received_usdc" = "USDC وصول ہوا";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "کنٹریکٹ تعامل";
 "transaction_type_multichain_transfer" = "ملٹی چین ٹرانسفر";
 "transaction_receipt_subtitle_gas_fee" = "گیس فیس";
+"transaction_receipt_accumulated_from" = "سے جمع شدہ";
+"transaction_receipt_fee" = "فیس";
+"transaction_receipt_network" = "نیٹ ورک";
+"transaction_receipt_time" = "وقت";
+"transaction_receipt_type" = "قسم";
+"transaction_view_tx" = "Tx دیکھیں";
+"wallet_backup_tap_to_reveal" = "ظاہر کرنے کے لیے تھپتھپائیں";
 "transaction_row_prefix_on" = "پر";
 "transaction_row_prefix_from" = "سے";
 "transaction_row_action_sent" = "بھیجا گیا";
 "transaction_row_action_received" = "وصول ہوا";
-
 "transaction_empty_title" = "کوئی حالیہ سرگرمی نہیں";
 "transaction_empty_subtitle" = "رقم بھیجنے یا وصول کرنے کے بعد آپ کے لین دین یہاں ظاہر ہوں گے۔";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "وصول";
+"transaction_receipt_type_transfer" = "منتقلی";
+"transaction_receipt_type_transfer_multi_chain" = "ملٹی چین ٹرانسفر";
+"transaction_receipt_type_contract" = "کنٹریکٹ تعامل";
+"transaction_receipt_type_ens_commit" = "ENS نام کمٹمنٹ";
+"transaction_receipt_type_ens_register" = "ENS نام رجسٹریشن";
+"transaction_receipt_type_ens_update" = "ENS پروفائل اپ ڈیٹ";
+"transaction_receipt_network_unknown" = "نامعلوم نیٹ ورک";
+"send_money_confirm_title" = "ٹرانزیکشن کی تصدیق کریں";
+"send_money_confirm_sign" = "تصدیق کریں اور Passkey سے دستخط کریں";
+"ens_confirm_commit_title" = "ENS کمیٹ کی تصدیق کریں";
+"ens_confirm_register_title" = "ENS رجسٹریشن کی تصدیق کریں";
+"ens_confirm_sign" = "تصدیق کریں اور Passkey سے دستخط کریں";
+"transaction_receipt_type_approval" = "ٹوکن منظوری";
+"transaction_receipt_contract_ens_registrar" = "ENS رجسٹرار";
+"transaction_receipt_contract_ens_resolver" = "ENS پبلک ریزولور";

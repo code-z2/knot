@@ -104,6 +104,17 @@ public actor RPCClient {
         )
     }
 
+    public func getGasPrice(chainId: UInt64) async throws -> BigUInt {
+        let priceHex: String = try await makeRpcCall(
+            chainId: chainId,
+            method: "eth_gasPrice",
+            params: [],
+            responseType: String.self,
+        )
+        let clean = priceHex.replacingOccurrences(of: "0x", with: "")
+        return BigUInt(clean, radix: 16) ?? 0
+    }
+
     func makeJSONRPCCall<Response: Decodable>(
         urlString: String,
         method: String,

@@ -18,8 +18,8 @@ interface ICreateX {
 ///     --rpc-url $SEPOLIA_RPC --broadcast --verify
 contract DeployTestnet is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
-    bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v2");
-    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedAccount_v2");
+    bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v2_rc1");
+    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedAccount_v2_rc1");
 
     // P256 Generator Point (for valid constructor generic initialization)
     bytes32 constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;

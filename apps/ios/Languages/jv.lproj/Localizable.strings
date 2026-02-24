@@ -13,7 +13,6 @@
 "preferences_business" = "Knot kanggo Bisnis";
 "sheet_currency_title" = "Mata Uang";
 "sheet_language_title" = "Basa";
-
 "home_title" = "Omah";
 "home_balance_title" = "Saldo";
 "home_add_money" = "Nambah Dhuwit";
@@ -28,7 +27,6 @@
 "home_address_book" = "Buku Alamat";
 "home_ai_agent" = "Agen AI";
 "home_logout" = "Knot";
-
 "address_book_title" = "Buku Alamat";
 "search_placeholder" = "Golek";
 "empty_beneficiary" = "Sampeyan durung nambah panampa";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Nampa";
 "receive_share" = "Nuduhake";
+"receive_wallet_address" = "Alamat Dompet";
 "receive_copied" = "disalin";
 "receive_tap_to_copy" = "tutul kanggo nyalin";
-
 "wallet_backup_title" = "Serep Dompet";
 "wallet_backup_instructions" = "Tulis tembung-tembung ing urutan ing ngisor iki lan simpen ing papan sing aman. Aja nuduhake!";
 "wallet_backup_secret_phrase" = "Frasa Rahasia";
 "wallet_backup_copy" = "Nyalin menyang Papan Klip";
-
-"onboarding_title" = "Luncati Rante\nMung Bayar.";
+"onboarding_title" = "Luncati Rante\\nMung Bayar.";
 "onboarding_subtitle" = "Dompet pembayaran agen. Lebokake jumlah lan wenehi dompet ngatur rante kanggo sampeyan";
 "onboarding_create_wallet" = "Gawe Dompet";
 "onboarding_log_in" = "Mlebu";
-
 "session_key_title" = "Kunci Sesi";
 "session_key_coming_soon" = "Arep Teka";
-"session_key_description" = "Saben kertu kunci sesi tanpa kontak\nyakuwi dompet sauntara kanthi\nidin kanggo blanja saka dompet sampeyan.\nSampeyan bisa ngatur idin iki\nsawise persiyapan.";
-
+"session_key_description" = "Saben kertu kunci sesi tanpa kontak\\nyakuwi dompet sauntara kanthi\\nidin kanggo blanja saka dompet sampeyan.\\nSampeyan bisa ngatur idin iki\\nsawise persiyapan.";
 "profile_title" = "Profil";
 "profile_save" = "Simpen";
 "profile_saving" = "Nyimpen";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "Mangga gunakake jeneng ENS sing kasedhiya sadurunge nyimpen.";
 "profile_no_changes_to_save" = "Ora ana owah-owahan ENS kanggo disimpen";
 "profile_saved_changes" = "Disimpen %d owah-owahan ENS";
-
 "toggle_accessibility" = "Ganti";
 "button_label_default" = "Nilai string";
 "address_book_add" = "Tambah";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "Transaksi";
 "profile_cancel" = "Batal";
 "profile_change_photo_title" = "Ganti foto";
+"profile_checking_name" = "Ngecek kasedhiyan...";
 "profile_commit_submitted_progress" = "Komitmen dikirim. Ngrampungake registrasi ENS...";
 "profile_enter_name_placeholder" = "Lebokake jeneng";
 "profile_files" = "Pilih File";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "Rante";
 "send_money_chain_placeholder" = "Pilih jaringan";
 "send_money_confirm" = "Konfirmasi";
+"confirm_title" = "Konfirmasi";
+"confirm_sign" = "Konfirmasi & teken nganggo Passkey";
 "send_money_continue" = "Terusake";
 "send_money_enter_amount_title" = "Lebokake jumlah";
 "send_money_failed" = "Gagal";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "Kagem";
 "send_money_view_tx" = "Deleng Tx";
 "transaction_balance_label" = "Imbangan";
-"transaction_receipt_accumulated_from" = "Akumulasi saka";
-"transaction_receipt_fee" = "Biaya";
-"transaction_receipt_network" = "Jaringan";
-"transaction_receipt_time" = "Wektu";
-"transaction_receipt_type" = "Jinis";
-"transaction_view_tx" = "Deleng Tx";
-"wallet_backup_tap_to_reveal" = "Tutul kanggo mbukak";
-
 "transaction_status_success" = "sukses";
 "transaction_status_failed" = "gagal";
 "transaction_row_received_usdc" = "nampa USDC";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "Interaksi kontrak";
 "transaction_type_multichain_transfer" = "Transfer multi-chain";
 "transaction_receipt_subtitle_gas_fee" = "biaya gas";
+"transaction_receipt_accumulated_from" = "Akumulasi saka";
+"transaction_receipt_fee" = "Biaya";
+"transaction_receipt_network" = "Jaringan";
+"transaction_receipt_time" = "Wektu";
+"transaction_receipt_type" = "Jinis";
+"transaction_view_tx" = "Deleng Tx";
+"wallet_backup_tap_to_reveal" = "Tutul kanggo mbukak";
 "transaction_row_prefix_on" = "ing";
 "transaction_row_prefix_from" = "saka";
 "transaction_row_action_sent" = "ngirim";
 "transaction_row_action_received" = "nampa";
-
 "transaction_empty_title" = "Ora ana aktivitas anyar";
 "transaction_empty_subtitle" = "Transaksi sampeyan bakal katon ing kene sawise sampeyan ngirim utawa nampa dana.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "Nampa";
+"transaction_receipt_type_transfer" = "Pangiriman";
+"transaction_receipt_type_transfer_multi_chain" = "Pangiriman multi-chain";
+"transaction_receipt_type_contract" = "Interaksi kontrak";
+"transaction_receipt_type_ens_commit" = "Komit jeneng ENS";
+"transaction_receipt_type_ens_register" = "Registrasi jeneng ENS";
+"transaction_receipt_type_ens_update" = "Pembaruan profil ENS";
+"transaction_receipt_network_unknown" = "Jaringan ora dingerteni";
+"send_money_confirm_title" = "Konfirmasi transaksi";
+"send_money_confirm_sign" = "Konfirmasi & teken nganggo Passkey";
+"ens_confirm_commit_title" = "Konfirmasi komit ENS";
+"ens_confirm_register_title" = "Konfirmasi registrasi ENS";
+"ens_confirm_sign" = "Konfirmasi & teken nganggo Passkey";
+"transaction_receipt_type_approval" = "Persetujuan token";
+"transaction_receipt_contract_ens_registrar" = "Registrar ENS";
+"transaction_receipt_contract_ens_resolver" = "Resolver publik ENS";

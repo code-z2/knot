@@ -13,7 +13,6 @@
 "preferences_business" = "Knot pour les entreprises";
 "sheet_currency_title" = "Devise";
 "sheet_language_title" = "Langue";
-
 "home_title" = "Accueil";
 "home_balance_title" = "Solde";
 "home_add_money" = "Ajouter de l'argent";
@@ -28,7 +27,6 @@
 "home_address_book" = "Carnet d'adresses";
 "home_ai_agent" = "Agent IA";
 "home_logout" = "Se déconnecter";
-
 "address_book_title" = "Carnet d'adresses";
 "search_placeholder" = "Rechercher";
 "empty_beneficiary" = "Vous n'avez ajouté aucun bénéficiaire";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Recevoir";
 "receive_share" = "Partager";
+"receive_wallet_address" = "Adresse du portefeuille";
 "receive_copied" = "copié";
 "receive_tap_to_copy" = "appuyer pour copier";
-
 "wallet_backup_title" = "Sauvegarde du portefeuille";
 "wallet_backup_instructions" = "Écrivez les mots dans l'ordre ci-dessous et gardez-les en sécurité. Ne partagez pas !";
 "wallet_backup_secret_phrase" = "Phrase secrète";
 "wallet_backup_copy" = "Copier dans le presse-papiers";
-
-"onboarding_title" = "Oubliez les chaînes\nPayez simplement.";
+"onboarding_title" = "Oubliez les chaînes\\nPayez simplement.";
 "onboarding_subtitle" = "Portefeuille de paiement agentique. Entrez un montant et laissez le portefeuille jongler entre les chaînes pour vous";
 "onboarding_create_wallet" = "Créer un portefeuille";
 "onboarding_log_in" = "Se connecter";
-
 "session_key_title" = "Clé de session";
 "session_key_coming_soon" = "Bientôt disponible";
-"session_key_description" = "Chaque carte de clé de session sans contact\nest un portefeuille temporaire avec\ndes permissions pour dépenser depuis votre portefeuille.\nVous pouvez personnaliser ces permissions\naprès la configuration.";
-
+"session_key_description" = "Chaque carte de clé de session sans contact\\nest un portefeuille temporaire avec\\ndes permissions pour dépenser depuis votre portefeuille.\\nVous pouvez personnaliser ces permissions\\naprès la configuration.";
 "profile_title" = "Profil";
 "profile_save" = "Enregistrer";
 "profile_saving" = "Enregistrement";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "Veuillez utiliser un nom ENS disponible avant d'enregistrer.";
 "profile_no_changes_to_save" = "Aucun changement ENS à enregistrer";
 "profile_saved_changes" = "%d changement(s) ENS enregistré(s)";
-
 "toggle_accessibility" = "Basculer";
 "button_label_default" = "Valeur de chaîne";
 "address_book_add" = "Ajouter";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "Transactions";
 "profile_cancel" = "Annuler";
 "profile_change_photo_title" = "Changer la photo";
+"profile_checking_name" = "Vérification de la disponibilité...";
 "profile_commit_submitted_progress" = "Commit soumis. Finalisation de l'enregistrement ENS...";
 "profile_enter_name_placeholder" = "Entrer un nom";
 "profile_files" = "Choisir un fichier";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "Chaîne";
 "send_money_chain_placeholder" = "Sélectionner le réseau";
 "send_money_confirm" = "Confirmer";
+"confirm_title" = "Confirmation";
+"confirm_sign" = "Confirmer et signer avec Passkey";
 "send_money_continue" = "Continuer";
 "send_money_enter_amount_title" = "Entrer le montant";
 "send_money_failed" = "Échec";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "À";
 "send_money_view_tx" = "Voir Tx";
 "transaction_balance_label" = "Solde";
-"transaction_receipt_accumulated_from" = "Accumulé de";
-"transaction_receipt_fee" = "Frais";
-"transaction_receipt_network" = "Réseau";
-"transaction_receipt_time" = "Heure";
-"transaction_receipt_type" = "Type";
-"transaction_view_tx" = "Voir Tx";
-"wallet_backup_tap_to_reveal" = "Appuyer pour révéler";
-
 "transaction_status_success" = "réussi";
 "transaction_status_failed" = "échoué";
 "transaction_row_received_usdc" = "USDC reçu";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "Interaction de contrat";
 "transaction_type_multichain_transfer" = "Transfert multichaîne";
 "transaction_receipt_subtitle_gas_fee" = "frais de gaz";
+"transaction_receipt_accumulated_from" = "Accumulé de";
+"transaction_receipt_fee" = "Frais";
+"transaction_receipt_network" = "Réseau";
+"transaction_receipt_time" = "Heure";
+"transaction_receipt_type" = "Type";
+"transaction_view_tx" = "Voir Tx";
+"wallet_backup_tap_to_reveal" = "Appuyer pour révéler";
 "transaction_row_prefix_on" = "sur";
 "transaction_row_prefix_from" = "depuis";
 "transaction_row_action_sent" = "envoyé";
 "transaction_row_action_received" = "reçu";
-
 "transaction_empty_title" = "Aucune activité récente";
 "transaction_empty_subtitle" = "Vos transactions apparaîtront ici après avoir envoyé ou reçu des fonds.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "Recevoir";
+"transaction_receipt_type_transfer" = "Transfert";
+"transaction_receipt_type_transfer_multi_chain" = "Transfert multichaîne";
+"transaction_receipt_type_contract" = "Interaction de contrat";
+"transaction_receipt_type_ens_commit" = "Engagement du nom ENS";
+"transaction_receipt_type_ens_register" = "Enregistrement du nom ENS";
+"transaction_receipt_type_ens_update" = "Mise à jour du profil ENS";
+"transaction_receipt_network_unknown" = "Réseau inconnu";
+"send_money_confirm_title" = "Confirmer la transaction";
+"send_money_confirm_sign" = "Confirmer et signer avec Passkey";
+"ens_confirm_commit_title" = "Confirmer le commit ENS";
+"ens_confirm_register_title" = "Confirmer l'enregistrement ENS";
+"ens_confirm_sign" = "Confirmer et signer avec Passkey";
+"transaction_receipt_type_approval" = "Approbation du jeton";
+"transaction_receipt_contract_ens_registrar" = "Registraire ENS";
+"transaction_receipt_contract_ens_resolver" = "Résolveur public ENS";

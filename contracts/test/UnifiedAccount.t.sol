@@ -9,6 +9,10 @@ import {ISpokePool} from "../src/interfaces/ISpokePool.sol";
 import {Call, OnchainCrossChainOrder, DispatchOrder} from "../src/types/Structs.sol";
 import {MessageHashUtils} from "openzeppelin-contracts/utils/cryptography/MessageHashUtils.sol";
 import {Hashes} from "openzeppelin-contracts/utils/cryptography/Hashes.sol";
+import {Base64} from "openzeppelin-contracts/utils/Base64.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {P256} from "openzeppelin-contracts/utils/cryptography/P256.sol";
+import {WebAuthn} from "openzeppelin-contracts/utils/cryptography/WebAuthn.sol";
 
 contract MockERC20ForAccount {
     mapping(address => uint256) public balanceOf;
@@ -313,6 +317,124 @@ contract UnifiedAccountTest is Test {
         assertEq(target.lastValue(), 20);
     }
 
+    function test_executeX_initOverload_initializesAndExecutes() public {
+        uint256 freshPk = 0xB0B;
+        uint256 webAuthnPk = 0xBEEF;
+        (uint256 qxRaw, uint256 qyRaw) = vm.publicKeyP256(webAuthnPk);
+        bytes32 newQx = bytes32(qxRaw);
+        bytes32 newQy = bytes32(qyRaw);
+
+        UnifiedAccount fresh = _deployAccountAtSignerAddress(freshPk, signerQx, signerQy);
+        vm.deal(address(fresh), 10 ether);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({
+            target: address(fresh),
+            value: 0,
+            data: abi.encodeCall(UnifiedAccount.initialize, (newQx, newQy, factory, ISpokePool(address(spokePool))))
+        });
+        calls[1] = Call({target: address(target), value: 0, data: abi.encodeCall(MockTargetForAccount.ping, (31337))});
+
+        bytes32 salt = keccak256("init-overload-happy");
+        bytes32 leafHash = _computeLeafHashForAccount(fresh, calls, salt);
+        bytes32 root = leafHash;
+
+        // Passkey signs the Merkle root (will verify after initialize sets qx/qy).
+        bytes memory passkeySig = _signWebAuthnDigest(webAuthnPk, MessageHashUtils.toEthSignedMessageHash(root));
+
+        // EOA signs calls[0].data — proves the account owner authorized this initialization.
+        bytes memory initSig = _signDigest(freshPk, MessageHashUtils.toEthSignedMessageHash(keccak256(calls[0].data)));
+
+        // No vm.prank — anyone (relayer) can submit.
+        fresh.executeX(calls, salt, new bytes32[](0), passkeySig, initSig);
+
+        (bytes32 storedQx, bytes32 storedQy) = fresh.signer();
+        assertEq(storedQx, newQx);
+        assertEq(storedQy, newQy);
+        assertEq(target.callCount(), 1);
+        assertEq(target.lastValue(), 31337);
+        assertTrue(fresh.usedSalts(salt));
+    }
+
+    function test_executeX_initOverload_rejectsInvalidInitSignature() public {
+        uint256 freshPk = 0xB0B;
+        uint256 webAuthnPk = 0xBEEF;
+        (uint256 qxRaw, uint256 qyRaw) = vm.publicKeyP256(webAuthnPk);
+
+        UnifiedAccount fresh = _deployAccountAtSignerAddress(freshPk, signerQx, signerQy);
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(fresh),
+            value: 0,
+            data: abi.encodeCall(
+                UnifiedAccount.initialize, (bytes32(qxRaw), bytes32(qyRaw), factory, ISpokePool(address(spokePool)))
+            )
+        });
+
+        bytes32 salt = keccak256("bad-init-sig");
+        bytes32 leafHash = _computeLeafHashForAccount(fresh, calls, salt);
+        bytes memory passkeySig = _signWebAuthnDigest(webAuthnPk, MessageHashUtils.toEthSignedMessageHash(leafHash));
+
+        // Sign with WRONG key (0xDEAD instead of freshPk).
+        bytes memory badInitSig = _signDigest(0xDEAD, MessageHashUtils.toEthSignedMessageHash(keccak256(calls[0].data)));
+
+        vm.expectRevert(UnifiedAccount.InvalidSignature.selector);
+        fresh.executeX(calls, salt, new bytes32[](0), passkeySig, badInitSig);
+    }
+
+    function test_executeX_initOverload_rejectsOnAlreadyInitialized() public {
+        // `account` is already initialized in setUp().
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(account),
+            value: 0,
+            data: abi.encodeCall(
+                UnifiedAccount.initialize, (signerQx, signerQy, factory, ISpokePool(address(spokePool)))
+            )
+        });
+
+        bytes32 salt = keccak256("double-init");
+        bytes32 leafHash = _computeLeafHash(calls, salt);
+        bytes memory passkeySig = _signDigest(accountPk, MessageHashUtils.toEthSignedMessageHash(leafHash));
+        bytes memory initSig = _signDigest(accountPk, MessageHashUtils.toEthSignedMessageHash(keccak256(calls[0].data)));
+
+        // OZ Initializable prevents re-initialization.
+        vm.expectRevert();
+        account.executeX(calls, salt, new bytes32[](0), passkeySig, initSig);
+    }
+
+    function test_executeX_initOverload_worksFromAnyMsgSender() public {
+        uint256 freshPk = 0xB0B;
+        uint256 webAuthnPk = 0xBEEF;
+        (uint256 qxRaw, uint256 qyRaw) = vm.publicKeyP256(webAuthnPk);
+        bytes32 newQx = bytes32(qxRaw);
+        bytes32 newQy = bytes32(qyRaw);
+
+        UnifiedAccount fresh = _deployAccountAtSignerAddress(freshPk, signerQx, signerQy);
+        vm.deal(address(fresh), 10 ether);
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(fresh),
+            value: 0,
+            data: abi.encodeCall(UnifiedAccount.initialize, (newQx, newQy, factory, ISpokePool(address(spokePool))))
+        });
+
+        bytes32 salt = keccak256("relayer-submitted");
+        bytes32 leafHash = _computeLeafHashForAccount(fresh, calls, salt);
+        bytes memory passkeySig = _signWebAuthnDigest(webAuthnPk, MessageHashUtils.toEthSignedMessageHash(leafHash));
+        bytes memory initSig = _signDigest(freshPk, MessageHashUtils.toEthSignedMessageHash(keccak256(calls[0].data)));
+
+        // Simulate relayer as msg.sender — NOT the account itself.
+        vm.prank(address(0xBE1A7E5));
+        fresh.executeX(calls, salt, new bytes32[](0), passkeySig, initSig);
+
+        (bytes32 storedQx, bytes32 storedQy) = fresh.signer();
+        assertEq(storedQx, newQx);
+        assertEq(storedQy, newQy);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  dispatch tests (via executeX)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -577,10 +699,56 @@ contract UnifiedAccountTest is Test {
         return _wrapWithDomain(structHash);
     }
 
+    function _computeLeafHashForAccount(UnifiedAccount targetAccount, Call[] memory calls, bytes32 salt)
+        internal
+        view
+        returns (bytes32)
+    {
+        bytes32 structHash = keccak256(abi.encode(EXECUTEX_TYPEHASH, keccak256(abi.encode(calls)), salt));
+        return _wrapWithDomainForAccount(targetAccount, structHash);
+    }
+
     /// @dev Wraps a struct hash with the account's EIP-712 domain separator.
     ///      Mirrors `_hashTypedDataV4(structHash)` in the account contract.
     function _wrapWithDomain(bytes32 structHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+    }
+
+    function _wrapWithDomainForAccount(UnifiedAccount targetAccount, bytes32 structHash)
+        internal
+        view
+        returns (bytes32)
+    {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("UnifiedAccount")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(targetAccount)
+            )
+        );
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    function _signWebAuthnDigest(uint256 signerPk, bytes32 digest) internal pure returns (bytes memory) {
+        bytes memory challenge = abi.encodePacked(digest);
+        bytes memory authenticatorData =
+            abi.encodePacked(bytes32(0), WebAuthn.AUTH_DATA_FLAGS_UP | WebAuthn.AUTH_DATA_FLAGS_UV, bytes4(0));
+        string memory clientDataJSON =
+            string.concat('{"type":"webauthn.get","challenge":"', Base64.encodeURL(challenge), '"}');
+
+        bytes32 messageHash = sha256(abi.encodePacked(authenticatorData, sha256(bytes(clientDataJSON))));
+        (bytes32 r, bytes32 s) = vm.signP256(signerPk, messageHash);
+
+        return abi.encode(
+            r,
+            bytes32(Math.min(uint256(s), P256.N - uint256(s))),
+            23, // index of "challenge" key in the JSON string above
+            1, // index of "type" key in the JSON string above
+            authenticatorData,
+            clientDataJSON
+        );
     }
 
     /// @dev Builds an ERC-7683 OnchainCrossChainOrder envelope from a DispatchOrder.

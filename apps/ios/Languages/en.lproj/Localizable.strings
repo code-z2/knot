@@ -13,7 +13,6 @@
 "preferences_business" = "Knot for Business";
 "sheet_currency_title" = "Currency";
 "sheet_language_title" = "Language";
-
 "home_title" = "Home";
 "home_balance_title" = "Balance";
 "home_add_money" = "Add money";
@@ -28,7 +27,6 @@
 "home_address_book" = "Address Book";
 "home_ai_agent" = "AI Agent";
 "home_logout" = "Logout";
-
 "address_book_title" = "Address Book";
 "search_placeholder" = "Search";
 "empty_beneficiary" = "You have not added any beneficiary";
@@ -41,27 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Receive";
 "receive_share" = "Share";
 "receive_wallet_address" = "Wallet Address";
 "receive_copied" = "copied";
 "receive_tap_to_copy" = "tap to copy";
-
 "wallet_backup_title" = "Wallet Backup";
 "wallet_backup_instructions" = "Write the words in the sequence below and keep them safe. Do Not Share!";
 "wallet_backup_secret_phrase" = "Secret Phrase";
 "wallet_backup_copy" = "Copy To Clipboard";
-
-"onboarding_title" = "Skip Chains\nJust Pay.";
+"onboarding_title" = "Skip Chains\\nJust Pay.";
 "onboarding_subtitle" = "Agentic payments wallet. Enter an amount and let the wallet juggle between chains for you";
 "onboarding_create_wallet" = "Create Wallet";
 "onboarding_log_in" = "Log In";
-
 "session_key_title" = "Session Key";
 "session_key_coming_soon" = "Coming Soon";
-"session_key_description" = "Each contactless session key card\nis a  temporary wallet with\npermissions to spend from your wallet.\nYou can customize these permissions\nafter setup.";
-
+"session_key_description" = "Each contactless session key card\\nis a  temporary wallet with\\npermissions to spend from your wallet.\\nYou can customize these permissions\\nafter setup.";
 "profile_title" = "Profile";
 "profile_save" = "Save";
 "profile_saving" = "Saving";
@@ -77,7 +70,6 @@
 "profile_error_use_available_name" = "Please use an available ENS name before saving.";
 "profile_no_changes_to_save" = "No ENS changes to save";
 "profile_saved_changes" = "Saved %d ENS change(s)";
-
 "toggle_accessibility" = "Toggle";
 "button_label_default" = "String value";
 "address_book_add" = "Add";
@@ -94,6 +86,7 @@
 "bottom_nav_transactions" = "Transactions";
 "profile_cancel" = "Cancel";
 "profile_change_photo_title" = "Change photo";
+"profile_checking_name" = "Checking availability...";
 "profile_commit_submitted_progress" = "Commit submitted. Finalizing ENS registration...";
 "profile_enter_name_placeholder" = "Enter a name";
 "profile_files" = "Choose File";
@@ -108,6 +101,8 @@
 "send_money_chain_label" = "Chain";
 "send_money_chain_placeholder" = "Select network";
 "send_money_confirm" = "Confirm";
+"confirm_title" = "Confirmation";
+"confirm_sign" = "Confirm & Sign with Passkey";
 "send_money_continue" = "Continue";
 "send_money_enter_amount_title" = "Enter amount";
 "send_money_failed" = "Failed";
@@ -160,6 +155,21 @@
 "transaction_row_prefix_from" = "from";
 "transaction_row_action_sent" = "sent";
 "transaction_row_action_received" = "received";
-
 "transaction_empty_title" = "No recent activity";
 "transaction_empty_subtitle" = "Your transactions will appear here after you send or receive funds.";
+"transaction_receipt_type_receive" = "Receive";
+"transaction_receipt_type_transfer" = "Transfer";
+"transaction_receipt_type_transfer_multi_chain" = "Multi-Chain Transfer";
+"transaction_receipt_type_contract" = "Contract Interaction";
+"transaction_receipt_type_ens_commit" = "ENS - Name Commitment";
+"transaction_receipt_type_ens_register" = "ENS - Name Registration";
+"transaction_receipt_type_ens_update" = "ENS - Profile Update";
+"transaction_receipt_network_unknown" = "Unknown Network";
+"send_money_confirm_title" = "Confirm Transaction";
+"send_money_confirm_sign" = "Confirm & Sign with Passkey";
+"ens_confirm_commit_title" = "Confirm ENS Commit";
+"ens_confirm_register_title" = "Confirm ENS Registration";
+"ens_confirm_sign" = "Confirm & Sign with Passkey";
+"transaction_receipt_type_approval" = "Token Approval";
+"transaction_receipt_contract_ens_registrar" = "ENS Registrar";
+"transaction_receipt_contract_ens_resolver" = "ENS Public Resolver";
