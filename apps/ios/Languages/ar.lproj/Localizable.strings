@@ -13,7 +13,6 @@
 "preferences_business" = "Knot للأعمال";
 "sheet_currency_title" = "العملة";
 "sheet_language_title" = "اللغة";
-
 "home_title" = "الرئيسية";
 "home_balance_title" = "الرصيد";
 "home_add_money" = "إضافة أموال";
@@ -28,7 +27,6 @@
 "home_address_book" = "دفتر العناوين";
 "home_ai_agent" = "وكيل الذكاء الاصطناعي";
 "home_logout" = "تسجيل الخروج";
-
 "address_book_title" = "دفتر العناوين";
 "search_placeholder" = "بحث";
 "empty_beneficiary" = "لم تقم بإضافة أي مستفيد";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "أليس";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "استلام";
 "receive_share" = "مشاركة";
+"receive_wallet_address" = "عنوان المحفظة";
 "receive_copied" = "تم النسخ";
 "receive_tap_to_copy" = "انقر للنسخ";
-
 "wallet_backup_title" = "نسخ احتياطي للمحفظة";
 "wallet_backup_instructions" = "اكتب الكلمات بالترتيب أدناه واحتفظ بها في مكان آمن. لا تشاركها!";
 "wallet_backup_secret_phrase" = "العبارة السرية";
 "wallet_backup_copy" = "نسخ إلى الحافظة";
-
-"onboarding_title" = "تخطى الشبكات\nادفع ببساطة.";
+"onboarding_title" = "تخطى الشبكات\\nادفع ببساطة.";
 "onboarding_subtitle" = "محفظة دفع وكيلة. أدخل مبلغًا ودع المحفظة تتعامل مع الشبكات نيابة عنك";
 "onboarding_create_wallet" = "إنشاء محفظة";
 "onboarding_log_in" = "تسجيل الدخول";
-
 "session_key_title" = "مفتاح الجلسة";
 "session_key_coming_soon" = "قريباً";
-"session_key_description" = "كل بطاقة مفتاح جلسة غير تلامسية\nهي محفظة مؤقتة مع\nأذونات للإنفاق من محفظتك.\nيمكنك تخصيص هذه الأذونات\nبعد الإعداد.";
-
+"session_key_description" = "كل بطاقة مفتاح جلسة غير تلامسية\\nهي محفظة مؤقتة مع\\nأذونات للإنفاق من محفظتك.\\nيمكنك تخصيص هذه الأذونات\\nبعد الإعداد.";
 "profile_title" = "الملف الشخصي";
 "profile_save" = "حفظ";
 "profile_saving" = "جاري الحفظ";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "يرجى استخدام اسم ENS متاح قبل الحفظ.";
 "profile_no_changes_to_save" = "لا توجد تغييرات ENS للحفظ";
 "profile_saved_changes" = "تم حفظ %d تغيير(ات) ENS";
-
 "toggle_accessibility" = "تبديل";
 "button_label_default" = "قيمة النص";
 "address_book_add" = "إضافة";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "المعاملات";
 "profile_cancel" = "إلغاء";
 "profile_change_photo_title" = "تغيير الصورة";
+"profile_checking_name" = "جارٍ التحقق من التوفر...";
 "profile_commit_submitted_progress" = "تم إرسال الالتزام. جاري إكمال تسجيل ENS...";
 "profile_enter_name_placeholder" = "أدخل اسماً";
 "profile_files" = "اختر ملفاً";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "السلسلة";
 "send_money_chain_placeholder" = "اختر شبكة";
 "send_money_confirm" = "تأكيد";
+"confirm_title" = "تأكيد";
+"confirm_sign" = "تأكيد والتوقيع باستخدام مفتاح المرور";
 "send_money_continue" = "متابعة";
 "send_money_enter_amount_title" = "أدخل المبلغ";
 "send_money_failed" = "فشل";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "إلى";
 "send_money_view_tx" = "عرض المعاملة";
 "transaction_balance_label" = "الرصيد";
-"transaction_receipt_accumulated_from" = "متراكم من";
-"transaction_receipt_fee" = "الرسوم";
-"transaction_receipt_network" = "الشبكة";
-"transaction_receipt_time" = "الوقت";
-"transaction_receipt_type" = "النوع";
-"transaction_view_tx" = "عرض المعاملة";
-"wallet_backup_tap_to_reveal" = "انقر للكشف";
-
 "transaction_status_success" = "ناجحة";
 "transaction_status_failed" = "فاشلة";
 "transaction_row_received_usdc" = "تم استلام USDC";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "تفاعل عقد";
 "transaction_type_multichain_transfer" = "تحويل متعدد السلاسل";
 "transaction_receipt_subtitle_gas_fee" = "رسوم الغاز";
+"transaction_receipt_accumulated_from" = "متراكم من";
+"transaction_receipt_fee" = "الرسوم";
+"transaction_receipt_network" = "الشبكة";
+"transaction_receipt_time" = "الوقت";
+"transaction_receipt_type" = "النوع";
+"transaction_view_tx" = "عرض المعاملة";
+"wallet_backup_tap_to_reveal" = "انقر للكشف";
 "transaction_row_prefix_on" = "على";
 "transaction_row_prefix_from" = "من";
 "transaction_row_action_sent" = "تم الإرسال";
 "transaction_row_action_received" = "تم الاستلام";
-
 "transaction_empty_title" = "لا يوجد نشاط حديث";
 "transaction_empty_subtitle" = "ستظهر معاملاتك هنا بعد إرسال أو استلام الأموال.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "استلام";
+"transaction_receipt_type_transfer" = "تحويل";
+"transaction_receipt_type_transfer_multi_chain" = "تحويل متعدد السلاسل";
+"transaction_receipt_type_contract" = "تفاعل عقد";
+"transaction_receipt_type_ens_commit" = "التزام اسم ENS";
+"transaction_receipt_type_ens_register" = "تسجيل اسم ENS";
+"transaction_receipt_type_ens_update" = "تحديث ملف ENS";
+"transaction_receipt_network_unknown" = "شبكة غير معروفة";
+"send_money_confirm_title" = "تأكيد المعاملة";
+"send_money_confirm_sign" = "تأكيد والتوقيع باستخدام مفتاح المرور";
+"ens_confirm_commit_title" = "تأكيد التزام ENS";
+"ens_confirm_register_title" = "تأكيد تسجيل ENS";
+"ens_confirm_sign" = "تأكيد والتوقيع باستخدام مفتاح المرور";
+"transaction_receipt_type_approval" = "موافقة الرمز";
+"transaction_receipt_contract_ens_registrar" = "مسجل ENS";
+"transaction_receipt_contract_ens_resolver" = "المحلل العام لـ ENS";

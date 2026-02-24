@@ -13,7 +13,6 @@
 "preferences_business" = "İşletmeler için Knot";
 "sheet_currency_title" = "Para Birimi";
 "sheet_language_title" = "Dil";
-
 "home_title" = "Ana Sayfa";
 "home_balance_title" = "Bakiye";
 "home_add_money" = "Para Ekle";
@@ -28,7 +27,6 @@
 "home_address_book" = "Adres Defteri";
 "home_ai_agent" = "Yapay Zeka Ajanı";
 "home_logout" = "Çıkış Yap";
-
 "address_book_title" = "Adres Defteri";
 "search_placeholder" = "Ara";
 "empty_beneficiary" = "Henüz bir alıcı eklemediniz";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Al";
 "receive_share" = "Paylaş";
+"receive_wallet_address" = "Cüzdan Adresi";
 "receive_copied" = "kopyalandı";
 "receive_tap_to_copy" = "kopyalamak için dokun";
-
 "wallet_backup_title" = "Cüzdan Yedeği";
 "wallet_backup_instructions" = "Kelimeleri aşağıdaki sırayla yazın ve güvenli bir yerde saklayın. Paylaşmayın!";
 "wallet_backup_secret_phrase" = "Gizli İfade";
 "wallet_backup_copy" = "Pano'ya Kopyala";
-
-"onboarding_title" = "Ağları Atla\nSadece Öde.";
+"onboarding_title" = "Ağları Atla\\nSadece Öde.";
 "onboarding_subtitle" = "Ajan tabanlı ödeme cüzdanı. Bir miktar girin ve cüzdanın sizin için ağlar arasında işlem yapmasına izin verin";
 "onboarding_create_wallet" = "Cüzdan Oluştur";
 "onboarding_log_in" = "Giriş Yap";
-
 "session_key_title" = "Oturum Anahtarı";
 "session_key_coming_soon" = "Yakında";
-"session_key_description" = "Her temassız oturum anahtarı kartı\ncüzdanınızdan harcama izinlerine sahip\ngeçici bir cüzdandır.\nBu izinleri kurulumdan sonra\nözelleştirebilirsiniz.";
-
+"session_key_description" = "Her temassız oturum anahtarı kartı\\ncüzdanınızdan harcama izinlerine sahip\\ngeçici bir cüzdandır.\\nBu izinleri kurulumdan sonra\\nözelleştirebilirsiniz.";
 "profile_title" = "Profil";
 "profile_save" = "Kaydet";
 "profile_saving" = "Kaydediliyor";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "Lütfen kaydetmeden önce uygun bir ENS adı kullanın.";
 "profile_no_changes_to_save" = "Kaydedilecek ENS değişikliği yok";
 "profile_saved_changes" = "%d ENS değişikliği kaydedildi";
-
 "toggle_accessibility" = "Değiştir";
 "button_label_default" = "Dize değeri";
 "address_book_add" = "Ekle";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "İşlemler";
 "profile_cancel" = "İptal";
 "profile_change_photo_title" = "Fotoğrafı değiştir";
+"profile_checking_name" = "Kullanılabilirlik kontrol ediliyor...";
 "profile_commit_submitted_progress" = "Taahhüt gönderildi. ENS kaydı tamamlanıyor...";
 "profile_enter_name_placeholder" = "Bir isim girin";
 "profile_files" = "Dosya Seç";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "Zincir";
 "send_money_chain_placeholder" = "Ağ seç";
 "send_money_confirm" = "Onayla";
+"confirm_title" = "Onay";
+"confirm_sign" = "Onayla ve Passkey ile imzala";
 "send_money_continue" = "Devam et";
 "send_money_enter_amount_title" = "Miktar girin";
 "send_money_failed" = "Başarısız";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "Alıcı";
 "send_money_view_tx" = "İşlemi Gör";
 "transaction_balance_label" = "Bakiye";
-"transaction_receipt_accumulated_from" = "Şuradan birikti";
-"transaction_receipt_fee" = "Ücret";
-"transaction_receipt_network" = "Ağ";
-"transaction_receipt_time" = "Zaman";
-"transaction_receipt_type" = "Tür";
-"transaction_view_tx" = "İşlemi Gör";
-"wallet_backup_tap_to_reveal" = "Göstermek için dokun";
-
 "transaction_status_success" = "başarılı";
 "transaction_status_failed" = "başarısız";
 "transaction_row_received_usdc" = "USDC alındı";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "Sözleşme etkileşimi";
 "transaction_type_multichain_transfer" = "Çoklu zincir transferi";
 "transaction_receipt_subtitle_gas_fee" = "gas ücreti";
+"transaction_receipt_accumulated_from" = "Şuradan birikti";
+"transaction_receipt_fee" = "Ücret";
+"transaction_receipt_network" = "Ağ";
+"transaction_receipt_time" = "Zaman";
+"transaction_receipt_type" = "Tür";
+"transaction_view_tx" = "İşlemi Gör";
+"wallet_backup_tap_to_reveal" = "Göstermek için dokun";
 "transaction_row_prefix_on" = "üzerinde";
 "transaction_row_prefix_from" = "-den";
 "transaction_row_action_sent" = "gönderildi";
 "transaction_row_action_received" = "alındı";
-
 "transaction_empty_title" = "Son aktivite yok";
 "transaction_empty_subtitle" = "Kullanıcılar para gönderip aldıktan sonra işlemleriniz burada görünecektir.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "Al";
+"transaction_receipt_type_transfer" = "Aktarım";
+"transaction_receipt_type_transfer_multi_chain" = "Çoklu zincir transferi";
+"transaction_receipt_type_contract" = "Sözleşme etkileşimi";
+"transaction_receipt_type_ens_commit" = "ENS Adı Taahhüdü";
+"transaction_receipt_type_ens_register" = "ENS Adı Kaydı";
+"transaction_receipt_type_ens_update" = "ENS Profil Güncellemesi";
+"transaction_receipt_network_unknown" = "Bilinmeyen Ağ";
+"send_money_confirm_title" = "İşlemi Onayla";
+"send_money_confirm_sign" = "Onayla ve Passkey ile imzala";
+"ens_confirm_commit_title" = "ENS taahhüdünü onayla";
+"ens_confirm_register_title" = "ENS kaydını onayla";
+"ens_confirm_sign" = "Onayla ve Passkey ile imzala";
+"transaction_receipt_type_approval" = "Token Onayı";
+"transaction_receipt_contract_ens_registrar" = "ENS Kayıt Yetkilisi";
+"transaction_receipt_contract_ens_resolver" = "ENS Genel Çözücü";

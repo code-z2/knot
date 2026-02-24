@@ -77,9 +77,6 @@ contract Accumulator is Ownable, Initializable, IAccumulator, ERC1155Holder, ERC
     /// @dev Mode 3 requires destination calls to be present.
     error DestCallsRequiredForExecuteOnly();
 
-    /// @dev Mode 1 does not support destination calls.
-    error DestCallsNotAllowedForDirectTransfer();
-
     // ═══════════════════════════════════════════════════════════════════════════
     //                                CONSTANTS
     // ═══════════════════════════════════════════════════════════════════════════

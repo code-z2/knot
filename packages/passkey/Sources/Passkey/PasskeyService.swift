@@ -63,7 +63,7 @@ public struct PasskeySignatureModel: Sendable, Equatable, Codable {
 
     public func getChallengePosition(payload: Data) -> Int? {
         guard let json = String(data: clientDataJSON, encoding: .utf8) else { return nil }
-        let challenge = Data(SHA256.hash(data: payload)).base64URLEncodedStringNoPadding()
+        let challenge = payload.base64URLEncodedStringNoPadding()
         let challengeFragment = "\"challenge\":\"\(challenge)\""
         return json.range(of: challengeFragment)?.lowerBound.utf16Offset(in: json)
     }
@@ -100,7 +100,7 @@ public enum PasskeyAssertionVerifier {
         }
 
         let clientData = try ClientDataPayload.decode(signature.clientDataJSON)
-        let expectedChallenge = Data(SHA256.hash(data: payload))
+        let expectedChallenge = payload
         guard let challengeData = clientData.challengeData else {
             throw PasskeyServiceError.malformedClientDataJSON
         }
@@ -200,7 +200,7 @@ public final class PasskeyService: NSObject, PasskeyServiceProviding {
         allowedCredentialIDs: [Data]? = nil,
     ) async throws -> PasskeySignatureModel {
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: rpId)
-        let challenge = Data(SHA256.hash(data: payload))
+        let challenge = payload
         let request = provider.createCredentialAssertionRequest(challenge: challenge)
         if let allowedCredentialIDs, !allowedCredentialIDs.isEmpty {
             request.allowedCredentials = allowedCredentialIDs.map {

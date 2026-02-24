@@ -13,7 +13,6 @@
 "preferences_business" = "비즈니스용 Knot";
 "sheet_currency_title" = "통화";
 "sheet_language_title" = "언어";
-
 "home_title" = "홈";
 "home_balance_title" = "잔액";
 "home_add_money" = "충전";
@@ -28,7 +27,6 @@
 "home_address_book" = "주소록";
 "home_ai_agent" = "AI 에이전트";
 "home_logout" = "로그아웃";
-
 "address_book_title" = "주소록";
 "search_placeholder" = "검색";
 "empty_beneficiary" = "수취인이 없습니다";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Alice";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "받기";
 "receive_share" = "공유";
+"receive_wallet_address" = "지갑 주소";
 "receive_copied" = "복사됨";
 "receive_tap_to_copy" = "탭하여 복사";
-
 "wallet_backup_title" = "지갑 백업";
 "wallet_backup_instructions" = "아래 순서대로 단어를 적어 안전한 곳에 보관하세요. 공유하지 마세요!";
 "wallet_backup_secret_phrase" = "비밀 구문";
 "wallet_backup_copy" = "클립보드에 복사";
-
-"onboarding_title" = "체인은 잊으세요\n그냥 결제하세요.";
+"onboarding_title" = "체인은 잊으세요\\n그냥 결제하세요.";
 "onboarding_subtitle" = "에이전트 기반 결제 지갑. 금액만 입력하면 지갑이 알아서 체인을 관리합니다";
 "onboarding_create_wallet" = "지갑 생성";
 "onboarding_log_in" = "로그인";
-
 "session_key_title" = "세션 키";
 "session_key_coming_soon" = "준비 중";
-"session_key_description" = "각 비접촉 세션 키 카드는\n지갑에서 지출할 수 있는 권한을 가진\n임시 지갑입니다.\n설정 후 권한을\n사용자 지정할 수 있습니다.";
-
+"session_key_description" = "각 비접촉 세션 키 카드는\\n지갑에서 지출할 수 있는 권한을 가진\\n임시 지갑입니다.\\n설정 후 권한을\\n사용자 지정할 수 있습니다.";
 "profile_title" = "프로필";
 "profile_save" = "저장";
 "profile_saving" = "저장 중";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "저장하기 전에 사용 가능한 ENS 이름을 사용하세요.";
 "profile_no_changes_to_save" = "저장할 ENS 변경 사항 없음";
 "profile_saved_changes" = "%d개의 ENS 변경 사항 저장됨";
-
 "toggle_accessibility" = "전환";
 "button_label_default" = "문자열 값";
 "address_book_add" = "추가";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "거래";
 "profile_cancel" = "취소";
 "profile_change_photo_title" = "사진 변경";
+"profile_checking_name" = "사용 가능 여부 확인 중...";
 "profile_commit_submitted_progress" = "커밋 제출됨. ENS 등록 완료 중...";
 "profile_enter_name_placeholder" = "이름 입력";
 "profile_files" = "파일 선택";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "체인";
 "send_money_chain_placeholder" = "네트워크 선택";
 "send_money_confirm" = "확인";
+"confirm_title" = "확인";
+"confirm_sign" = "확인 후 패스키로 서명";
 "send_money_continue" = "계속";
 "send_money_enter_amount_title" = "금액 입력";
 "send_money_failed" = "실패";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "받는 사람";
 "send_money_view_tx" = "Tx 보기";
 "transaction_balance_label" = "잔액";
-"transaction_receipt_accumulated_from" = "누적 출처";
-"transaction_receipt_fee" = "수수료";
-"transaction_receipt_network" = "네트워크";
-"transaction_receipt_time" = "시간";
-"transaction_receipt_type" = "유형";
-"transaction_view_tx" = "Tx 보기";
-"wallet_backup_tap_to_reveal" = "탭하여 표시";
-
 "transaction_status_success" = "성공";
 "transaction_status_failed" = "실패";
 "transaction_row_received_usdc" = "USDC 수신";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "컨트랙트 상호작용";
 "transaction_type_multichain_transfer" = "멀티체인 전송";
 "transaction_receipt_subtitle_gas_fee" = "가스 수수료";
+"transaction_receipt_accumulated_from" = "누적 출처";
+"transaction_receipt_fee" = "수수료";
+"transaction_receipt_network" = "네트워크";
+"transaction_receipt_time" = "시간";
+"transaction_receipt_type" = "유형";
+"transaction_view_tx" = "Tx 보기";
+"wallet_backup_tap_to_reveal" = "탭하여 표시";
 "transaction_row_prefix_on" = "on";
 "transaction_row_prefix_from" = "from";
 "transaction_row_action_sent" = "전송";
 "transaction_row_action_received" = "수신";
-
 "transaction_empty_title" = "최근 활동 없음";
 "transaction_empty_subtitle" = "자금을 보내거나 받으면 거래가 여기에 표시됩니다.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "수신";
+"transaction_receipt_type_transfer" = "전송";
+"transaction_receipt_type_transfer_multi_chain" = "멀티체인 전송";
+"transaction_receipt_type_contract" = "컨트랙트 상호작용";
+"transaction_receipt_type_ens_commit" = "ENS 이름 커밋";
+"transaction_receipt_type_ens_register" = "ENS 이름 등록";
+"transaction_receipt_type_ens_update" = "ENS 프로필 업데이트";
+"transaction_receipt_network_unknown" = "알 수 없는 네트워크";
+"send_money_confirm_title" = "거래 확인";
+"send_money_confirm_sign" = "확인 후 패스키로 서명";
+"ens_confirm_commit_title" = "ENS 커밋 확인";
+"ens_confirm_register_title" = "ENS 등록 확인";
+"ens_confirm_sign" = "확인 후 패스키로 서명";
+"transaction_receipt_type_approval" = "토큰 승인";
+"transaction_receipt_contract_ens_registrar" = "ENS 등록기관";
+"transaction_receipt_contract_ens_resolver" = "ENS 공개 리졸버";

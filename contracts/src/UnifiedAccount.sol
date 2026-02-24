@@ -50,6 +50,8 @@ contract UnifiedAccount is
     ERC721Holder,
     ReentrancyGuard
 {
+    using Address for address;
+
     // ═══════════════════════════════════════════════════════════════════════════
     //                              TYPEHASHES
     // ═══════════════════════════════════════════════════════════════════════════
@@ -136,14 +138,14 @@ contract UnifiedAccount is
 
     /// @notice Execute a single call via ERC-4337/default route.
     function execute(address target, uint256 value, bytes calldata data) external onlyEntryPointOrSelf {
-        Address.functionCallWithValue(target, data, value);
+        target.functionCallWithValue(data, value);
     }
 
     /// @notice Execute a batch of calls via ERC-4337/default route.
     function executeBatch(Call[] calldata calls) external onlyEntryPointOrSelf {
         uint256 len = calls.length;
         for (uint256 i; i < len; i++) {
-            Address.functionCallWithValue(calls[i].target, calls[i].data, calls[i].value);
+            calls[i].target.functionCallWithValue(calls[i].data, calls[i].value);
         }
     }
 
@@ -171,30 +173,48 @@ contract UnifiedAccount is
         payable
         nonReentrant
     {
-        // Replay protection.
-        if (usedSalts[salt]) {
-            revert SaltAlreadyUsed(salt);
-        }
-        usedSalts[salt] = true;
+        _executeX(calls, 0, salt, merkleProof, signature);
+    }
 
-        // Build chain-bound EIP-712 leaf hash.
-        bytes32 leafHash =
-            _hashTypedDataV4(keccak256(abi.encode(EXECUTEX_TYPEHASH, keccak256(abi.encode(calls)), salt)));
-
-        // Walk proof to compute chain-agnostic root.
-        bytes32 root = MerkleProof.processProofCalldata(merkleProof, leafHash);
-
-        // Verify signature over the chain-agnostic root.
-        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(root);
-        if (!_rawSignatureValidation(digest, signature)) {
+    /// @notice Execute a batch of calls with first-run initialization.
+    ///
+    /// @dev Overload for uninitialized accounts. `calls[0]` must be `initialize(...)` targeting
+    ///      this contract. The EOA proves ownership by signing `calls[0].data` with its secp256k1
+    ///      key (verified via `SignerEIP7702`, i.e. ecrecover against `address(this)`).
+    ///
+    ///      After `calls[0]` executes and sets the P-256 signer in storage, the remaining
+    ///      `calls[1:]` are executed via the standard Merkle-verified path — the passkey
+    ///      signature now verifies against the freshly-initialized signer.
+    ///
+    ///      The Merkle leaf covers ALL calls (including `calls[0]`), binding initialization
+    ///      to the execution batch cryptographically.
+    ///
+    /// @param calls         The batch of calls. `calls[0]` MUST be `initialize(...)`.
+    /// @param salt          Unique salt for replay protection.
+    /// @param merkleProof   Sibling hashes from leaf to root.
+    /// @param signature     Passkey signature over `toEthSignedMessageHash(root)`.
+    /// @param initSignature 65-byte EOA ECDSA signature over
+    ///                      `toEthSignedMessageHash(keccak256(calls[0].data))`.
+    function executeX(
+        Call[] calldata calls,
+        bytes32 salt,
+        bytes32[] calldata merkleProof,
+        bytes calldata signature,
+        bytes calldata initSignature
+    ) external payable nonReentrant {
+        // Verify EOA authorized this specific initialization calldata.
+        bytes32 initDigest = MessageHashUtils.toEthSignedMessageHash(keccak256(calls[0].data));
+        if (!_rawSignatureValidation(initDigest, initSignature)) {
             revert InvalidSignature();
         }
 
-        // Execute the batch via self-call so that each call's msg.sender is this contract.
-        uint256 len = calls.length;
-        for (uint256 i; i < len; i++) {
-            Address.functionCallWithValue(calls[i].target, calls[i].data, calls[i].value);
-        }
+        // Execute calls[0] (initialize). Address.functionCallWithValue performs a low-level
+        // call where msg.sender == address(this), satisfying onlyEntryPointOrSelf.
+        calls[0].target.functionCallWithValue(calls[0].data, calls[0].value);
+
+        // Execute calls[1:] via the standard Merkle-verified path.
+        // Passkey signature now verifies against freshly-initialized storage.
+        _executeX(calls, 1, salt, merkleProof, signature);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -257,7 +277,7 @@ contract UnifiedAccount is
 
     /// @inheritdoc IERC1271
     function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
-        return _rawSignatureValidation(hash, signature) ? this.isValidSignature.selector : bytes4(0xffffffff);
+        return _rawSignatureValidation(hash, signature) ? IERC1271.isValidSignature.selector : bytes4(0xffffffff);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -284,6 +304,42 @@ contract UnifiedAccount is
             return SignerEIP7702._rawSignatureValidation(hash, signature);
         }
         return SignerWebAuthn._rawSignatureValidation(hash, signature);
+    }
+
+    /// @dev Shared executeX logic: replay check, Merkle leaf, proof walk, sig verify, execute loop.
+    ///      The leaf hash is computed over ALL calls (regardless of startIndex) to preserve the
+    ///      Merkle commitment. The execution loop starts from `startIndex`.
+    function _executeX(
+        Call[] calldata calls,
+        uint256 startIndex,
+        bytes32 salt,
+        bytes32[] calldata merkleProof,
+        bytes calldata signature
+    ) internal {
+        // Replay protection.
+        if (usedSalts[salt]) {
+            revert SaltAlreadyUsed(salt);
+        }
+        usedSalts[salt] = true;
+
+        // Build chain-bound EIP-712 leaf hash over ALL calls.
+        bytes32 leafHash =
+            _hashTypedDataV4(keccak256(abi.encode(EXECUTEX_TYPEHASH, keccak256(abi.encode(calls)), salt)));
+
+        // Walk proof to compute chain-agnostic root.
+        bytes32 root = MerkleProof.processProofCalldata(merkleProof, leafHash);
+
+        // Verify signature over the chain-agnostic root.
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(root);
+        if (!_rawSignatureValidation(digest, signature)) {
+            revert InvalidSignature();
+        }
+
+        // Execute the batch from startIndex. Each call's msg.sender is this contract.
+        uint256 len = calls.length;
+        for (uint256 i = startIndex; i < len; i++) {
+            calls[i].target.functionCallWithValue(calls[i].data, calls[i].value);
+        }
     }
 
     /// @dev Enforces accepted `fillDeadline` bounds relative to current block time.

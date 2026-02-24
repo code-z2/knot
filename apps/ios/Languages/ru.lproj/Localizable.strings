@@ -13,7 +13,6 @@
 "preferences_business" = "Knot для бизнеса";
 "sheet_currency_title" = "Валюта";
 "sheet_language_title" = "Язык";
-
 "home_title" = "Главная";
 "home_balance_title" = "Баланс";
 "home_add_money" = "Пополнить";
@@ -28,7 +27,6 @@
 "home_address_book" = "Адресная книга";
 "home_ai_agent" = "AI Агент";
 "home_logout" = "Выйти";
-
 "address_book_title" = "Адресная книга";
 "search_placeholder" = "Поиск";
 "empty_beneficiary" = "Вы не добавили получателей";
@@ -41,26 +39,22 @@
 "add_beneficiary_placeholder_name" = "Алиса";
 "add_beneficiary_placeholder_address" = "0x...";
 "add_beneficiary_placeholder_chain" = "Base";
-
 "receive_title" = "Получить";
 "receive_share" = "Поделиться";
+"receive_wallet_address" = "Адрес кошелька";
 "receive_copied" = "скопировано";
 "receive_tap_to_copy" = "нажмите, чтобы скопировать";
-
 "wallet_backup_title" = "Резервная копия";
 "wallet_backup_instructions" = "Запишите слова в указанном порядке и храните их в надежном месте. Никому не сообщайте!";
 "wallet_backup_secret_phrase" = "Секретная фраза";
 "wallet_backup_copy" = "Копировать в буфер";
-
-"onboarding_title" = "Забудьте о сетях\nПросто платите.";
+"onboarding_title" = "Забудьте о сетях\\nПросто платите.";
 "onboarding_subtitle" = "Агентный платежный кошелек. Введите сумму, и кошелек сам выберет нужные сети";
 "onboarding_create_wallet" = "Создать кошелек";
 "onboarding_log_in" = "Войти";
-
 "session_key_title" = "Ключ сессии";
 "session_key_coming_soon" = "Скоро";
-"session_key_description" = "Каждая бесконтактная карта ключа сессии\n— это временный кошелек с\nразрешениями на траты из вашего кошелька.\nВы можете настроить эти разрешения\nпосле установки.";
-
+"session_key_description" = "Каждая бесконтактная карта ключа сессии\\n— это временный кошелек с\\nразрешениями на траты из вашего кошелька.\\nВы можете настроить эти разрешения\\nпосле установки.";
 "profile_title" = "Профиль";
 "profile_save" = "Сохранить";
 "profile_saving" = "Сохранение";
@@ -76,7 +70,6 @@
 "profile_error_use_available_name" = "Пожалуйста, выберите доступное имя ENS перед сохранением.";
 "profile_no_changes_to_save" = "Нет изменений ENS для сохранения";
 "profile_saved_changes" = "Сохранено %d измен. ENS";
-
 "toggle_accessibility" = "Переключить";
 "button_label_default" = "Значение строки";
 "address_book_add" = "Добавить";
@@ -93,6 +86,7 @@
 "bottom_nav_transactions" = "Транзакции";
 "profile_cancel" = "Отмена";
 "profile_change_photo_title" = "Изменить фото";
+"profile_checking_name" = "Проверка доступности...";
 "profile_commit_submitted_progress" = "Запрос отправлен. Завершение регистрации ENS...";
 "profile_enter_name_placeholder" = "Введите имя";
 "profile_files" = "Выбрать файл";
@@ -107,6 +101,8 @@
 "send_money_chain_label" = "Сеть";
 "send_money_chain_placeholder" = "Выберите сеть";
 "send_money_confirm" = "Подтвердить";
+"confirm_title" = "Подтверждение";
+"confirm_sign" = "Подтвердить и подписать с Passkey";
 "send_money_continue" = "Продолжить";
 "send_money_enter_amount_title" = "Введите сумму";
 "send_money_failed" = "Ошибка";
@@ -130,14 +126,6 @@
 "send_money_to_label" = "Кому";
 "send_money_view_tx" = "См. транзакцию";
 "transaction_balance_label" = "Баланс";
-"transaction_receipt_accumulated_from" = "Накоплено от";
-"transaction_receipt_fee" = "Комиссия";
-"transaction_receipt_network" = "Сеть";
-"transaction_receipt_time" = "Время";
-"transaction_receipt_type" = "Тип";
-"transaction_view_tx" = "См. транзакцию";
-"wallet_backup_tap_to_reveal" = "Нажмите, чтобы показать";
-
 "transaction_status_success" = "успешно";
 "transaction_status_failed" = "неуспешно";
 "transaction_row_received_usdc" = "получено USDC";
@@ -156,11 +144,32 @@
 "transaction_type_contract_interaction" = "Взаимодействие с контрактом";
 "transaction_type_multichain_transfer" = "Мультичейн-перевод";
 "transaction_receipt_subtitle_gas_fee" = "комиссия газа";
+"transaction_receipt_accumulated_from" = "Накоплено от";
+"transaction_receipt_fee" = "Комиссия";
+"transaction_receipt_network" = "Сеть";
+"transaction_receipt_time" = "Время";
+"transaction_receipt_type" = "Тип";
+"transaction_view_tx" = "См. транзакцию";
+"wallet_backup_tap_to_reveal" = "Нажмите, чтобы показать";
 "transaction_row_prefix_on" = "в";
 "transaction_row_prefix_from" = "из";
 "transaction_row_action_sent" = "отправлено";
 "transaction_row_action_received" = "получено";
-
 "transaction_empty_title" = "Нет недавней активности";
 "transaction_empty_subtitle" = "Ваши транзакции появятся здесь после отправки или получения средств.";
-"receive_wallet_address" = "Wallet Address";
+"transaction_receipt_type_receive" = "Получение";
+"transaction_receipt_type_transfer" = "Перевод";
+"transaction_receipt_type_transfer_multi_chain" = "Мультичейн-перевод";
+"transaction_receipt_type_contract" = "Взаимодействие с контрактом";
+"transaction_receipt_type_ens_commit" = "Подтверждение имени ENS";
+"transaction_receipt_type_ens_register" = "Регистрация имени ENS";
+"transaction_receipt_type_ens_update" = "Обновление профиля ENS";
+"transaction_receipt_network_unknown" = "Неизвестная сеть";
+"send_money_confirm_title" = "Подтвердить транзакцию";
+"send_money_confirm_sign" = "Подтвердить и подписать с Passkey";
+"ens_confirm_commit_title" = "Подтвердить ENS commit";
+"ens_confirm_register_title" = "Подтвердить ENS регистрацию";
+"ens_confirm_sign" = "Подтвердить и подписать с Passkey";
+"transaction_receipt_type_approval" = "Одобрение токена";
+"transaction_receipt_contract_ens_registrar" = "Регистратор ENS";
+"transaction_receipt_contract_ens_resolver" = "Публичный резолвер ENS";
