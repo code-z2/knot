@@ -19,16 +19,6 @@ extension PreferencesView {
         activeModal = modal
     }
 
-    func handleBack() {
-        if activePage == .main {
-            onBack()
-        } else {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                activePage = .main
-            }
-        }
-    }
-
     func dismissModal() {
         activeModal = nil
     }

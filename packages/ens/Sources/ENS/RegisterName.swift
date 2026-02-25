@@ -42,7 +42,6 @@ public extension ENSClient {
                 parameters: [label, request.duration],
             )
             let quoteResult = try await quoteResultTask
-            print("   [DEBUG-ENS] raw quoteResult: \(quoteResult)")
             guard let priceArray = quoteResult["0"] as? [Any],
                   priceArray.count >= 2,
                   let base = priceArray[0] as? BigUInt,
@@ -109,14 +108,7 @@ public extension ENSClient {
             parameters: [label, request.duration],
         )
 
-        let availabilityResult: [String: Any]
-        do {
-            availabilityResult = try await availabilityResultTask
-            print("   ✅ [ENSClient] Availability Check succeeded")
-        } catch {
-            print("   ❌ [ENSClient] Availability Check failed: \(error)")
-            throw error
-        }
+        let availabilityResult = try await availabilityResultTask
         guard let available = availabilityResult["0"] as? Bool else {
             throw ENSError.missingResult("available")
         }
@@ -145,49 +137,34 @@ public extension ENSClient {
             )
         }
 
-        let commitmentResult: [String: Any]
-        do {
-            commitmentResult = try await makeReadResult(
-                web3: web3,
-                abi: Self.ethRegistrarControllerV2ABI,
-                to: controllerAddress,
-                method: "makeCommitment",
-                parameters: [
-                    [
-                        label,
-                        owner.address,
-                        request.duration,
-                        secretHex,
-                        resolverAddress.address,
-                        resolverData,
-                        request.setReverseRecord ? 1 : 0, // uint8 mapping for bool
-                        Data(count: 32), // referrer bytes32 (empty)
-                    ],
+        let commitmentResult = try await makeReadResult(
+            web3: web3,
+            abi: Self.ethRegistrarControllerV2ABI,
+            to: controllerAddress,
+            method: "makeCommitment",
+            parameters: [
+                [
+                    label,
+                    owner.address,
+                    request.duration,
+                    secretHex,
+                    resolverAddress.address,
+                    resolverData,
+                    request.setReverseRecord ? 1 : 0, // uint8 mapping for bool
+                    Data(count: 32), // referrer bytes32 (empty)
                 ],
-            )
-            print("   ✅ [ENSClient] makeCommitment Simulation succeeded")
-        } catch {
-            print("   ❌ [ENSClient] makeCommitment Simulation failed: \(error)")
-            throw error
-        }
+            ],
+        )
         guard let commitment = commitmentResult["0"] as? Data else {
             throw ENSError.missingResult("commitment")
         }
 
-        let quoteResult: [String: Any]
-        do {
-            quoteResult = try await quoteResultTask
-            print("   ✅ [ENSClient] rentPrice Check succeeded")
-        } catch {
-            print("   ❌ [ENSClient] rentPrice Check failed: \(error)")
-            throw error
-        }
+        let quoteResult = try await quoteResultTask
         guard let priceArray = quoteResult["0"] as? [Any],
               priceArray.count >= 2,
               let baseWei = priceArray[0] as? BigUInt,
               let premiumWei = priceArray[1] as? BigUInt
         else {
-            print("   [DEBUG-ENS] raw rentPrice dict: \(quoteResult)")
             throw ENSError.missingResult("rentPrice")
         }
         let rentPriceWei = baseWei + premiumWei

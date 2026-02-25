@@ -6,60 +6,94 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct ProfileView: View {
-    enum FocusedField: Hashable {
-        case ensName
-        case bio
-    }
-
     let eoaAddress: String
     let accountService: AccountSetupService
     let ensService: ENSService
     let aaExecutionService: AAExecutionService
     let imageStorageService: ProfileImageStorageService
     let commitRevealStore: ENSCommitRevealStore
-    var onBack: () -> Void = {}
+    let ensProfileCache: ENSProfileCache
+    let preferencesStore: PreferencesStore
+    let currencyRateStore: CurrencyRateStore
 
     @State var ensName = ""
+
     @State var avatarURL = ""
+
     @State var bio = ""
+
     @State var isNameLocked = false
+
     @State var isCheckingName = false
+
     @State var lastQuotedName = ""
+
     @State var nameInfoText: String?
+
     @State var nameInfoTone: NameInfoTone = .info
+
     @State var isSaving = false
+
+    @State var isPreparingConfirmation = false
+
     @State var isUploadingAvatar = false
+
     @State var errorMessage: String?
+
     @State var successMessage: String?
+
     @State var preparedPayloads = 0
+
     @State var initialENSName = ""
+
     @State var initialAvatarURL = ""
+
     @State var initialBio = ""
+
     @State var localAvatarImage: UIImage?
+
     @State var pendingAvatarUpload: PendingAvatarUpload?
+
     @State var showPhotoSourceDialog = false
+
     @State var showPhotoPicker = false
+
     @State var showFileImporter = false
+
     @State var selectedPhotoItem: PhotosPickerItem?
+
     @State var quoteTask: Task<Void, Never>?
+
     @State var avatarUploadTask: Task<Void, Never>?
+
     @State var errorMessageResetTask: Task<Void, Never>?
+
     @State var successMessageResetTask: Task<Void, Never>?
+
     @State var saveFlowState: ProfileAsyncStateModel = .idle
+
     @State var avatarUploadFlowState: ProfileAsyncStateModel = .idle
+
     @State var successTrigger = 0
+
     @State var errorTrigger = 0
-    @FocusState var focusedField: FocusedField?
+
+    @State var pendingConfirmation: TransactionConfirmationModel?
+
+    @FocusState var focusedField: ProfileFocusedField?
     let quoteWorker: ENSQuoteWorker
 
+    @MainActor
     init(
         eoaAddress: String,
         accountService: AccountSetupService,
         ensService: ENSService,
         aaExecutionService: AAExecutionService,
-        imageStorageService: ProfileImageStorageService = ProfileImageStorageService(),
-        commitRevealStore: ENSCommitRevealStore = ENSCommitRevealStore(),
-        onBack: @escaping () -> Void = {},
+        imageStorageService: ProfileImageStorageService,
+        commitRevealStore: ENSCommitRevealStore,
+        ensProfileCache: ENSProfileCache,
+        preferencesStore: PreferencesStore,
+        currencyRateStore: CurrencyRateStore,
     ) {
         self.eoaAddress = eoaAddress
         self.accountService = accountService
@@ -67,8 +101,10 @@ struct ProfileView: View {
         self.aaExecutionService = aaExecutionService
         self.imageStorageService = imageStorageService
         self.commitRevealStore = commitRevealStore
+        self.ensProfileCache = ensProfileCache
+        self.preferencesStore = preferencesStore
+        self.currencyRateStore = currencyRateStore
         quoteWorker = ENSQuoteWorker(configuration: ensService.configuration)
-        self.onBack = onBack
     }
 
     var body: some View {
@@ -86,7 +122,12 @@ struct ProfileView: View {
                     .padding(.top, 46)
                     .padding(.bottom, AppSpacing.xxxl)
 
-                    if let nameInfoText, !isNameLocked {
+                    if isCheckingName, !isNameLocked {
+                        infoText(String(localized: "profile_checking_name"), tone: .info)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.bottom, AppSpacing.sm)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    } else if let nameInfoText, !isNameLocked {
                         infoText(nameInfoText, tone: nameInfoTone)
                             .padding(.horizontal, AppSpacing.lg)
                             .padding(.bottom, AppSpacing.sm)
@@ -103,7 +144,6 @@ struct ProfileView: View {
                     focusedField = nil
                 },
             )
-            .padding(.top, AppHeaderMetrics.contentTopPadding)
 
             if let errorMessage {
                 toast(message: errorMessage, isError: true)
@@ -120,18 +160,28 @@ struct ProfileView: View {
             }
         }
         .animation(.default, value: nameInfoText)
+        .animation(.default, value: isCheckingName)
         .animation(.spring(), value: errorMessage)
         .animation(.spring(), value: successMessage)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            ProfileHeaderView(
-                hasChanges: hasSavableChanges,
-                isSaving: isSaving,
-                canSave: canSave,
-                onBack: onBack,
-                onCancel: { cancelEditing() },
-                onSave: { Task { await saveProfile() } },
-            )
-        }
+        .appNavigation(
+            titleKey: "profile_title",
+            displayMode: .inline,
+            hidesBackButton: hasSavableChanges,
+            leading: {
+                if hasSavableChanges {
+                    ToolbarItem(placement: .topBarLeading) {
+                        cancelToolbarButton
+                    }
+                }
+            },
+            trailing: {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if hasSavableChanges {
+                        saveToolbarButton
+                    }
+                }
+            },
+        )
         .task {
             await loadProfile()
             await resumePendingCommitRevealIfNeeded()
@@ -183,6 +233,32 @@ struct ProfileView: View {
         }
         .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
         .sensoryFeedback(AppHaptic.error.sensoryFeedback, trigger: errorTrigger) { _, _ in true }
+        .sheet(item: $pendingConfirmation) { model in
+            TransactionConfirmationSheet(model: model)
+        }
+    }
+
+    private var cancelToolbarButton: some View {
+        Button(role: .cancel, action: cancelEditing) {
+            Text("profile_cancel")
+                .font(AppTypography.button)
+                .foregroundStyle(AppThemeColor.labelPrimary)
+        }
+        .disabled(isSaving)
+        .buttonStyle(.automatic)
+    }
+
+    private var saveToolbarButton: some View {
+        Button(role: .confirm, action: presentSaveConfirmation) {
+            if isPreparingConfirmation {
+                ProgressView()
+            } else {
+                Text(isSaving ? "profile_saving" : "profile_save")
+                    .font(AppTypography.button)
+            }
+        }
+        .disabled(!canSave || isPreparingConfirmation || isSaving)
+        .buttonStyle(.glassProminent)
     }
 
     var formSection: some View {
@@ -198,7 +274,11 @@ struct ProfileView: View {
                                 .foregroundStyle(AppThemeColor.labelSecondary),
                         )
                         .font(.custom("Roboto-Medium", size: 14))
-                        .foregroundStyle(AppThemeColor.labelPrimary)
+                        .foregroundStyle(
+                            nameFieldIsLocked
+                                ? AppThemeColor.labelSecondary
+                                : AppThemeColor.labelPrimary,
+                        )
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
                         .focused($focusedField, equals: .ensName)
@@ -210,7 +290,7 @@ struct ProfileView: View {
                         HStack(spacing: 6) {
                             Text(".eth")
                                 .font(.custom("Roboto-Medium", size: 14))
-                                .foregroundStyle(AppThemeColor.labelPrimary)
+                                .foregroundStyle(AppThemeColor.labelSecondary)
 
                             if isNameLocked {
                                 Image(systemName: "lock")
@@ -254,13 +334,11 @@ struct ProfileView: View {
             .background(AppThemeColor.backgroundSecondary)
             .clipShape(.rect(cornerRadius: 16))
 
-            Text(
-                "Your ENS name is visible on the blockchain. Including your text records, i.e photo and bio.",
-            )
-            .font(.custom("Roboto-Regular", size: 12))
-            .foregroundStyle(AppThemeColor.labelSecondary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, AppSpacing.sm)
+            Text("profile_ens_disclosure_text")
+                .font(.custom("Roboto-Regular", size: 12))
+                .foregroundStyle(AppThemeColor.labelSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, AppSpacing.sm)
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, AppSpacing.xl)
@@ -293,7 +371,7 @@ struct ProfileView: View {
     }
 
     var hasReadyNameRegistration: Bool {
-        let normalizedName = normalizeENSLabel(ensName)
+        let normalizedName = ENSService.ensLabel(ensName)
         return !normalizedName.isEmpty
             && normalizedName == lastQuotedName
             && nameInfoTone == .success
@@ -311,10 +389,33 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView(
-        eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
-        accountService: AccountSetupService(),
-        ensService: ENSService(),
-        aaExecutionService: AAExecutionService(),
-    )
+    NavigationStack {
+        ProfileView(
+            eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
+            accountService: AccountSetupService(),
+            ensService: ENSService(),
+            aaExecutionService: AAExecutionService(),
+            imageStorageService: ProfileImageStorageService(),
+            commitRevealStore: ENSCommitRevealStore(),
+            ensProfileCache: ENSProfileCache(),
+            preferencesStore: PreferencesStore(),
+            currencyRateStore: CurrencyRateStore(),
+        )
+    }
+}
+
+#Preview {
+    NavigationStack {
+        ProfileView(
+            eoaAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            accountService: AccountSetupService(),
+            ensService: ENSService(configuration: .sepolia),
+            aaExecutionService: AAExecutionService(),
+            imageStorageService: ProfileImageStorageService(),
+            commitRevealStore: ENSCommitRevealStore(),
+            ensProfileCache: ENSProfileCache(),
+            preferencesStore: PreferencesStore(),
+            currencyRateStore: CurrencyRateStore(),
+        )
+    }
 }

@@ -18,13 +18,12 @@ struct ProfileAvatarSectionView: View {
                     )
 
                 Button(action: onEditPhoto) {
-                    Text("Edit Photo")
+                    Text("profile_edit_photo")
                         .font(.custom("Roboto-Medium", size: 14))
-                        .foregroundStyle(AppThemeColor.labelPrimary)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, AppSpacing.xxs)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.automatic)
                 .disabled(!canEditProfileFields)
                 .opacity(canEditProfileFields ? 1 : 0.55)
                 .background(AppThemeColor.fillSecondary)

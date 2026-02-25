@@ -104,8 +104,11 @@ public enum SmartAccount {
     public enum ExecuteX {
         /// Compute the pre-domain EIP-712 struct hash for ExecuteX.
         public static func structHash(calls: [Call], salt: Data) throws -> Data {
-            let callsEncoded = try ABIEncoder.encodeCallTupleArray(calls)
-            let callsHashWord = try ABIWord.bytes32(Data(callsEncoded.sha3(.keccak256)))
+            // Contract uses `keccak256(abi.encode(calls))` for callsHash.
+            // For a single dynamic argument, ABI adds a leading 0x20 offset word.
+            let callsArray = try ABIEncoder.encodeCallTupleArray(calls)
+            let callsAbiEncoded = ABIWord.uint(BigUInt(32)) + callsArray
+            let callsHashWord = try ABIWord.bytes32(Data(callsAbiEncoded.sha3(.keccak256)))
             let saltWord = try ABIWord.bytes32(salt)
             return Data((AAUtils.executeXTypeHash + callsHashWord + saltWord).sha3(.keccak256))
         }
@@ -165,6 +168,33 @@ public enum SmartAccount {
                     .word(saltWord),
                     .dynamic(proofArray),
                     .dynamic(signatureBytes),
+                ],
+            )
+        }
+
+        /// ABI-encode an `executeX(Call[], bytes32, bytes32[], bytes, bytes)` function call
+        /// (overload with `initSignature` for first-run initialization).
+        public static func encodeCallWithInit(
+            calls: [Call],
+            salt: Data,
+            merkleProof: [Data],
+            signature: Data,
+            initSignature: Data,
+        ) throws -> Data {
+            let callsArray = try ABIEncoder.encodeCallTupleArray(calls)
+            let saltWord = try ABIWord.bytes32(salt)
+            let proofArray = try encodeMerkleProof(merkleProof)
+            let signatureBytes = ABIEncoder.encodeBytes(signature)
+            let initSignatureBytes = ABIEncoder.encodeBytes(initSignature)
+
+            return ABIEncoder.functionCallOrdered(
+                signature: "executeX((address,uint256,bytes)[],bytes32,bytes32[],bytes,bytes)",
+                arguments: [
+                    .dynamic(callsArray),
+                    .word(saltWord),
+                    .dynamic(proofArray),
+                    .dynamic(signatureBytes),
+                    .dynamic(initSignatureBytes),
                 ],
             )
         }

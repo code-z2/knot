@@ -83,6 +83,7 @@ public struct PlannedExecuteXCall: Sendable, Equatable {
     public let calls: [Call]
     public let didAppendInitializeCall: Bool
     public let authorizationRequired: Bool
+    public let initSignature: Data?
     public let structHash: Data
     public let leafHash: Data
     public let merkleProof: [Data]
@@ -95,6 +96,7 @@ public struct PlannedExecuteXCall: Sendable, Equatable {
         calls: [Call],
         didAppendInitializeCall: Bool,
         authorizationRequired: Bool,
+        initSignature: Data? = nil,
         structHash: Data,
         leafHash: Data,
         merkleProof: [Data],
@@ -106,6 +108,7 @@ public struct PlannedExecuteXCall: Sendable, Equatable {
         self.calls = calls
         self.didAppendInitializeCall = didAppendInitializeCall
         self.authorizationRequired = authorizationRequired
+        self.initSignature = initSignature
         self.structHash = structHash
         self.leafHash = leafHash
         self.merkleProof = merkleProof
@@ -208,6 +211,7 @@ public actor ExecuteXPlanner {
     public func buildPlan(
         request: ExecuteXPlanRequest,
         signRoot: @Sendable (Data) async throws -> Data,
+        signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXPlan {
         guard !request.leaves.isEmpty else {
             throw ExecuteXPlannerError.emptyLeaves
@@ -221,6 +225,7 @@ public actor ExecuteXPlanner {
         let resolvedLeaves = try await leafResolver.resolveLeaves(
             request: request,
             salt: salt,
+            signInitialize: signInitialize,
         )
         let signedMerkle = try await merkleSigner.signLeaves(
             resolvedLeaves,
@@ -237,6 +242,7 @@ public actor ExecuteXPlanner {
     public func buildFlowPlan(
         request: ExecuteXFlowPlanRequest,
         signRoot: @Sendable (Data) async throws -> Data,
+        signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXPlan {
         let leaves = flowLeafBuilder.buildLeafRequests(from: request)
 
@@ -248,6 +254,7 @@ public actor ExecuteXPlanner {
                 authorizationsByChainId: request.authorizationsByChainId,
             ),
             signRoot: signRoot,
+            signInitialize: signInitialize,
         )
     }
 

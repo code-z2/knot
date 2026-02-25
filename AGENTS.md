@@ -1,67 +1,68 @@
-AGENTS.md
+## Workflow Orchestration
 
-Project Expectations (from hack-money-project-research.md)
+### 1. Plan Node Default
 
-Purpose
-- Build a chain-abstracted consumer wallet that consolidates same-asset balances across chains and optionally executes a final action, with a single user signature and a clean UX.
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately - don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
 
-Final Agreements (Do not change unless the user requests)
-1) Bridge / Intent Engine
-   - Use Across V3 as the primary intent engine.
-   - Do NOT rely on Everclear or a native many-to-one API (assumed unavailable).
-   - Do NOT attempt true cross-chain atomicity. Use parallel intents or an accumulator-driven scatter-gather flow.
+### 2. Subagent Strategy
 
-2) Account Model
-   - Use EIP-7702 for the user account (the EOA becomes the proxy via authorization).
-   - No separate smart account proxy deployment for users.
-   - Upgrades are done by swapping 7702 authorization to a new implementation (no UUPS/transparent proxy).
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One tack per subagent for focused execution
 
-3) Signature Model
-   - Use a "UniversalIntent" payload signed once (passkey) and replayed across chains.
-   - Each chain executes only its own ChainAction, validated by the same signature.
-   - Accumulator must validate the intent via EIP-1271 against the user account.
+### 3. Self-Improvement Loop
 
-4) Accumulator Pattern
-   - Use a deterministic accumulator per user (CREATE2-derived address; no registry required).
-   - Accumulator is the Across V3 message recipient (recipient == handler).
-   - Accumulator is a pass-through router: it must end transactions with zero balance.
-   - Accumulator executes the final action (swap/yield) directly after total is reached.
-   - Do not use a separate sub-account unless explicitly reintroduced by the user.
+- After ANY correction from the user: update `tasks/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
 
-5) UX / Event Parsing
-   - Hide internal plumbing transfers (User -> Across, Across -> Accumulator, Accumulator internal hops).
-   - Emit a single "MultiChainIntentExecuted" event from the accumulator for UI rendering.
-   - The UI should render one consolidated activity item using event data.
+### 4. Verification Before Done
 
-6) Initialization / Cost Control
-   - Lazy initialization: store the 7702 authorization off-chain and only broadcast on first action.
-   - Avoid paymaster costs for non-transacting users.
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
 
-Non-Goals (unless requested)
-- No deep AI/agent scheduling architecture beyond describing the intent flow.
-- No alternative bridge providers or multi-chain atomic primitives.
-- No proxy upgrade patterns (UUPS/transparent).
-- No wallet deployment flows (counterfactual wallets, Safe/KERNEL) unless asked.
+### 5. Demand Elegance (Balanced)
 
-Implementation Notes (directional)
-- Across V3 messages must be handled by the accumulator (recipient is the handler).
-- If accumulator logic reverts, the Across fill must revert (safety guarantee).
-- The universal intent must include chainId-specific actions and be signed once.
-- Chain abstraction uses parallel Across V3 intents or accumulator-driven scatter-gather.
-- User account is EIP-7702: EOA acts as proxy via authorization; no wallet deployment.
-- Single-passkey signature over UniversalIntent, replayed across chains.
-- Deterministic per-user accumulator (CREATE2) is Across message recipient and executor.
-- Accumulator validates intent via EIP-1271 and ends each tx with zero balance.
-- UI hides plumbing transfers and renders one MultiChainIntentExecuted event.
-- Lazy initialization: store 7702 auth off-chain until first action.
-- Store signed 7702 authorization locally in the device Keychain (secure, non-exportable storage).
-- Treat the passkey as the portable credential (syncs via platform passkey sync).
-- On a new device, re-derive authorization by prompting the user to sign again with the EOA key.
-- If no authorization is present, the app remains in “ready” state and defers all on-chain cost.
-- First run: create/sync passkey, request a one-time EOA signature for 7702 authorization, store in Keychain only.
-- No chain interaction until the user initiates the first action.
-- First action: collect passkey signature for UniversalIntent, bundle with stored 7702 authorization, broadcast.
-- Subsequent actions: reuse stored authorization, require only passkey signature.
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes - don't over-engineer
+- Challenge your own work before presenting it
 
-When editing code or docs
-- Preserve the architecture above unless the user explicitly changes direction.
+### 6. Autonomous Bug Fixing
+
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests - then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+## Task Management
+
+1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
+2. **Verify Plan**: Check in before starting implementation
+3. **Track Progress**: Mark items complete as you go
+4. **Explain Changes**: High-level summary at each step
+5. **Document Results**: Add review section to `tasks/todo.md`
+6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+
+## Core Principles
+
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimat Impact**: Changes should only touch what's necessary. Avoid introducing bugs
+
+## Core Skills
+
+- **Swift**: Swift Coding Guidelines
+- **SwiftUI**: SwiftUI Coding Guidelines
+- **Swift Concurrency**: Swift Concurrency Expert
+- **UI Principles**: SwiftUI expert skills
+- **Swift App Architecture**: SwiftUI expert skills
+- **Node Package Manager**: Bun Development
+- **Typescript Typing**: Typescript Advanced Types

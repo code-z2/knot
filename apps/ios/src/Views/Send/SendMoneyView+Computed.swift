@@ -1,8 +1,21 @@
 import Balance
 import Compose
+import Foundation
 import SwiftUI
 
 extension SendMoneyView {
+    var currentStep: SendMoneyStep {
+        if showSuccessStep {
+            return .success
+        }
+
+        if showAmountStep {
+            return .amount
+        }
+
+        return .recipient
+    }
+
     var filteredBeneficiaries: [Beneficiary] {
         SearchSystem.filter(
             query: addressQuery,
@@ -84,6 +97,8 @@ extension SendMoneyView {
             "send_money_sending"
         case .error:
             "send_money_failed"
+        case .success:
+            "send_money_confirm"
         }
     }
 
@@ -95,6 +110,8 @@ extension SendMoneyView {
             .neutral
         case .error:
             .destructive
+        case .success:
+            .default
         }
     }
 
@@ -110,6 +127,8 @@ extension SendMoneyView {
             nil
         case .error:
             "xmark.circle.fill"
+        case .success:
+            "checkmark.circle.fill"
         }
     }
 
@@ -226,7 +245,7 @@ extension SendMoneyView {
         }
 
         if isRoutingInProgress {
-            return ("Finding best route...", AppThemeColor.labelSecondary)
+            return (String(localized: "send_money_route_finding"), AppThemeColor.labelSecondary)
         }
 
         if let routeError {
@@ -234,13 +253,25 @@ extension SendMoneyView {
             case .insufficientBalance:
                 return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
             case let .noRouteFound(reason):
-                return ("No route found: \(reason)", AppThemeColor.accentRed)
+                return (
+                    String.localizedStringWithFormat(
+                        NSLocalizedString("send_money_route_not_found_format", comment: ""),
+                        reason,
+                    ),
+                    AppThemeColor.accentRed,
+                )
             case let .quoteUnavailable(provider, _):
-                return ("\(provider) quote unavailable", AppThemeColor.accentRed)
+                return (
+                    String.localizedStringWithFormat(
+                        NSLocalizedString("send_money_route_provider_unavailable_format", comment: ""),
+                        provider,
+                    ),
+                    AppThemeColor.accentRed,
+                )
             case .unsupportedChain:
-                return ("Unsupported chain", AppThemeColor.accentRed)
+                return (String(localized: "send_money_route_unsupported_chain"), AppThemeColor.accentRed)
             case .unsupportedAsset:
-                return ("Unsupported asset", AppThemeColor.accentRed)
+                return (String(localized: "send_money_route_unsupported_asset"), AppThemeColor.accentRed)
             }
         }
 
@@ -257,13 +288,22 @@ extension SendMoneyView {
             let amountText = format(route.estimatedAmountOut, minFractionDigits: 1, maxFractionDigits: 4)
             let stepsDescription = route.steps.map { step in
                 switch step.action {
-                case .transfer: "transfer"
-                case .swap: "swap"
-                case .bridge: "bridge"
-                case .accumulate: "bridge"
+                case .transfer:
+                    String(localized: "transaction_route_step_transfer")
+                case .swap:
+                    String(localized: "transaction_route_step_swap")
+                case .bridge:
+                    String(localized: "transaction_route_step_bridge")
+                case .accumulate:
+                    String(localized: "transaction_route_step_accumulate")
                 }
             }.joined(separator: " → ")
-            let summary = "Route: \(stepsDescription). Recipient gets \(amountText) \(route.estimatedAmountOutSymbol)"
+            let summary = String.localizedStringWithFormat(
+                NSLocalizedString("send_money_route_summary_format", comment: ""),
+                stepsDescription,
+                amountText,
+                route.estimatedAmountOutSymbol,
+            )
             return (summary, AppThemeColor.accentBrown)
         }
 
@@ -278,11 +318,11 @@ extension SendMoneyView {
         guard let executionResult else { return nil }
 
         if executionResult.hasDeferredRelayTasks {
-            return "Destination submitted. Remaining chain intents are deferred until accumulator fill completes."
+            return String(localized: "send_money_destination_submitted")
         }
 
         if !executionResult.backgroundRelayTaskIDs.isEmpty {
-            return "Submitted. Additional chain submissions are processing in parallel."
+            return String(localized: "send_money_parallel_submissions")
         }
 
         return nil

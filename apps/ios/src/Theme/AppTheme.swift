@@ -26,6 +26,7 @@ public enum AppThemeColor {
 
     public static let accentRed = Color(hex: "#FF383C")
     public static let accentGreen = Color(hex: "#30D158")
+    public static let successBackground = Color(hex: "#30D15833")
     public static let destructiveBackground = Color(hex: "#FF383C24")
 
     // UI primitives

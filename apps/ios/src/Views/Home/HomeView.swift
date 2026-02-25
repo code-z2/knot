@@ -48,11 +48,17 @@ struct HomeView: View {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                Text("home_title")
+                    .font(AppTypography.homeTitle)
+                    .foregroundStyle(AppThemeColor.labelPrimary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.xxl)
+
                 balanceSection
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, AppSpacing.sm)
-                    .padding(.bottom, 28)
+                    .padding(.bottom, AppSpacing.xl)
 
                 Rectangle()
                     .foregroundColor(.clear)
@@ -61,13 +67,7 @@ struct HomeView: View {
 
                 settingsList
             }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: "home_title",
-                titleFont: .custom("Roboto-Medium", size: 24),
-                titleColor: AppThemeColor.labelPrimary,
-            )
+            .safeAreaPadding(.top, AppSpacing.sm)
         }
         .sheet(item: $activeModal) { modal in
             AppSheet(kind: modal.sheetKind) {

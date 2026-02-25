@@ -8,6 +8,6 @@ struct AddAddressChainDropdownView: View {
         ChainList(query: query) { chain in
             onSelect(chain)
         }
-        .frame(maxHeight: 360)
+        .frame(maxHeight: .infinity)
     }
 }

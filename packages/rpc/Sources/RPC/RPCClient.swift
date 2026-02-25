@@ -115,6 +115,32 @@ public actor RPCClient {
         return BigUInt(clean, radix: 16) ?? 0
     }
 
+    /// Returns EIP-1559 "fast" fee per gas in wei: `baseFee * 2 + maxPriorityFee`.
+    public func getEIP1559FastFee(chainId: UInt64) async throws -> BigUInt {
+        struct BlockResult: Decodable {
+            let baseFeePerGas: String?
+        }
+
+        let block: BlockResult = try await makeRpcCall(
+            chainId: chainId,
+            method: "eth_getBlockByNumber",
+            params: [AnyCodable("latest"), AnyCodable(false)],
+            responseType: BlockResult.self,
+        )
+        let baseFeeHex = (block.baseFeePerGas ?? "0x0").replacingOccurrences(of: "0x", with: "")
+        let baseFee = BigUInt(baseFeeHex, radix: 16) ?? 0
+
+        let tipHex: String = try await makeRpcCall(
+            chainId: chainId,
+            method: "eth_maxPriorityFeePerGas",
+            params: [],
+            responseType: String.self,
+        )
+        let tip = BigUInt(tipHex.replacingOccurrences(of: "0x", with: ""), radix: 16) ?? 0
+
+        return baseFee * 2 + tip
+    }
+
     func makeJSONRPCCall<Response: Decodable>(
         urlString: String,
         method: String,

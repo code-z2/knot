@@ -29,62 +29,64 @@ struct TransactionsView: View {
         ZStack {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
-            if transactionStore.isLoading, transactionStore.sections.isEmpty {
-                ProgressView()
-                    .tint(AppThemeColor.labelSecondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if transactionStore.sections.isEmpty {
-                VStack(spacing: AppSpacing.sm) {
-                    Text("transaction_empty_title")
-                        .font(.custom("Roboto-Medium", size: 15))
-                        .foregroundStyle(AppThemeColor.labelPrimary)
-                    Text("transaction_empty_subtitle")
-                        .font(.custom("Roboto-Regular", size: 13))
-                        .foregroundStyle(AppThemeColor.labelSecondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 250)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        AccountTransactionsList(
-                            sections: transactionStore.sections,
-                            displayCurrencyCode: preferencesStore.selectedCurrencyCode,
-                            displayLocale: preferencesStore.locale,
-                            usdToSelectedRate: currencyRateStore.rateFromUSD(
-                                to: preferencesStore.selectedCurrencyCode,
-                            ),
-                        ) { transaction in
-                            presentReceipt(for: transaction)
-                        }
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, 35)
-                        .padding(.bottom, AppSpacing.xl)
+            VStack(spacing: 0) {
+                TransactionsAppHeader(
+                    balanceText: currencyRateStore.formatUSD(
+                        balanceStore.totalValueUSD,
+                        currencyCode: preferencesStore.selectedCurrencyCode,
+                        locale: preferencesStore.locale,
+                    ),
+                    isBalanceHidden: $isBalanceHidden,
+                )
+                .safeAreaPadding(.top, AppSpacing.sm)
 
-                        if transactionStore.hasMore {
-                            ProgressView()
-                                .tint(AppThemeColor.labelSecondary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.bottom, AppSpacing.xl)
-                                .task {
-                                    await transactionStore.loadNextPage()
-                                }
+                if transactionStore.isLoading, transactionStore.sections.isEmpty {
+                    ProgressView()
+                        .tint(AppThemeColor.labelSecondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if transactionStore.sections.isEmpty {
+                    VStack(spacing: AppSpacing.sm) {
+                        Text("transaction_empty_title")
+                            .font(.custom("Roboto-Medium", size: 15))
+                            .foregroundStyle(AppThemeColor.labelPrimary)
+                        Text("transaction_empty_subtitle")
+                            .font(.custom("Roboto-Regular", size: 13))
+                            .foregroundStyle(AppThemeColor.labelSecondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 250)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            AccountTransactionsList(
+                                sections: transactionStore.sections,
+                                displayCurrencyCode: preferencesStore.selectedCurrencyCode,
+                                displayLocale: preferencesStore.locale,
+                                usdToSelectedRate: currencyRateStore.rateFromUSD(
+                                    to: preferencesStore.selectedCurrencyCode,
+                                ),
+                            ) { transaction in
+                                presentReceipt(for: transaction)
+                            }
+                            .padding(.horizontal, AppSpacing.lg)
+                            .padding(.top, AppSpacing.xxl)
+                            .padding(.bottom, AppSpacing.xl)
+
+                            if transactionStore.hasMore {
+                                ProgressView()
+                                    .tint(AppThemeColor.labelSecondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.bottom, AppSpacing.xl)
+                                    .task {
+                                        await transactionStore.loadNextPage()
+                                    }
+                            }
                         }
                     }
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
             }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            TransactionsAppHeader(
-                balanceText: currencyRateStore.formatUSD(
-                    balanceStore.totalValueUSD,
-                    currencyCode: preferencesStore.selectedCurrencyCode,
-                    locale: preferencesStore.locale,
-                ),
-                isBalanceHidden: $isBalanceHidden,
-            )
         }
         .sheet(item: $selectedTransaction) { transaction in
             AppSheet(kind: .full) {

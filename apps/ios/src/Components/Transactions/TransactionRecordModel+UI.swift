@@ -101,11 +101,11 @@ extension TransactionRecordModel {
         case .received:
             .symbol("arrow.down")
         case .sent:
-            .symbol("arrow.up.right")
+            .symbol("paperplane")
         case .contract:
-            .network(networkAssetName)
+            .symbol("wallet.pass")
         case .multichain:
-            .symbol("arrow.up.right")
+            .symbol("arrow.trianglehead.merge")
         }
     }
 

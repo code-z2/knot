@@ -125,7 +125,7 @@ public enum ABIEncoder {
 
         let encodedCalls = try calls.map { try encodeCallTuple($0) }
         var offsets = Data()
-        var currentOffset = 32 + (calls.count * 32)
+        var currentOffset = calls.count * 32
         for encoded in encodedCalls {
             offsets.append(ABIWord.uint(BigUInt(currentOffset)))
             currentOffset += encoded.count

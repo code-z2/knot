@@ -19,12 +19,22 @@ struct ExecuteXRelayEnvelopeBuilder {
             let proof = signedMerkle.proofs[index]
 
             if let executeLeaf = resolvedLeaf.execute {
-                let calldata = try SmartAccount.ExecuteX.encodeCall(
-                    calls: executeLeaf.calls,
-                    salt: salt,
-                    merkleProof: proof,
-                    signature: signedMerkle.signature,
-                )
+                let calldata: Data = if let initSig = executeLeaf.initSignature {
+                    try SmartAccount.ExecuteX.encodeCallWithInit(
+                        calls: executeLeaf.calls,
+                        salt: salt,
+                        merkleProof: proof,
+                        signature: signedMerkle.signature,
+                        initSignature: initSig,
+                    )
+                } else {
+                    try SmartAccount.ExecuteX.encodeCall(
+                        calls: executeLeaf.calls,
+                        salt: salt,
+                        merkleProof: proof,
+                        signature: signedMerkle.signature,
+                    )
+                }
                 let relayTx = makeExecuteRelayEnvelope(
                     account: request.account,
                     chainId: executeLeaf.chainId,
@@ -38,6 +48,7 @@ struct ExecuteXRelayEnvelopeBuilder {
                     calls: executeLeaf.calls,
                     didAppendInitializeCall: executeLeaf.didAppendInitializeCall,
                     authorizationRequired: executeLeaf.authorizationRequired,
+                    initSignature: executeLeaf.initSignature,
                     structHash: executeLeaf.structHash,
                     leafHash: executeLeaf.leafHash,
                     merkleProof: proof,
@@ -122,9 +133,6 @@ struct ExecuteXRelayEnvelopeBuilder {
             value: "0x0",
             isSponsored: true,
             authorizationList: authorization.map { [$0] } ?? [],
-        )
-        print(
-            "   [DEBUG-ExecuteX] 🛠 Built Execute Relay Envelope (chain: \(chainId)) - isSponsored: \(requestPayload.isSponsored), authList count: \(requestPayload.authorizationList.count)",
         )
         return RelayTransactionEnvelopeModel(chainId: chainId, request: requestPayload)
     }

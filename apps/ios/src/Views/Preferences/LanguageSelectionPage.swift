@@ -5,34 +5,37 @@ struct LanguageSelectionPage: View {
     let selectedCode: String
     let onSelect: (String) -> Void
     @State private var selectionTrigger = 0
-
-    private var currentLayoutDirection: LayoutDirection {
-        Locale.Language(identifier: selectedCode).characterDirection == .rightToLeft
-            ? .rightToLeft
-            : .leftToRight
-    }
+    @State private var query = ""
 
     var body: some View {
         List {
-            Section {
-                ForEach(languages) { language in
-                    LanguageSelectionRow(
-                        title: Text(language.displayName),
-                        isSelected: language.code == selectedCode,
-                        onTap: { selectionTrigger += 1; onSelect(language.code) },
-                    ) {
-                        Text(language.flag)
-                            .font(.custom("Inter-Regular", size: 15))
-                    }
+            ForEach(filteredLanguages) { language in
+                LanguageSelectionRow(
+                    title: Text(language.displayName),
+                    isSelected: language.code == selectedCode,
+                    onTap: { selectionTrigger += 1; onSelect(language.code) },
+                ) {
+                    Text(language.flag)
+                        .font(.custom("Inter-Regular", size: 15))
                 }
             }
         }
-        .id(currentLayoutDirection)
-        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
-        .environment(\.layoutDirection, currentLayoutDirection)
+        .background(AppThemeColor.backgroundPrimary)
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
+        .searchable(text: $query, placement: .toolbar, prompt: Text("search_placeholder"))
+        .autocorrectionDisabled()
+        .textInputAutocapitalization(.never)
+    }
+
+    private var filteredLanguages: [LanguageOption] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return languages }
+        return languages.filter {
+            $0.displayName.localizedCaseInsensitiveContains(trimmed)
+                || $0.code.localizedCaseInsensitiveContains(trimmed)
+        }
     }
 }
 
@@ -73,6 +76,5 @@ private struct LanguageSelectionRow<Leading: View>: View {
             selectedCode: "en",
             onSelect: { _ in },
         )
-        .padding(.top, AppHeaderMetrics.contentTopPadding)
     }
 }

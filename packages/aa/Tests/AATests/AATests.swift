@@ -88,6 +88,50 @@ final class AATests: XCTestCase {
         XCTAssertGreaterThan(encoded.count, 4 + 128) // at least 4 offset words
     }
 
+    func testExecuteXStructHashMatchesSolidityAbiEncodeCalls() throws {
+        let calls = [
+            Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x", valueWei: "0"),
+        ]
+        let salt = Data(repeating: 0x11, count: 32)
+
+        let structHash = try SmartAccount.ExecuteX.structHash(calls: calls, salt: salt)
+        guard let expected = Data.fromHex("653ab4444c19b36569df75db905c14ed334717f89f43de2fb69e2b547e56d82c")
+        else {
+            XCTFail("Expected hash fixture must decode from hex")
+            return
+        }
+        XCTAssertEqual(structHash, expected)
+    }
+
+    func testExecuteXEncodeCallUsesCanonicalCallArrayOffsets() throws {
+        let calls = [
+            Call(to: "0x0000000000000000000000000000000000000001", dataHex: "0x123456", valueWei: "0"),
+            Call(to: "0x0000000000000000000000000000000000000002", dataHex: "0xabcd", valueWei: "0"),
+        ]
+        let salt = Data(repeating: 0x11, count: 32)
+        let signature = Data(repeating: 0x22, count: 65)
+
+        let encoded = try SmartAccount.ExecuteX.encodeCall(
+            calls: calls,
+            salt: salt,
+            merkleProof: [],
+            signature: signature,
+        )
+
+        let callsOffset = Int(BigUInt(word(encoded, 0)))
+        let callsArrayStart = 4 + callsOffset
+
+        let callsLength = BigUInt(encoded.subdata(in: callsArrayStart ..< (callsArrayStart + 32)))
+        XCTAssertEqual(callsLength, 2)
+
+        let firstCallOffset = BigUInt(encoded.subdata(in: (callsArrayStart + 32) ..< (callsArrayStart + 64)))
+        XCTAssertEqual(
+            firstCallOffset,
+            BigUInt(0x40),
+            "tuple[] element offsets must follow standard ABI layout",
+        )
+    }
+
     func testExecuteXSigningDigestWrapsRoot() {
         let root = Data(repeating: 0xFF, count: 32)
         let digest = SmartAccount.ExecuteX.signingDigest(root: root)

@@ -3,7 +3,7 @@ import UIKit
 
 struct ReceiveView: View {
     let address: String
-    var onBack: () -> Void = {}
+
     @State private var activityItems: [Any]?
 
     var body: some View {
@@ -20,16 +20,12 @@ struct ReceiveView: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, AppSpacing.lg)
-            .padding(.top, AppHeaderMetrics.contentTopPadding)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: "receive_title",
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: onBack,
-            )
-        }
+        .appNavigation(
+            titleKey: "receive_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
         .background {
             ActivityViewPresenter(activityItems: $activityItems)
                 .frame(width: 0, height: 0)
@@ -79,5 +75,7 @@ private struct ActivityViewPresenter: UIViewControllerRepresentable {
 }
 
 #Preview {
-    ReceiveView(address: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193")
+    NavigationStack {
+        ReceiveView(address: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193")
+    }
 }

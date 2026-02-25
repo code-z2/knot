@@ -5,40 +5,51 @@ struct CurrencySelectionPage: View {
     let selectedCode: String
     let onSelect: (String) -> Void
     @State private var selectionTrigger = 0
+    @State private var query = ""
 
     var body: some View {
         List {
-            Section {
-                ForEach(currencies) { currency in
-                    CurrencySelectionRow(
-                        title: Text(currency.code),
-                        subtitle: Text(currency.name),
-                        isSelected: currency.code == selectedCode,
-                        onTap: { selectionTrigger += 1; onSelect(currency.code) },
+            ForEach(filteredCurrencies) { currency in
+                CurrencySelectionRow(
+                    title: Text(currency.code),
+                    subtitle: Text(currency.name),
+                    isSelected: currency.code == selectedCode,
+                    onTap: { selectionTrigger += 1; onSelect(currency.code) },
+                ) {
+                    IconBadge(
+                        style: .solid(
+                            background: badgeColor(for: currency.code),
+                            icon: AppThemeColor.grayWhite,
+                        ),
+                        contentPadding: 6,
+                        cornerRadius: AppCornerRadius.sm,
+                        borderWidth: 0,
                     ) {
-                        IconBadge(
-                            style: .solid(
-                                background: badgeColor(for: currency.code),
-                                icon: AppThemeColor.grayWhite,
-                            ),
-                            contentPadding: 6,
-                            cornerRadius: AppCornerRadius.sm,
-                            borderWidth: 0,
-                        ) {
-                            Image(systemName: currency.iconAssetName)
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 14, height: 14)
-                        }
+                        Image(systemName: currency.iconAssetName)
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 14, height: 14)
                     }
                 }
             }
         }
-        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
+        .background(AppThemeColor.backgroundPrimary)
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionTrigger) { _, _ in true }
+        .searchable(text: $query, placement: .toolbar, prompt: Text("search_placeholder"))
+        .autocorrectionDisabled()
+        .textInputAutocapitalization(.never)
+    }
+
+    private var filteredCurrencies: [CurrencyOption] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return currencies }
+        return currencies.filter {
+            $0.code.localizedCaseInsensitiveContains(trimmed)
+                || $0.name.localizedCaseInsensitiveContains(trimmed)
+        }
     }
 
     private func badgeColor(for code: String) -> Color {
@@ -118,6 +129,5 @@ private struct CurrencySelectionRow<Leading: View>: View {
             selectedCode: "USD",
             onSelect: { _ in },
         )
-        .padding(.top, AppHeaderMetrics.contentTopPadding)
     }
 }

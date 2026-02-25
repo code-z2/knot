@@ -49,7 +49,9 @@ final class SendFlowService {
         }
     }
 
-    func submitRoute(eoaAddress: String, route: TransferRouteModel) async throws -> SendExecutionResultModel {
+    func submitRoute(eoaAddress: String, route: TransferRouteModel) async throws
+        -> SendExecutionResultModel
+    {
         guard !route.chainActions.isEmpty else {
             throw SendFlowServiceError.invalidRoute(reason: "Route has no executable chain actions.")
         }
@@ -76,9 +78,22 @@ final class SendFlowService {
         }
     }
 
-    func executeRoute(eoaAddress: String, route: TransferRouteModel) async throws -> String {
-        let result = try await submitRoute(eoaAddress: eoaAddress, route: route)
-        return result.destinationRelayTaskID
+    func estimateRouteFee(eoaAddress _: String, route: TransferRouteModel) async throws -> Decimal {
+        guard !route.chainActions.isEmpty else { return 0 }
+        do {
+            var totalFee: Decimal = 0
+            for action in route.chainActions {
+                let fee = try await aaExecutionService.estimateExecutionFee(
+                    chainId: action.chainId,
+                )
+                totalFee += fee
+            }
+            return totalFee
+        } catch let error as AAExecutionServiceError {
+            throw SendFlowServiceError.submissionFailed(error)
+        } catch {
+            throw SendFlowServiceError.unknown(error)
+        }
     }
 
     func deferredStatuses(for execution: SendExecutionResultModel) async throws -> [RelayStatusModel] {
