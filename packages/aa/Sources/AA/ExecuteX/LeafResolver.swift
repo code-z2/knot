@@ -18,6 +18,7 @@ struct ExecuteXLeafResolver {
     func resolveLeaves(
         request: ExecuteXPlanRequest,
         salt: Data,
+        signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> [ExecuteXResolvedLeaf] {
         var seenExecuteLeafChains = Set<UInt64>()
         let accumulatorOnlyChainOrder = initializationPolicy.accumulatorOnlyChainsInOrder(
@@ -43,6 +44,7 @@ struct ExecuteXLeafResolver {
                     rawCalls: rawCalls,
                     salt: salt,
                     authorizationsByChainId: request.authorizationsByChainId,
+                    signInitialize: signInitialize,
                 )
                 resolvedLeaves.append(ExecuteXResolvedLeaf(execute: resolvedExecuteLeaf))
 
@@ -74,12 +76,13 @@ struct ExecuteXLeafResolver {
             )
             guard !isDeployed else { continue }
 
-            let initializeLeaf = try buildInitializeOnlyExecuteLeaf(
+            let initializeLeaf = try await buildInitializeOnlyExecuteLeaf(
                 account: request.account,
                 passkeyPublicKey: request.passkeyPublicKey,
                 chainId: chainId,
                 salt: salt,
                 authorizationsByChainId: request.authorizationsByChainId,
+                signInitialize: signInitialize,
             )
             resolvedLeaves.append(ExecuteXResolvedLeaf(execute: initializeLeaf))
         }
@@ -95,15 +98,13 @@ struct ExecuteXLeafResolver {
         rawCalls: [Call],
         salt: Data,
         authorizationsByChainId: [UInt64: RelayAuthorizationModel],
+        signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXResolvedExecuteLeaf {
         let isDeployed = try await smartAccountClient.isDeployed(account: account, chainId: chainId)
         var calls = rawCalls
         var didAppendInitializeCall = false
         var authorization: RelayAuthorizationModel? = nil
-
-        print(
-            "   [DEBUG-ExecuteX] Resolving leaf for chain \(chainId), isDeployed: \(isDeployed), call parameters: \(calls.count)",
-        )
+        var initSignature: Data? = nil
 
         if !isDeployed {
             let initializeCall = try makeInitializeCall(
@@ -115,13 +116,16 @@ struct ExecuteXLeafResolver {
             didAppendInitializeCall = true
 
             guard let chainAuthorization = authorizationsByChainId[chainId] else {
-                print("   [DEBUG-ExecuteX] ❌ Missing authorization for chain \(chainId)")
                 throw ExecuteXPlannerError.missingAuthorization(chainId: chainId)
             }
             authorization = chainAuthorization
-            print(
-                "   [DEBUG-ExecuteX] ✅ Appended initialize call and bound authorization for chain \(chainId)",
-            )
+
+            // Sign calls[0].data with EOA key for the init overload.
+            if let signInitialize {
+                let callData = try AAUtils.hexToData(initializeCall.dataHex)
+                let callDataHash = Data(callData.sha3(.keccak256))
+                initSignature = try await signInitialize(callDataHash)
+            }
         }
 
         let structHash = try SmartAccount.ExecuteX.structHash(calls: calls, salt: salt)
@@ -138,6 +142,7 @@ struct ExecuteXLeafResolver {
             didAppendInitializeCall: didAppendInitializeCall,
             authorizationRequired: !isDeployed,
             authorization: authorization,
+            initSignature: initSignature,
             structHash: structHash,
             leafHash: leafHash,
         )
@@ -149,7 +154,8 @@ struct ExecuteXLeafResolver {
         chainId: UInt64,
         salt: Data,
         authorizationsByChainId: [UInt64: RelayAuthorizationModel],
-    ) throws -> ExecuteXResolvedExecuteLeaf {
+        signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
+    ) async throws -> ExecuteXResolvedExecuteLeaf {
         let initializeCall = try makeInitializeCall(
             account: account,
             passkeyPublicKey: passkeyPublicKey,
@@ -158,6 +164,13 @@ struct ExecuteXLeafResolver {
 
         guard let authorization = authorizationsByChainId[chainId] else {
             throw ExecuteXPlannerError.missingAuthorization(chainId: chainId)
+        }
+
+        var initSignature: Data? = nil
+        if let signInitialize {
+            let callData = try AAUtils.hexToData(initializeCall.dataHex)
+            let callDataHash = Data(callData.sha3(.keccak256))
+            initSignature = try await signInitialize(callDataHash)
         }
 
         let calls = [initializeCall]
@@ -175,6 +188,7 @@ struct ExecuteXLeafResolver {
             didAppendInitializeCall: true,
             authorizationRequired: true,
             authorization: authorization,
+            initSignature: initSignature,
             structHash: structHash,
             leafHash: leafHash,
         )

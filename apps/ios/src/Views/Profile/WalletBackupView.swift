@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WalletBackupView: View {
     let mnemonic: String
-    var onBack: () -> Void = {}
+
     @State var isMnemonicRevealed = false
     @State var didCopy = false
     @State var copyResetTask: Task<Void, Never>?
@@ -57,16 +57,12 @@ struct WalletBackupView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, AppSpacing.lg)
-            .padding(.top, AppHeaderMetrics.contentTopPadding)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: "wallet_backup_title",
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: onBack,
-            )
-        }
+        .appNavigation(
+            titleKey: "wallet_backup_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
         .onDisappear {
             copyResetTask?.cancel()
             copyResetTask = nil
@@ -81,7 +77,9 @@ struct WalletBackupView: View {
 }
 
 #Preview {
-    WalletBackupView(
-        mnemonic: "a brown fox jumped over a lazy dog and broke a leg",
-    )
+    NavigationStack {
+        WalletBackupView(
+            mnemonic: "a brown fox jumped over a lazy dog and broke a leg",
+        )
+    }
 }

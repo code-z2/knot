@@ -69,6 +69,7 @@ struct SearchInput: View {
     }
 
     private func dismissSearchFocus() {
+        text = ""
         isFocused = false
     }
 }

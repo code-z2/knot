@@ -47,39 +47,48 @@ Before finalizing, verify all needed imports are present for any new types or AP
 ## Swift Properties & Mutation Semantics (Mandatory)
 
 Goal
+
 - Make mutations obvious.
 - Avoid hidden work on assignment (`=`) in app-authored accessor code.
 - Keep values/state as properties and actions/mutations as methods.
 
 Core Rules
-1) No-op mutator wrappers are forbidden.
+
+1. No-op mutator wrappers are forbidden.
+
 - Methods like `setX(...)`, `updateX(...)`, `applyX(...)`, `moveX(to:)` must not exist if they only perform direct assignment.
 - If no real behavior exists, remove the method and allow direct property assignment.
 
-2) `private(set)` is conditional, not default.
+2. `private(set)` is conditional, not default.
+
 - Use `private(set)` only when mutation must be controlled by methods that add real behavior.
 - If assignment is plain state replacement, do not use `private(set)` to force wrapper methods.
 
-3) App-authored property accessors/observers are forbidden.
+3. App-authored property accessors/observers are forbidden.
+
 - Do not write explicit property `get` / `set` accessors.
 - Do not use `willSet` / `didSet` observers.
 
-4) Computed properties are getter-only and pure.
+4. Computed properties are getter-only and pure.
+
 - Computed properties must not declare setters.
 - Getter-only computed properties must not mutate state.
 - Getter-only computed properties must not cause side effects (for example logging, I/O, persistence, fixups).
 
-5) Semantics by construct.
+5. Semantics by construct.
+
 - Properties should be nouns (state/value).
 - Methods should be verbs (actions/mutations).
 
 Scope Clarification
+
 - The accessor/observer bans apply to property code written in app source.
 - Framework-managed wrappers (for example `@State`, `@Published`, `@AppStorage`, `@Environment`) are allowed.
 
 SwiftUI-specific binding guidance (`Binding(get:set:)` pass-through bans and view-binding patterns) belongs in `swiftui-coding-guideline`.
 
 Bad
+
 ```swift
 private(set) var targetLanguage: TargetLanguage = .traditionalChinese
 
@@ -89,6 +98,7 @@ func setTargetLanguage(_ value: TargetLanguage) {
 ```
 
 Good
+
 ```swift
 var targetLanguage: TargetLanguage = .traditionalChinese
 ```
@@ -98,6 +108,7 @@ var targetLanguage: TargetLanguage = .traditionalChinese
 Avoid cramming multi-argument calls on a single line when they hurt readability. Prefer vertical formatting with one argument per line.
 
 Bad
+
 ```swift
 func saveLastFile(url: URL) {
     defaults.set(url.path, forKey: UserDefaultsKeys.FileStore.lastSelectedFile)
@@ -113,6 +124,7 @@ func saveLastFile(url: URL) {
 ```
 
 Good
+
 ```swift
 func saveLastFile(url: URL) {
     defaults.set(url.path, forKey: UserDefaultsKeys.FileStore.lastSelectedFile)
@@ -135,6 +147,7 @@ func saveLastFile(url: URL) {
 For multi-line `if` bindings, align `let` with `if` and place the opening brace on its own line.
 
 Bad
+
 ```swift
 if let url = try? URL(
     resolvingBookmarkData: data,
@@ -153,6 +166,7 @@ if let url = try? URL(
 Prefer `guard` over nested `if` when it improves readability by reducing indentation.
 
 Bad
+
 ```swift
 if
     let url = try? URL(
@@ -172,6 +186,7 @@ if
 ```
 
 Good
+
 ```swift
 guard
     let url = try? URL(
@@ -193,6 +208,7 @@ return url
 ```
 
 Good
+
 ```swift
 if
     let url = try? URL(
@@ -258,7 +274,7 @@ enum Foo {
 
 ## File Header Rule (Mandatory)
 
-File doc comments must list a real human author in the "Created by" line and include the date, formatted like: "Created by Martin Lasek on 18/01/2026."
+File doc comments must list a real human author in the "Created by" line and include the date, formatted like: "Created by Peter Anyaogu on 18/01/2026."
 
 When creating new files, set the "Created by" date to the current date.
 

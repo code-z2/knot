@@ -3,9 +3,12 @@ import SwiftUI
 
 struct PreferencesView: View {
     @Bindable var preferencesStore: PreferencesStore
-    var onBack: () -> Void = {}
+
+    @Environment(\.dismiss)
+    var dismiss
+
     @State var activeModal: PreferencesModalModel?
-    @State var activePage: PreferencesPageModel = .main
+
     @State var selectionTrigger = 0
 
     var body: some View {
@@ -13,14 +16,11 @@ struct PreferencesView: View {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
             pageContent
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: activePage.title,
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: handleBack,
-            )
-        }
+        .appNavigation(
+            titleKey: "preferences_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
         .sheet(item: $activeModal) { modal in
             AppSheet(kind: modal.sheetKind) {
                 modalContent(for: modal)
@@ -31,86 +31,102 @@ struct PreferencesView: View {
         }
     }
 
-    @ViewBuilder
     var pageContent: some View {
-        switch activePage {
-        case .main:
-            List {
-                Section {
-                    PreferenceRow(
-                        title: Text("preferences_appearance"),
-                        iconName: "moonphase.first.quarter",
-                        iconBackground: Color(hex: "#5E5CE6"),
-                        trailing: .localizedValueChevron(preferencesStore.appearance.localizedDisplayName),
-                        action: {
-                            selectionTrigger += 1
-                            present(.appearance)
-                        },
+        List {
+            Section {
+                PreferenceRow(
+                    title: Text("preferences_appearance"),
+                    iconName: "moonphase.first.quarter",
+                    iconBackground: Color(hex: "#5E5CE6"),
+                    trailing: PreferenceRow.Trailing.localizedValueChevron(
+                        preferencesStore.appearance.localizedDisplayName,
+                    ),
+                    action: {
+                        selectionTrigger += 1
+                        present(.appearance)
+                    },
+                )
+                PreferenceRow(
+                    title: Text("preferences_haptics"),
+                    iconName: "iphone.radiowaves.left.and.right",
+                    iconBackground: Color(hex: "#FF9F0A"),
+                    trailing: .toggle(isOn: $preferencesStore.hapticsEnabled),
+                )
+                PreferenceRow(
+                    title: Text("preferences_network_mode"),
+                    iconName: "point.3.connected.trianglepath.dotted",
+                    iconBackground: Color(hex: "#0A84FF"),
+                    trailing: .custom(AnyView(NetworkModePullDown(mode: $preferencesStore.chainSupportMode))),
+                )
+                NavigationLink {
+                    CurrencySelectionPage(
+                        currencies: preferencesStore.supportedCurrencies,
+                        selectedCode: preferencesStore.selectedCurrencyCode,
+                        onSelect: { preferencesStore.selectedCurrencyCode = $0 },
                     )
-                    PreferenceRow(
-                        title: Text("preferences_haptics"),
-                        iconName: "iphone.radiowaves.left.and.right",
-                        iconBackground: Color(hex: "#FF9F0A"),
-                        trailing: .toggle(isOn: $preferencesStore.hapticsEnabled),
+                    .appNavigation(
+                        titleKey: "sheet_currency_title",
+                        displayMode: .inline,
+                        hidesBackButton: false,
                     )
-                    PreferenceRow(
-                        title: Text("preferences_network_mode"),
-                        iconName: "point.3.connected.trianglepath.dotted",
-                        iconBackground: Color(hex: "#0A84FF"),
-                        trailing: .custom(AnyView(NetworkModePullDown(mode: $preferencesStore.chainSupportMode))),
-                    )
+                    .appNavigationScrollEdgeStyle()
+                } label: {
                     PreferenceRow(
                         title: Text("preferences_currency"),
                         iconName: "banknote",
                         iconBackground: Color(hex: "#34C759"),
-                        trailing: .valueChevron(preferencesStore.selectedCurrencyCode.uppercased()),
-                        action: {
-                            selectionTrigger += 1
-                            withAnimation(AppAnimation.standard) {
-                                activePage = .currency
-                            }
-                        },
+                        trailing: .custom(
+                            AnyView(
+                                Text(preferencesStore.selectedCurrencyCode.uppercased())
+                                    .font(AppTypography.bodyRegular)
+                                    .foregroundStyle(AppThemeColor.labelSecondary),
+                            ),
+                        ),
                     )
+                }
+                .contentShape(Rectangle())
+
+                NavigationLink {
+                    LanguageSelectionPage(
+                        languages: preferencesStore.supportedLanguages,
+                        selectedCode: preferencesStore.languageCode,
+                        onSelect: { preferencesStore.languageCode = $0 },
+                    )
+                    .appNavigation(
+                        titleKey: "sheet_language_title",
+                        displayMode: .inline,
+                        hidesBackButton: false,
+                    )
+                    .appNavigationScrollEdgeStyle()
+                } label: {
                     PreferenceRow(
                         title: Text("preferences_language"),
                         iconName: "globe",
                         iconBackground: Color(hex: "#AF52DE"),
-                        trailing: .valueChevron(
-                            preferencesStore.selectedLanguage?.displayName ?? preferencesStore.languageCode,
+                        trailing: .custom(
+                            AnyView(
+                                Text(
+                                    preferencesStore.selectedLanguage?.displayName
+                                        ?? preferencesStore.languageCode,
+                                )
+                                .font(AppTypography.bodyRegular)
+                                .foregroundStyle(AppThemeColor.labelSecondary),
+                            ),
                         ),
-                        action: {
-                            selectionTrigger += 1
-                            withAnimation(AppAnimation.standard) {
-                                activePage = .language
-                            }
-                        },
                     )
                 }
+                .contentShape(Rectangle())
             }
-            .listStyle(.insetGrouped)
-            .scrollDisabled(true)
-            .scrollContentBackground(.hidden)
-            .scrollIndicators(.hidden)
-        case .currency:
-            CurrencySelectionPage(
-                currencies: preferencesStore.supportedCurrencies,
-                selectedCode: preferencesStore.selectedCurrencyCode,
-                onSelect: { preferencesStore.selectedCurrencyCode = $0 },
-            )
-            .padding(.top, AppSpacing.md)
-            .transition(AppAnimation.slideTransition)
-        case .language:
-            LanguageSelectionPage(
-                languages: preferencesStore.supportedLanguages,
-                selectedCode: preferencesStore.languageCode,
-                onSelect: { preferencesStore.languageCode = $0 },
-            )
-            .padding(.top, AppSpacing.md)
-            .transition(AppAnimation.slideTransition)
         }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
+        .scrollContentBackground(.hidden)
+        .scrollIndicators(.hidden)
     }
 }
 
 #Preview {
-    PreferencesView(preferencesStore: PreferencesStore())
+    NavigationStack {
+        PreferencesView(preferencesStore: PreferencesStore())
+    }
 }

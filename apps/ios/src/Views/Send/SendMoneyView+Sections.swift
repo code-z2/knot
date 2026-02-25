@@ -15,36 +15,9 @@ extension SendMoneyView {
 
             Spacer()
         }
-        .padding(.top, AppHeaderMetrics.contentTopPadding)
         .overlay(alignment: .bottom) {
             continueButton
                 .padding(.bottom, 96)
-        }
-    }
-
-    var stepTransition: AnyTransition {
-        switch stepNavigationDirection {
-        case .forward:
-            .asymmetric(
-                insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal: .move(edge: .leading).combined(with: .opacity),
-            )
-        case .backward:
-            .asymmetric(
-                insertion: .move(edge: .leading).combined(with: .opacity),
-                removal: .move(edge: .trailing).combined(with: .opacity),
-            )
-        }
-    }
-
-    var headerTitle: LocalizedStringKey {
-        switch step {
-        case .recipient:
-            "send_money_title"
-        case .amount:
-            "send_money_enter_amount_title"
-        case .success:
-            ""
         }
     }
 
@@ -117,50 +90,11 @@ extension SendMoneyView {
     }
 
     var successStepContent: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 120)
-
-            VStack(spacing: 56) {
-                VStack(spacing: 48) {
-                    SuccessCheckmark()
-                        .frame(width: 127, height: 123)
-
-                    VStack(spacing: AppSpacing.xl) {
-                        Text("send_money_success_title")
-                            .font(.custom("Roboto-Medium", size: 34))
-                            .foregroundStyle(AppThemeColor.labelPrimary)
-                            .multilineTextAlignment(.center)
-
-                        Text("send_money_success_subtitle")
-                            .font(.custom("Roboto-Regular", size: 20))
-                            .foregroundStyle(AppThemeColor.labelPrimary)
-                            .multilineTextAlignment(.center)
-
-                        if let successStatusDetailText {
-                            Text(successStatusDetailText)
-                                .font(.custom("Roboto-Regular", size: 14))
-                                .foregroundStyle(AppThemeColor.labelSecondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, AppSpacing.lg)
-                        }
-                    }
-                }
-
-                HStack(spacing: AppSpacing.sm) {
-                    AppButton(label: "send_money_repeat_transfer", variant: .outline) {
-                        repeatTransfer()
-                    }
-
-                    AppButton(label: "send_money_view_tx", variant: .outline) {
-                        openSuccessExplorerURL()
-                    }
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 38)
+        SendMoneySuccessView(
+            successStatusDetailText: successStatusDetailText,
+            onRepeatTransfer: { repeatTransfer() },
+            onViewTransaction: { openSuccessExplorerURL() },
+        )
     }
 
     var addressInputField: some View {

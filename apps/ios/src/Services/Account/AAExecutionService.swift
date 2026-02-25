@@ -1,57 +1,25 @@
 import AA
 import AccountSetup
+import BigInt
 import Compose
 import Foundation
 import Passkey
 import RPC
 internal import SignHandler
 import Transactions
-
-enum AAExecutionServiceError: Error {
-    case executionFailed(Error)
-    case relayFailed(Error)
-    case signingFailed(Error)
-    case invalidExecutionPlan(reason: String)
-    case relayStatusFailed(chainId: UInt64, id: String, status: String, reason: String?)
-    case missingRelaySubmission(chainId: UInt64)
-}
-
-extension AAExecutionServiceError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case let .executionFailed(error):
-            return "AA execution failed: \(error.localizedDescription)"
-        case let .relayFailed(error):
-            return "Relay flow failed: \(error.localizedDescription)"
-        case let .signingFailed(error):
-            return "Signing failed: \(error.localizedDescription)"
-        case let .invalidExecutionPlan(reason):
-            return "Invalid execution plan: \(reason)"
-        case let .relayStatusFailed(chainId, id, status, reason):
-            if let reason, !reason.isEmpty {
-                return "Relay task \(id) failed on chain \(chainId) with status \(status): \(reason)"
-            }
-            return "Relay task \(id) failed on chain \(chainId) with status \(status)"
-        case let .missingRelaySubmission(chainId):
-            return "Relay submission missing for chain \(chainId)"
-        }
-    }
-}
+import web3swift
 
 @MainActor
 final class AAExecutionService {
     private let rpcClient: RPCClient
     private let executeXPlanner: ExecuteXPlanner
-    private let biometricAuth: BiometricAuthService
 
     init(
         rpcClient: RPCClient = RPCClient(),
         executeXPlanner: ExecuteXPlanner = ExecuteXPlanner(),
-        biometricAuth: BiometricAuthService? = nil,
     ) {
         self.rpcClient = rpcClient
         self.executeXPlanner = executeXPlanner
-        self.biometricAuth = biometricAuth ?? BiometricAuthService()
     }
 
     func executeCalls(
@@ -69,6 +37,18 @@ final class AAExecutionService {
         return result.destinationSubmission.id
     }
 
+    func estimateExecutionFee(
+        chainId: UInt64,
+    ) async throws -> Decimal {
+        let totalGasLimit: BigUInt = 600_000 // A static upper limit for UI estimation
+        let fastFeeWei = try await rpcClient.getEIP1559FastFee(chainId: chainId)
+        let totalWei = totalGasLimit * fastFeeWei
+        guard let decimal = Decimal(string: totalWei.description) else {
+            return 0
+        }
+        return decimal / 1_000_000_000_000_000_000
+    }
+
     func executeChainActions(
         accountService: AccountSetupService,
         account: AccountSession,
@@ -83,16 +63,6 @@ final class AAExecutionService {
         do {
             let context = try await makeContext(accountService: accountService, account: account)
 
-            print(
-                "⚙️ [AAExecutionService] Building ExecuteX Flow Plan for destination chain \(destinationChainId)",
-            )
-            for action in chainActions {
-                print("   - Chain Action (\(action.chainId)): \(action.calls.count) calls")
-                for (i, call) in action.calls.enumerated() {
-                    print("     - Call \(i) Value (Wei): \(call.valueWei)")
-                }
-            }
-
             let plan = try await buildFlowPlan(
                 accountService: accountService,
                 context: context,
@@ -100,9 +70,7 @@ final class AAExecutionService {
                 chainActions: chainActions,
                 destinationAccumulatorIntent: destinationAccumulatorIntent,
             )
-            print("✅ [AAExecutionService] Flow Plan built successfully.")
 
-            print("🚀 [AAExecutionService] Submitting Flow Plan to Relayer...")
             let submitResult = try await rpcClient.relaySubmit(
                 account: context.account.eoaAddress,
                 supportMode: currentSupportMode(),
@@ -110,7 +78,6 @@ final class AAExecutionService {
                 backgroundTxs: plan.backgroundRelayTxs,
                 deferredTxs: plan.deferredRelayTxs,
             )
-            print("✅ [AAExecutionService] Relayer submission accepted.")
 
             let allSubmissions =
                 submitResult.immediateSubmissions
@@ -194,9 +161,8 @@ final class AAExecutionService {
         accountService: AccountSetupService,
         account: AccountSession,
     ) async throws -> ExecutionContext {
-        let sessionAccount = try await accountService.restoreSession(eoaAddress: account.eoaAddress)
-        let passkey = try await accountService.passkeyPublicKeyData(for: sessionAccount)
-        return ExecutionContext(account: sessionAccount, passkey: passkey)
+        let passkey = try await accountService.passkeyPublicKeyData(for: account)
+        return ExecutionContext(account: account, passkey: passkey)
     }
 
     private func buildFlowPlan(
@@ -234,6 +200,16 @@ final class AAExecutionService {
                             throw AAExecutionServiceError.signingFailed(error)
                         }
                     },
+                    signInitialize: { callDataHash in
+                        do {
+                            return try await accountService.signEthDigestWithStoredWallet(
+                                account: context.account,
+                                digest32: callDataHash,
+                            )
+                        } catch {
+                            throw AAExecutionServiceError.signingFailed(error)
+                        }
+                    },
                 )
             } catch let plannerError as ExecuteXPlannerError {
                 guard case let .missingAuthorization(chainID) = plannerError else {
@@ -258,7 +234,6 @@ final class AAExecutionService {
         account: AccountSession,
         chainId: UInt64,
     ) async throws -> RelayAuthorizationModel {
-        try await biometricAuth.authenticate(reason: "Authenticate to sign transaction")
         let auth = try await accountService.jitSignedAuthorization(
             account: account, chainId: chainId,
         )

@@ -20,11 +20,11 @@ extension ENSClient {
 
     static let zeroAddressHex = "0x0000000000000000000000000000000000000000"
 
-    static func normalizedENSName(_ value: String) -> String {
+    public static func normalizedENSName(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    static func ethLabel(from value: String) -> String {
+    public static func ethLabel(from value: String) -> String {
         let normalized = normalizedENSName(value)
         if normalized.hasSuffix(".eth") {
             return String(normalized.dropLast(4))
@@ -197,36 +197,24 @@ extension ENSClient {
     /// the chain (e.g. Sepolia 11155111 or mainnet 1 not in LIMITED_MAINNET mode).
     func getWeb3ForENSChain() async throws -> Web3 {
         do {
-            let web3 = try await rpcClient.getWeb3Client(chainId: configuration.chainID)
-            print("[ENSClient] ✅ got web3 client for chainID \(configuration.chainID)")
-            return web3
+            return try await rpcClient.getWeb3Client(chainId: configuration.chainID)
         } catch {
-            print("[ENSClient] ⚠️ getWeb3Client failed for chainID \(configuration.chainID): \(error)")
-            print("[ENSClient] attempting fallback via ChainRegistry slug…")
-
             guard let definition = ChainRegistry.resolve(chainID: configuration.chainID) else {
-                print("[ENSClient] ❌ no ChainRegistry entry for chainID \(configuration.chainID)")
                 throw error
             }
             let apiKey = (Bundle.main.object(forInfoDictionaryKey: "JSONRPC_API_KEY") as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let fallbackURL = "https://\(definition.slug).g.alchemy.com/v2/\(apiKey)"
             guard let url = URL(string: fallbackURL), !apiKey.isEmpty else {
-                print("[ENSClient] ❌ fallback URL invalid or missing API key")
                 throw error
             }
-            print("[ENSClient] 🔄 fallback RPC: \(definition.slug).g.alchemy.com")
-            let web3 = try await Web3.new(url, network: .Custom(networkID: BigUInt(configuration.chainID)))
-            print("[ENSClient] ✅ fallback web3 client ready")
-            return web3
+            return try await Web3.new(url, network: .Custom(networkID: BigUInt(configuration.chainID)))
         }
     }
 
     func universalResolverContext(forName name: String) async throws -> ENSResolverContext {
         let normalizedName = Self.normalizedENSName(name)
         guard !normalizedName.isEmpty else { throw ENSError.invalidName }
-
-        print("[ENSClient] universalResolverContext: name=\(normalizedName), chainID=\(configuration.chainID)")
 
         let web3 = try await getWeb3ForENSChain()
 
@@ -237,7 +225,6 @@ extension ENSClient {
             throw ENSError.invalidAddress(configuration.universalResolverAddress)
         }
 
-        print("[ENSClient] calling findResolver on \(configuration.universalResolverAddress)")
         let result = try await makeReadResult(
             web3: web3,
             abi: Self.universalResolverABI,
@@ -247,11 +234,9 @@ extension ENSClient {
         )
 
         guard let resolverAddress = Self.parseAddress(result["0"] ?? result["resolver"]) else {
-            print("[ENSClient] ❌ findResolver returned no resolver address")
             throw ENSError.ensUnavailable
         }
         if resolverAddress.address.lowercased() == Self.zeroAddressHex {
-            print("[ENSClient] ❌ findResolver returned zero address")
             throw ENSError.ensUnavailable
         }
 

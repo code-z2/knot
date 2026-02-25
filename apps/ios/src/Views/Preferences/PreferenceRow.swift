@@ -1,13 +1,7 @@
 import SwiftUI
 
 struct PreferenceRow: View {
-    enum Trailing {
-        case chevron
-        case toggle(isOn: Binding<Bool>)
-        case valueChevron(String)
-        case localizedValueChevron(LocalizedStringKey)
-        case custom(AnyView)
-    }
+    typealias Trailing = PreferenceRowTrailing
 
     let title: Text
     let iconName: String
@@ -74,5 +68,6 @@ struct PreferenceRow: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 }

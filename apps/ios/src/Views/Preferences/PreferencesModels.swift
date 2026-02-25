@@ -1,35 +1,6 @@
 import RPC
 import SwiftUI
 
-enum PreferencesModalModel: String, Identifiable {
-    case appearance
-
-    var id: String {
-        rawValue
-    }
-
-    var sheetKind: AppSheetKind {
-        .height(260)
-    }
-}
-
-enum PreferencesPageModel {
-    case main
-    case currency
-    case language
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .main:
-            "preferences_title"
-        case .currency:
-            "sheet_currency_title"
-        case .language:
-            "sheet_language_title"
-        }
-    }
-}
-
 extension ChainSupportMode {
     var localizedDisplayName: LocalizedStringKey {
         switch self {

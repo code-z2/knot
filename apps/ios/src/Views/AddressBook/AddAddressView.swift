@@ -1,12 +1,8 @@
 import SwiftUI
 
-enum AddAddressField: Hashable {
-    case address
-    case chain
-}
-
 struct AddAddressView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss)
+    var dismiss
 
     let beneficiaries: [Beneficiary]
     let ensService: ENSService
@@ -16,19 +12,31 @@ struct AddAddressView: View {
     @State var activeField: AddAddressField?
 
     @State var addressQuery = ""
+
     @State var chainQuery = ""
+
     @State var alias = ""
 
     @State var selectedBeneficiary: Beneficiary?
+
     @State var selectedChain: ChainOption?
+
     @State var finalizedAddressValue: String?
+
     @State var isSaving = false
+
     @State var addressDetectionTask: Task<Void, Never>?
+
     @State var addressValidationState: AddressValidationState = .idle
+
     @State var ensResolvedAddress: String?
+
     @State var addressValidationTask: Task<Void, Never>?
+
     @State var isAddressInputFocused = false
+
     @State var isChainInputFocused = false
+
     @State var isAliasInputFocused = false
 
     init(
@@ -58,21 +66,26 @@ struct AddAddressView: View {
 
                 Spacer()
             }
-            .padding(.top, AppHeaderMetrics.contentTopPadding)
-
-            addButton
-                .padding(.bottom, 96)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: "address_book_new_address_title",
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: {
-                    dismiss()
-                },
-            )
+        .appNavigation(
+            titleKey: "address_book_new_address_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(role: .confirm) {
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "checkmark")
+                    }
+                }
+                .disabled(!canSave || isSaving)
+                .buttonStyle(.glassProminent)
+            }
         }
         .onChange(of: addressQuery) { _, newValue in
             handleAddressQueryDidChange(newValue)
@@ -152,16 +165,6 @@ struct AddAddressView: View {
         ) {
             EmptyView()
         }
-    }
-
-    var addButton: some View {
-        AddAddressPrimaryButton(
-            canSave: canSave,
-            isSaving: isSaving,
-            onTap: {
-                Task { await save() }
-            },
-        )
     }
 
     var addressDropdown: some View {

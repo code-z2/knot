@@ -5,6 +5,7 @@ public enum AppButtonVariant {
     case outline
     case destructive
     case neutral
+    case success
 }
 
 public enum AppButtonSize {
@@ -14,8 +15,12 @@ public enum AppButtonSize {
 
 public enum AppButtonVisualState {
     case normal
+
     case loading
+
     case error
+
+    case success
 }
 
 public struct AppButton: View {
@@ -83,7 +88,7 @@ public struct AppButton: View {
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
         }
-        .disabled(isInteractionDisabled)
+        .allowsHitTesting(!isInteractionDisabled)
         .buttonStyle(.borderedProminent)
         .tint(backgroundTint)
         .animation(AppAnimation.gentle, value: visualState)
@@ -91,23 +96,32 @@ public struct AppButton: View {
 
     @ViewBuilder
     private var icon: some View {
-        if visualState == .loading {
+        switch visualState {
+        case .loading:
             ProgressView()
                 .tint(foregroundColor)
                 .frame(width: iconSize, height: iconSize)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
-        } else if let iconName {
-            Image(systemName: iconName)
+        case .error:
+            Image(systemName: "xmark.circle.fill")
                 .font(.system(size: iconSize, weight: .medium))
                 .frame(width: iconSize, height: iconSize)
                 .foregroundStyle(foregroundColor)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
-        } else {
-            Image(systemName: "house")
+        case .success:
+            Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: iconSize, weight: .medium))
                 .frame(width: iconSize, height: iconSize)
                 .foregroundStyle(foregroundColor)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
+        case .normal:
+            if let iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: iconSize, weight: .medium))
+                    .frame(width: iconSize, height: iconSize)
+                    .foregroundStyle(foregroundColor)
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            }
         }
     }
 
@@ -118,6 +132,9 @@ public struct AppButton: View {
     private var resolvedVariant: AppButtonVariant {
         if visualState == .error {
             return .destructive
+        }
+        if visualState == .success {
+            return .success
         }
         return variant
     }
@@ -135,6 +152,8 @@ public struct AppButton: View {
             return AppThemeColor.accentRed
         case .neutral:
             return AppThemeColor.labelSecondary
+        case .success:
+            return AppThemeColor.accentGreen
         }
     }
 
@@ -178,22 +197,29 @@ public struct AppButton: View {
             return AppThemeColor.destructiveBackground
         case .neutral:
             return AppThemeColor.fillPrimary
+        case .success:
+            return AppThemeColor.successBackground
         }
     }
 }
 
 #Preview {
     VStack(spacing: AppSpacing.lg) {
-        AppButton(label: "button_label_default", variant: .default, showIcon: true) {}
-        AppButton(label: "button_label_default", variant: .outline, showIcon: true) {}
-        AppButton(label: "send_money_sending", variant: .neutral, visualState: .loading, showIcon: true)
-            {}
+        AppButton(label: "Primary", variant: .default, showIcon: true, iconName: "house") {}
+        AppButton(label: "Ghost", variant: .outline, showIcon: true, iconName: "light.panel") {}
+        AppButton(label: "Loading", variant: .neutral, visualState: .loading, showIcon: true) {}
         AppButton(
-            label: "send_money_failed",
+            label: "Error",
             variant: .destructive,
             visualState: .error,
             showIcon: true,
-            iconName: "xmark.circle.fill",
+            iconSize: 16,
+        ) {}
+        AppButton(
+            label: "Success",
+            variant: .default,
+            visualState: .success,
+            showIcon: true,
             iconSize: 16,
         ) {}
     }

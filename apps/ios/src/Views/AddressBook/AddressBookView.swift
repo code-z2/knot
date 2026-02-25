@@ -4,13 +4,15 @@ struct AddressBookView: View {
     let eoaAddress: String
     let store: BeneficiaryStore
     let ensService: ENSService
-    var onBack: () -> Void = {}
 
     @State private var searchText = ""
-    @State private var isSearchFocused = false
+
     @State private var beneficiaries: [Beneficiary] = []
+
     @State private var showAddScreen = false
+
     @State private var errorMessage: String?
+
     @State private var successTrigger = 0
 
     var body: some View {
@@ -18,18 +20,13 @@ struct AddressBookView: View {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                headerTools
-                    .padding(.top, AppHeaderMetrics.contentTopPadding)
-                    .padding(.horizontal, 25)
-
                 if visibleBeneficiaries.isEmpty {
                     emptyState
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.horizontal, 25)
+                        .padding(.horizontal, AppSpacing.lg)
                         .transition(.opacity)
                 } else {
                     listState
-                        .padding(.top, AppSpacing.xl)
                         .transition(.opacity)
                 }
             }
@@ -43,51 +40,37 @@ struct AddressBookView: View {
         }
         .animation(AppAnimation.gentle, value: visibleBeneficiaries.isEmpty)
         .animation(AppAnimation.spring, value: errorMessage)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: "address_book_title",
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: onBack,
-            )
-        }
-        .task { await reload() }
-        .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
-        .fullScreenCover(isPresented: $showAddScreen) {
-            AddAddressView(beneficiaries: beneficiaries, ensService: ensService) { draft in
-                await addBeneficiary(draft)
-            }
-        }
-    }
-
-    private var headerTools: some View {
-        HStack(spacing: AppSpacing.sm) {
-            SearchInput(
-                text: $searchText,
-                placeholderKey: "search_placeholder",
-                width: isSearchFocused ? nil : 285,
-            ) { focused in
-                isSearchFocused = focused
-            }
-
-            if !isSearchFocused {
+        .appNavigation(
+            titleKey: "address_book_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showAddScreen = true
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppThemeColor.accentBrown)
-                        .frame(width: 44, height: 44)
                 }
-                .clipShape(.circle)
-                .buttonStyle(.plain)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel(Text("Dismiss search"))
+                .accessibilityLabel(Text("address_book_new_address_title"))
             }
         }
-        .frame(width: 351, height: 50)
-        .animation(.spring(response: 0.26, dampingFraction: 0.82), value: isSearchFocused)
+        .task { await reload() }
+        .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
+        .navigationDestination(isPresented: $showAddScreen) {
+            AddAddressView(
+                beneficiaries: beneficiaries,
+                ensService: ensService,
+            ) { draft in
+                await addBeneficiary(draft)
+            }
+        }
+        .searchable(
+            text: $searchText,
+            placement: .toolbar,
+            prompt: Text("search_placeholder"),
+        )
+        .appNavigationScrollEdgeStyle()
     }
 
     private var listState: some View {
@@ -103,10 +86,11 @@ struct AddressBookView: View {
                         } label: {
                             Image(systemName: "trash")
                         }
+                        .accessibilityLabel(Text("delete text"))
                     }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.automatic)
         .scrollContentBackground(.hidden)
         .background(AppThemeColor.backgroundPrimary)
         .padding(.bottom, 30)
@@ -192,9 +176,11 @@ struct AddBeneficiaryDraft: Sendable {
 }
 
 #Preview {
-    AddressBookView(
-        eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
-        store: BeneficiaryStore(),
-        ensService: ENSService(),
-    )
+    NavigationStack {
+        AddressBookView(
+            eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
+            store: BeneficiaryStore(),
+            ensService: ENSService(),
+        )
+    }
 }

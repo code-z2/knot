@@ -236,28 +236,6 @@ extension SendMoneyView {
         isShowingScanner = true
     }
 
-    func handleHeaderBack() {
-        if isShowingSpendAssetPicker {
-            isShowingSpendAssetPicker = false
-            return
-        }
-
-        if step == .success {
-            onBack()
-            return
-        }
-
-        if step == .amount {
-            withAnimation(AppAnimation.standard) {
-                stepNavigationDirection = .backward
-                step = .recipient
-            }
-            return
-        }
-
-        onBack()
-    }
-
     @MainActor
     func handleScannedCode(_ rawCode: String) -> Bool {
         guard let candidate = AddressInputParser.extractCandidate(from: rawCode) else {
@@ -297,10 +275,8 @@ extension SendMoneyView {
         amountButtonState = .normal
         executionResult = nil
         txHash = nil
-        withAnimation(AppAnimation.standard) {
-            stepNavigationDirection = .forward
-            step = .amount
-        }
+        showSuccessStep = false
+        showAmountStep = true
     }
 
     func confirmAmount() {
@@ -308,15 +284,7 @@ extension SendMoneyView {
         amountActionTask?.cancel()
 
         if isInsufficientBalance {
-            amountButtonState = .error
-            amountActionTask = Task { @MainActor in
-                do {
-                    try await Task.sleep(for: .milliseconds(1100))
-                } catch {
-                    return
-                }
-                amountButtonState = .normal
-            }
+            showInsufficientBalanceFeedback()
             return
         }
 
@@ -327,34 +295,238 @@ extension SendMoneyView {
 
         amountButtonState = .loading
         amountActionTask = Task { @MainActor in
+            defer { amountButtonState = .normal }
+            do {
+                pendingConfirmation = try await buildTransferConfirmationModel(route: route)
+            } catch is CancellationError {
+                return
+            } catch {
+                presentErrorMessage(error.localizedDescription)
+            }
+        }
+    }
+
+    private func showInsufficientBalanceFeedback() {
+        amountButtonState = .error
+        amountActionTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(1100))
+            } catch {
+                return
+            }
+            amountButtonState = .normal
+        }
+    }
+
+    @MainActor
+    private func buildTransferConfirmationModel(
+        route: TransferRouteModel,
+    ) async throws -> TransactionConfirmationModel {
+        let estimatedFee = try await sendFlowService.estimateRouteFee(
+            eoaAddress: eoaAddress,
+            route: route,
+        )
+        try Task.checkCancellation()
+
+        let confirmationBuilder = TransactionConfirmationBuilder()
+        var details = await confirmationBuilder.transferDetails(
+            recipientDisplay: transferRecipientDisplay,
+            feeText: formattedRouteFeeDisplay(estimatedFee: estimatedFee),
+            chainName: transferChainDisplay,
+            chainAssetName: transferChainAssetName,
+            typeText: String(localized: "transaction_type_transfer"),
+        )
+
+        if let routeSummary = routeSummaryText(from: route) {
+            details.append(
+                TransactionConfirmationDetailModel(
+                    label: "transaction_route_label",
+                    value: .text(routeSummary),
+                ),
+            )
+        }
+
+        let confirmActionId = UUID()
+        return TransactionConfirmationModel(
+            title: "confirm_title",
+            assetChange: TransactionConfirmationAssetChangeModel(
+                amount: transferAmountDisplay,
+                fiatAmount: transferFiatDisplay,
+            ),
+            warning: nil,
+            details: details,
+            actions: [
+                TransactionConfirmationActionModel(
+                    id: confirmActionId,
+                    label: "send_money_confirm_sign",
+                    variant: .default,
+                ) {
+                    handleConfirmSend(actionId: confirmActionId)
+                },
+            ],
+        )
+    }
+
+    private func handleConfirmSend(actionId: UUID) {
+        updatePendingConfirmationActions(
+            actionId: actionId,
+            visualState: .loading,
+            isEnabled: false,
+            disableOthers: true,
+        )
+        executeConfirmedSend(actionId: actionId)
+    }
+
+    private func updatePendingConfirmationActions(
+        actionId: UUID,
+        visualState: AppButtonVisualState,
+        isEnabled: Bool,
+        disableOthers: Bool,
+    ) {
+        guard let model = pendingConfirmation else { return }
+
+        let updatedActions = model.actions.map { action in
+            if action.id == actionId {
+                return TransactionConfirmationActionModel(
+                    id: action.id,
+                    label: action.label,
+                    variant: action.variant,
+                    visualState: visualState,
+                    isEnabled: isEnabled,
+                    handler: action.handler,
+                )
+            }
+
+            let updatedIsEnabled = disableOthers ? false : action.isEnabled
+            return TransactionConfirmationActionModel(
+                id: action.id,
+                label: action.label,
+                variant: action.variant,
+                visualState: action.visualState,
+                isEnabled: updatedIsEnabled,
+                handler: action.handler,
+            )
+        }
+
+        pendingConfirmation = model.withActions(updatedActions)
+    }
+
+    private func showConfirmationErrorState(actionId: UUID) {
+        updatePendingConfirmationActions(
+            actionId: actionId,
+            visualState: .error,
+            isEnabled: true,
+            disableOthers: false,
+        )
+    }
+
+    private func showConfirmationSuccessState(actionId: UUID) {
+        updatePendingConfirmationActions(
+            actionId: actionId,
+            visualState: .success,
+            isEnabled: false,
+            disableOthers: true,
+        )
+    }
+
+    private func clearConfirmationAfterSuccess() {
+        pendingConfirmation = nil
+    }
+
+    private var transferRecipientDisplay: String {
+        displayAddressOrENS(selectedBeneficiary?.address ?? finalizedAddressValue ?? addressQuery)
+    }
+
+    private var transferAmountText: String {
+        isAmountDisplayInverted ? secondaryAmountText : amountInput
+    }
+
+    private var transferFiatText: String {
+        isAmountDisplayInverted ? amountInput : secondaryAmountText
+    }
+
+    private var transferAmountDisplay: String {
+        let symbol = currentSpendAsset?.symbol ?? ""
+        guard !symbol.isEmpty else { return transferAmountText }
+        return "\(transferAmountText) \(symbol)"
+    }
+
+    private var transferFiatDisplay: String {
+        let symbol = currencyRateStore.symbol(for: selectedFiatCode, locale: preferencesStore.locale)
+        return "-\(symbol)\(transferFiatText)"
+    }
+
+    private var transferChainDisplay: String {
+        selectedChain?.name ?? String(localized: "transaction_chain_unknown")
+    }
+
+    private var transferChainAssetName: String {
+        selectedChain?.assetName ?? transferChainDisplay
+    }
+
+    @MainActor
+    private func formattedRouteFeeDisplay(estimatedFee: Decimal) async -> String {
+        await currencyRateStore.ensureRate(for: "ETH")
+        let feeUSD = currencyRateStore.convertSelectedToUSD(estimatedFee, currencyCode: "ETH")
+        let feeFiat = currencyRateStore.convertUSDToSelected(
+            feeUSD,
+            currencyCode: selectedFiatCode,
+        )
+
+        if feeFiat < 0.01 {
+            let symbol = currencyRateStore.symbol(
+                for: selectedFiatCode,
+                locale: preferencesStore.locale,
+            )
+            return "~<\(symbol)0.01"
+        }
+
+        return "~\(currencyRateStore.formatUSD(feeUSD, currencyCode: selectedFiatCode, locale: preferencesStore.locale))"
+    }
+
+    private func routeSummaryText(from route: TransferRouteModel) -> String? {
+        guard route.steps.count > 1 else { return nil }
+
+        let summary = route.steps.map { step in
+            switch step.action {
+            case .transfer:
+                String(localized: "transaction_route_step_transfer")
+            case .swap:
+                String(localized: "transaction_route_step_swap")
+            case .bridge:
+                String(localized: "transaction_route_step_bridge")
+            case .accumulate:
+                String(localized: "transaction_route_step_accumulate")
+            }
+        }
+
+        return summary.joined(separator: " → ")
+    }
+
+    private func executeConfirmedSend(actionId: UUID) {
+        guard let route = currentRoute else { return }
+
+        amountButtonState = .loading
+        amountActionTask = Task { @MainActor in
             do {
                 let submission = try await sendFlowService.submitRoute(
                     eoaAddress: eoaAddress,
                     route: route,
                 )
+                showConfirmationSuccessState(actionId: actionId)
                 executionResult = submission
                 txHash = submission.destinationRelayTaskID
 
                 amountButtonState = .normal
                 successHapticTrigger += 1
-                withAnimation(AppAnimation.gentle) {
-                    stepNavigationDirection = .forward
-                    step = .success
-                }
-            } catch let error as SendFlowServiceError {
-                amountButtonState = .error
-                errorHapticTrigger += 1
-                presentErrorMessage(error.localizedDescription)
-                do {
-                    try await Task.sleep(for: .milliseconds(2000))
-                } catch {
-                    return
-                }
-                amountButtonState = .normal
+                try await Task.sleep(for: .milliseconds(250))
+                clearConfirmationAfterSuccess()
+                showSuccessStep = true
             } catch {
                 amountButtonState = .error
                 errorHapticTrigger += 1
-                presentErrorMessage(error.localizedDescription)
+                showConfirmationErrorState(actionId: actionId)
+                print("[SendMoneyView] Transfer confirmation failed: \(error.localizedDescription)")
                 do {
                     try await Task.sleep(for: .milliseconds(2000))
                 } catch {
@@ -434,10 +606,8 @@ extension SendMoneyView {
     func repeatTransfer() {
         executionResult = nil
         txHash = nil
-        withAnimation(AppAnimation.standard) {
-            stepNavigationDirection = .backward
-            step = .recipient
-        }
+        showSuccessStep = false
+        showAmountStep = false
     }
 
     func openSuccessExplorerURL() {
@@ -477,9 +647,10 @@ extension SendMoneyView {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return 0 }
 
-        var normalized = trimmed
-            .replacingOccurrences(of: "\u{00A0}", with: "")
-            .replacingOccurrences(of: " ", with: "")
+        var normalized =
+            trimmed
+                .replacingOccurrences(of: "\u{00A0}", with: "")
+                .replacingOccurrences(of: " ", with: "")
 
         if normalized.contains(","), normalized.contains(".") {
             // Treat commas as grouping separators when both are present.

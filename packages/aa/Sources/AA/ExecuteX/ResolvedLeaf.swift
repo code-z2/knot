@@ -34,6 +34,7 @@ struct ExecuteXResolvedExecuteLeaf {
     let didAppendInitializeCall: Bool
     let authorizationRequired: Bool
     let authorization: RelayAuthorizationModel?
+    let initSignature: Data?
     let structHash: Data
     let leafHash: Data
 }

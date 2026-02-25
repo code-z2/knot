@@ -11,8 +11,8 @@ struct TransactionsAppHeader: View {
                 isBalanceHidden: $isBalanceHidden,
             )
             .padding(.horizontal, AppSpacing.lg)
-            .padding(.top, 35)
-            .padding(.bottom, 10)
+            .padding(.top, AppSpacing.xxl)
+            .padding(.bottom, AppSpacing.sm)
 
             Rectangle()
                 .fill(AppThemeColor.separatorNonOpaque)

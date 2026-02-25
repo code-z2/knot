@@ -9,51 +9,55 @@ import Transactions
 @MainActor
 struct AppRootView: View {
     @Environment(\.modelContext) private var modelContext
+
     @Environment(\.scenePhase) private var scenePhase
-    @State private var route: Route = .splash
-    @State private var selectedMainTab: MainTab = .home
+
+    @State private var route: AppRootRoute = .splash
+
+    @State private var selectedMainTab: AppRootMainTab = .home
+
     @State private var tabChangeTrigger = 0
+
+    @State private var navigationPath = NavigationPath()
+
     @State private var currentEOA: String?
+
     @State private var currentAccumulatorAddress: String?
+
     @State private var onboardingAction: OnboardingAction?
+
     @State private var onboardingFailed = false
+
     @State private var hasLocalWalletMaterial = false
+
     @State private var walletBackupMnemonic = ""
+
     @State private var walletRefreshTask: Task<Void, Never>?
+
     @State private var currencyRateTask: Task<Void, Never>?
+
     @State private var preferencesStore = PreferencesStore()
+
     @State private var currencyRateStore = CurrencyRateStore()
+
     @State private var balanceStore = BalanceStore()
+
     @State private var transactionStore = TransactionStore()
+
     private let beneficiaryStore = BeneficiaryStore()
     private let appSessionFlowService: AppSessionFlowService
     private let walletDataFlowService: WalletDataFlowService
+
     @State private var ensService = ENSService(mode: ChainSupportRuntime.resolveMode())
+
+    private let ensProfileCache = ENSProfileCache()
     private let aaExecutionService: AAExecutionService
     private let sendFlowService: SendFlowService
-
-    enum Route {
-        case splash
-        case onboarding
-        case main
-        case profile
-        case preferences
-        case addressBook
-        case receive
-        case sendMoney
-        case walletBackup
-    }
-
-    enum MainTab: Hashable {
-        case home
-        case transactions
-        case sessionKey
-    }
 
     init() {
         let biometricAuth = BiometricAuthService()
         let sessionFlowService = AppSessionFlowService(biometricAuth: biometricAuth)
-        let executionService = AAExecutionService(biometricAuth: biometricAuth)
+        let executionService = AAExecutionService()
         appSessionFlowService = sessionFlowService
         walletDataFlowService = WalletDataFlowService()
         aaExecutionService = executionService
@@ -67,6 +71,7 @@ struct AppRootView: View {
         ZStack {
             routeContent
         }
+        .id(layoutDirection)
         .animation(.spring(response: 0.32, dampingFraction: 0.86), value: route)
         .preferredColorScheme(preferredColorScheme)
         .environment(\.locale, preferencesStore.locale)
@@ -137,35 +142,39 @@ struct AppRootView: View {
                 onCreateWallet: { Task { await createAccountFromOnboarding() } },
                 onLogin: { Task { await signInFromOnboarding() } },
             )
-        case .main:
+        default:
             mainTabView
+        }
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: AppRootDestination) -> some View {
+        switch destination {
         case .profile:
             ProfileView(
                 eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
                 accountService: appSessionFlowService.accountService,
                 ensService: ensService,
                 aaExecutionService: aaExecutionService,
-                onBack: { returnToMain() },
+                imageStorageService: ProfileImageStorageService(),
+                commitRevealStore: ENSCommitRevealStore(),
+                ensProfileCache: ensProfileCache,
+                preferencesStore: preferencesStore,
+                currencyRateStore: currencyRateStore,
             )
-            .transition(AppAnimation.slideTransition)
         case .preferences:
             PreferencesView(
                 preferencesStore: preferencesStore,
-                onBack: { returnToMain() },
             )
-            .transition(AppAnimation.slideTransition)
         case .addressBook:
             AddressBookView(
                 eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
                 store: beneficiaryStore,
                 ensService: ensService,
-                onBack: { returnToMain() },
             )
-            .transition(AppAnimation.slideTransition)
         case .receive:
             ReceiveView(
                 address: currentEOA ?? "0x0000000000000000000000000000000000000000",
-                onBack: { returnToMain() },
             )
         case .sendMoney:
             if let accumulatorAddress = currentAccumulatorAddress {
@@ -178,7 +187,6 @@ struct AppRootView: View {
                     currencyRateStore: currencyRateStore,
                     sendFlowService: sendFlowService,
                     ensService: ensService,
-                    onBack: { returnToMain() },
                 )
             } else {
                 Color.clear
@@ -198,43 +206,35 @@ struct AppRootView: View {
         case .walletBackup:
             WalletBackupView(
                 mnemonic: walletBackupMnemonic,
-                onBack: { returnToMain() },
             )
-            .transition(AppAnimation.slideTransition)
         }
     }
 
     private var mainTabs: some View {
         TabView(selection: $selectedMainTab) {
-            Tab(value: MainTab.home) {
-                HomeView(
-                    balanceStore: balanceStore,
-                    preferencesStore: preferencesStore,
-                    currencyRateStore: currencyRateStore,
-                    onSignOut: {
-                        signOutAndNavigateToOnboarding()
-                    },
-                    onAddMoney: {
-                        openReceive()
-                    },
-                    onSendMoney: {
-                        openSendMoneyIfReady()
-                    },
-                    onProfileTap: {
-                        openProfile()
-                    },
-                    onPreferencesTap: {
-                        openPreferences()
-                    },
-                    onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
-                    onAddressBookTap: {
-                        openAddressBook()
-                    },
-                    onRefreshWallet: {
-                        await requestWalletRefresh(useSilentRefresh: true)
-                    },
-                    showWalletBackup: hasLocalWalletMaterial,
-                )
+            Tab(value: AppRootMainTab.home) {
+                NavigationStack(path: $navigationPath) {
+                    HomeView(
+                        balanceStore: balanceStore,
+                        preferencesStore: preferencesStore,
+                        currencyRateStore: currencyRateStore,
+                        onSignOut: signOutAndNavigateToOnboarding,
+                        onAddMoney: openReceive,
+                        onSendMoney: openSendMoneyIfReady,
+                        onProfileTap: openProfile,
+                        onPreferencesTap: openPreferences,
+                        onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
+                        onAddressBookTap: openAddressBook,
+                        onRefreshWallet: {
+                            await requestWalletRefresh(useSilentRefresh: true)
+                        },
+                        showWalletBackup: hasLocalWalletMaterial,
+                    )
+                    .navigationDestination(for: AppRootDestination.self) { destination in
+                        destinationView(for: destination)
+                    }
+                }
+                .toolbar(tabBarVisibility, for: .tabBar)
             } label: {
                 Label {
                     Text("bottom_nav_home")
@@ -244,7 +244,7 @@ struct AppRootView: View {
                 }
             }
 
-            Tab(value: MainTab.transactions) {
+            Tab(value: AppRootMainTab.transactions) {
                 TransactionsView(
                     balanceStore: balanceStore,
                     transactionStore: transactionStore,
@@ -259,17 +259,6 @@ struct AppRootView: View {
                         .renderingMode(.template)
                 }
             }
-
-//            Tab(value: MainTab.sessionKey) {
-//                SessionKeyView()
-//            } label: {
-//                Label {
-//                    Text("bottom_nav_session_key")
-//                } icon: {
-//                    Image("Icons/key_01")
-//                        .renderingMode(.template)
-//                }
-//            }
         }
         .tint(AppThemeColor.accentBrown)
         .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: tabChangeTrigger) { _, _ in
@@ -277,7 +266,14 @@ struct AppRootView: View {
         }
     }
 
-    @MainActor
+    private var tabBarVisibility: Visibility {
+        if route != .main {
+            return .hidden
+        }
+
+        return navigationPath.isEmpty ? .visible : .hidden
+    }
+
     private func createAccountFromOnboarding() async {
         guard onboardingAction == nil else { return }
         onboardingAction = .createWallet
@@ -293,6 +289,7 @@ struct AppRootView: View {
         restoreCachedWalletState(walletAddress: sessionState.eoaAddress)
         selectedMainTab = .home
         route = .main
+        navigationPath = NavigationPath()
 
         await appSessionFlowService.triggerFaucetIfNeeded(
             walletAddress: sessionState.eoaAddress,
@@ -301,7 +298,6 @@ struct AppRootView: View {
         scheduleWalletRefresh(useSilentRefresh: false)
     }
 
-    @MainActor
     private func signInFromOnboarding() async {
         guard onboardingAction == nil else { return }
         onboardingAction = .signIn
@@ -317,6 +313,7 @@ struct AppRootView: View {
         restoreCachedWalletState(walletAddress: sessionState.eoaAddress)
         selectedMainTab = .home
         route = .main
+        navigationPath = NavigationPath()
 
         await appSessionFlowService.triggerFaucetIfNeeded(
             walletAddress: sessionState.eoaAddress,
@@ -325,7 +322,6 @@ struct AppRootView: View {
         scheduleWalletRefresh(useSilentRefresh: false)
     }
 
-    @MainActor
     private func showOnboardingError() async {
         onboardingFailed = true
         try? await Task.sleep(for: .seconds(1.5))
@@ -333,16 +329,18 @@ struct AppRootView: View {
         onboardingFailed = false
     }
 
-    @MainActor
     private func openWalletBackupIfAvailable() async {
-        guard let mnemonic = await appSessionFlowService.backupMnemonicIfAvailable(
-            eoaAddress: currentEOA,
-            hasLocalWalletMaterial: hasLocalWalletMaterial,
-        ) else {
+        guard
+            let mnemonic = await appSessionFlowService.backupMnemonicIfAvailable(
+                eoaAddress: currentEOA,
+                hasLocalWalletMaterial: hasLocalWalletMaterial,
+            )
+        else {
             return
         }
         walletBackupMnemonic = mnemonic
-        route = .walletBackup
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.walletBackup)
     }
 
     private var layoutDirection: LayoutDirection {
@@ -370,14 +368,16 @@ struct AppRootView: View {
     private func refreshCurrentWalletData(useSilentRefresh: Bool) async {
         guard let walletAddress = currentEOA else { return }
 
-        guard let accumulatorAddress = await walletDataFlowService.refresh(
-            walletAddress: walletAddress,
-            fallbackAccumulatorAddress: currentAccumulatorAddress,
-            appSessionFlowService: appSessionFlowService,
-            balanceStore: balanceStore,
-            transactionStore: transactionStore,
-            useSilentRefresh: useSilentRefresh,
-        ) else {
+        guard
+            let accumulatorAddress = await walletDataFlowService.refresh(
+                walletAddress: walletAddress,
+                fallbackAccumulatorAddress: currentAccumulatorAddress,
+                appSessionFlowService: appSessionFlowService,
+                balanceStore: balanceStore,
+                transactionStore: transactionStore,
+                useSilentRefresh: useSilentRefresh,
+            )
+        else {
             return
         }
 
@@ -415,6 +415,7 @@ struct AppRootView: View {
             hasLocalWalletMaterial = false
             withAnimation(AppAnimation.standard) {
                 route = .onboarding
+                navigationPath = NavigationPath()
             }
         case let .activeSession(sessionState):
             applySessionState(sessionState)
@@ -422,8 +423,15 @@ struct AppRootView: View {
             withAnimation(AppAnimation.standard) {
                 selectedMainTab = .home
                 route = .main
+                navigationPath = NavigationPath()
             }
             scheduleWalletRefresh(useSilentRefresh: false)
+            Task {
+                await ensService.prefetchProfile(
+                    eoaAddress: sessionState.eoaAddress,
+                    cache: ensProfileCache,
+                )
+            }
         }
     }
 
@@ -437,6 +445,14 @@ struct AppRootView: View {
         withAnimation(AppAnimation.standard) {
             selectedMainTab = .home
             route = .main
+            navigationPath = NavigationPath()
+        }
+    }
+
+    private func navigateToMainIfNeeded() {
+        if route != .main {
+            route = .main
+            navigationPath = NavigationPath()
         }
     }
 
@@ -448,6 +464,7 @@ struct AppRootView: View {
         withAnimation(AppAnimation.standard) {
             selectedMainTab = .home
             route = .onboarding
+            navigationPath = NavigationPath()
         }
     }
 
@@ -464,7 +481,9 @@ struct AppRootView: View {
         let decoder = JSONDecoder()
 
         if let balanceSnapshot = cacheEntry.balanceSnapshot,
-           let decodedBalance = try? decoder.decode(BalanceStoreSnapshotModel.self, from: balanceSnapshot)
+           let decodedBalance = try? decoder.decode(
+               BalanceStoreSnapshotModel.self, from: balanceSnapshot,
+           )
         {
             balanceStore.restore(from: decodedBalance)
         }
@@ -520,28 +539,32 @@ struct AppRootView: View {
 
     private func openReceive() {
         selectedMainTab = .home
-        route = .receive
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.receive)
     }
 
     private func openSendMoneyIfReady() {
-        guard currentAccumulatorAddress != nil else { return }
         selectedMainTab = .home
-        route = .sendMoney
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.sendMoney)
     }
 
     private func openProfile() {
         selectedMainTab = .home
-        route = .profile
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.profile)
     }
 
     private func openPreferences() {
         selectedMainTab = .home
-        route = .preferences
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.preferences)
     }
 
     private func openAddressBook() {
         selectedMainTab = .home
-        route = .addressBook
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.addressBook)
     }
 }
 

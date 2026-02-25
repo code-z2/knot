@@ -23,7 +23,7 @@ struct AddAddressAddressDropdownView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 182)
+                .frame(maxHeight: .infinity)
             }
         }
     }

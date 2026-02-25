@@ -9,11 +9,11 @@ enum TransactionVariant: Hashable {
         case .received:
             "arrow.down"
         case .sent:
-            "arrow.up.right"
+            "paperplane"
         case .contract:
-            "square.grid.2x2"
-        case .multichain:
             "wallet.pass"
+        case .multichain:
+            "arrow.trianglehead.merge"
         }
     }
 }

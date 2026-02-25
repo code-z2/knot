@@ -6,11 +6,6 @@ import SwiftUI
 import Transactions
 
 struct SendMoneyView: View {
-    enum StepNavigationDirection {
-        case forward
-        case backward
-    }
-
     let eoaAddress: String
     let accumulatorAddress: String
     let store: BeneficiaryStore
@@ -19,9 +14,13 @@ struct SendMoneyView: View {
     let currencyRateStore: CurrencyRateStore
     let sendFlowService: SendFlowService
     let ensService: ENSService
-    var onBack: () -> Void = {}
     var onContinue: (SendMoneyDraft) -> Void = { _ in }
-    @Environment(\.openURL) var openURL
+
+    @Environment(\.dismiss)
+    var dismiss
+
+    @Environment(\.openURL)
+    var openURL
 
     init(
         eoaAddress: String,
@@ -32,7 +31,6 @@ struct SendMoneyView: View {
         currencyRateStore: CurrencyRateStore,
         sendFlowService: SendFlowService,
         ensService: ENSService,
-        onBack: @escaping () -> Void = {},
         onContinue: @escaping (SendMoneyDraft) -> Void = { _ in },
     ) {
         self.eoaAddress = eoaAddress
@@ -43,66 +41,112 @@ struct SendMoneyView: View {
         self.currencyRateStore = currencyRateStore
         self.sendFlowService = sendFlowService
         self.ensService = ensService
-        self.onBack = onBack
         self.onContinue = onContinue
     }
 
     @State var beneficiaries: [Beneficiary] = []
+
     @State var errorMessage: String?
 
     @State var activeField: SendMoneyField?
+
     @State var addressQuery = ""
+
     @State var chainQuery = ""
+
     @State var assetQuery = ""
 
     @State var selectedBeneficiary: Beneficiary?
+
     @State var selectedChain: ChainOption?
+
     @State var selectedAsset: TokenBalanceModel?
+
     @State var finalizedAddressValue: String?
 
     @State var isAddressInputFocused = false
+
     @State var isChainInputFocused = false
+
     @State var isAssetInputFocused = false
+
     @State var addressDetectionTask: Task<Void, Never>?
+
     @State var addressValidationState: AddressValidationState = .idle
+
     @State var ensResolvedAddress: String?
+
     @State var addressValidationTask: Task<Void, Never>?
+
     @State var isShowingScanner = false
-    @State var step: SendMoneyStep = .recipient
-    @State var stepNavigationDirection: StepNavigationDirection = .forward
 
     @State var amountInput = ""
+
     @State var isAmountDisplayInverted = false
+
     @State var selectedSpendAsset: TokenBalanceModel?
+
     @State var isShowingSpendAssetPicker = false
+
     @State var spendAssetQuery = ""
+
     @State var amountButtonState: AppButtonVisualState = .normal
+
     @State var amountActionTask: Task<Void, Never>?
 
-    // Route resolution state
     @State var currentRoute: TransferRouteModel?
+
     @State var routeError: RouteError?
+
     @State var isRoutingInProgress = false
+
     @State var routeDebounceTask: Task<Void, Never>?
+
     @State var errorResetTask: Task<Void, Never>?
+
     @State var txHash: String?
+
     @State var executionResult: SendExecutionResultModel?
 
-    // Haptic triggers
+    @State var pendingConfirmation: TransactionConfirmationModel?
+
     @State var keypadHapticTrigger = 0
+
     @State var successHapticTrigger = 0
+
     @State var errorHapticTrigger = 0
+
     @State var selectionHapticTrigger = 0
+
+    @State var showAmountStep = false
+
+    @State var showSuccessStep = false
 
     var body: some View {
         contentWithInteractions
+            .navigationDestination(isPresented: $showAmountStep) {
+                amountStepContent
+                    .appNavigation(
+                        titleKey: "send_money_enter_amount_title",
+                        displayMode: .inline,
+                        hidesBackButton: false,
+                    )
+            }
+            .navigationDestination(isPresented: $showSuccessStep) {
+                successStepContent
+                    .appNavigation(
+                        titleKey: "",
+                        displayMode: .inline,
+                        hidesBackButton: false,
+                    )
+            }
     }
 
     var baseContent: some View {
         ZStack {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
-            activeStepContent
+            recipientStepContent
 
             if let errorMessage {
                 toast(message: errorMessage)
@@ -111,16 +155,13 @@ struct SendMoneyView: View {
                     .padding(.horizontal, AppSpacing.lg)
             }
         }
-        .animation(AppAnimation.standard, value: step)
+        .animation(AppAnimation.standard, value: currentStep)
         .animation(AppAnimation.spring, value: errorMessage)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            AppHeader(
-                title: headerTitle,
-                titleFont: .custom("Roboto-Bold", size: 22),
-                titleColor: AppThemeColor.labelSecondary,
-                onBack: handleHeaderBack,
-            )
-        }
+        .appNavigation(
+            titleKey: "send_money_title",
+            displayMode: .inline,
+            hidesBackButton: false,
+        )
     }
 
     var contentWithInteractions: some View {
@@ -132,7 +173,7 @@ struct SendMoneyView: View {
             .task {
                 await reload()
                 selectedSpendAsset = selectedAsset
-                if step == .recipient {
+                if currentStep == .recipient {
                     focusFirstIncompleteField()
                 }
             }
@@ -160,17 +201,17 @@ struct SendMoneyView: View {
     var contentWithAmountObservers: some View {
         contentWithRecipientObservers
             .onChange(of: selectedAsset?.id) { _, _ in
-                if step == .recipient {
+                if currentStep == .recipient {
                     selectedSpendAsset = selectedAsset
                 }
             }
             .onChange(of: amountInput) { _, _ in
-                if step == .amount {
+                if currentStep == .amount {
                     resolveRoute()
                 }
             }
             .onChange(of: selectedSpendAsset?.id) { _, _ in
-                if step == .amount {
+                if currentStep == .amount {
                     resolveRoute()
                 }
             }
@@ -207,6 +248,9 @@ struct SendMoneyView: View {
                     spendAssetModal
                 }
             }
+            .sheet(item: $pendingConfirmation) { model in
+                TransactionConfirmationSheet(model: model)
+            }
     }
 
     var contentWithHaptics: some View {
@@ -214,7 +258,8 @@ struct SendMoneyView: View {
             .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: keypadHapticTrigger) { _, _ in
                 preferencesStore.hapticsEnabled
             }
-            .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionHapticTrigger) { _, _ in
+            .sensoryFeedback(AppHaptic.selection.sensoryFeedback, trigger: selectionHapticTrigger) {
+                _, _ in
                 preferencesStore.hapticsEnabled
             }
             .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successHapticTrigger) { _, _ in
@@ -224,31 +269,19 @@ struct SendMoneyView: View {
                 preferencesStore.hapticsEnabled
             }
     }
-
-    @ViewBuilder
-    var activeStepContent: some View {
-        if step == .recipient {
-            recipientStepContent
-                .transition(stepTransition)
-        } else if step == .amount {
-            amountStepContent
-                .transition(stepTransition)
-        } else {
-            successStepContent
-                .transition(stepTransition)
-        }
-    }
 }
 
 #Preview {
-    SendMoneyView(
-        eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
-        accumulatorAddress: "0x0abf3f4d31f17df16e654f8f0e8a0c9f1b2e3d4c",
-        store: BeneficiaryStore(),
-        balanceStore: BalanceStore(),
-        preferencesStore: PreferencesStore(),
-        currencyRateStore: CurrencyRateStore(),
-        sendFlowService: SendFlowService(),
-        ensService: ENSService(),
-    )
+    NavigationStack {
+        SendMoneyView(
+            eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
+            accumulatorAddress: "0x0abf3f4d31f17df16e654f8f0e8a0c9f1b2e3d4c",
+            store: BeneficiaryStore(),
+            balanceStore: BalanceStore(),
+            preferencesStore: PreferencesStore(),
+            currencyRateStore: CurrencyRateStore(),
+            sendFlowService: SendFlowService(),
+            ensService: ENSService(),
+        )
+    }
 }

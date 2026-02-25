@@ -67,6 +67,16 @@ final class ENSService {
         }
     }
 
+    nonisolated static func ensLabel(_ value: String) -> String {
+        ENSClient.ethLabel(from: value)
+    }
+
+    nonisolated static func canonicalENSName(_ value: String) -> String {
+        let label = ensLabel(value)
+        guard !label.isEmpty else { return "" }
+        return ENSClient.normalizedENSName("\(label).eth")
+    }
+
     func resolveName(name: String) async throws -> String {
         do {
             return try await withRetry {
@@ -97,12 +107,12 @@ final class ENSService {
         initialRecords: [ENSRecordDraft] = [],
         duration: UInt = 31_536_000,
     ) async throws -> ENSRegistrationPayloads {
-        print("⚙️ [ENSService] Resolving ENS Registration Payloads for \(name)")
+        let label = Self.ensLabel(name)
         do {
             let result = try await withRetry {
                 try await self.client.registerName(
                     RegisterNameRequestModel(
-                        name: name,
+                        name: label,
                         ownerAddress: ownerAddress,
                         duration: duration,
                         initialTextRecords: initialRecords.map {
@@ -111,9 +121,6 @@ final class ENSService {
                     ),
                 )
             }
-            print("✅ [ENSService] Payloads determined.")
-            print("   - Commit Call Value (Wei): \(result.commitCall.valueWei)")
-            print("   - Register Call Value (Wei): \(result.registerCall.valueWei)")
             return ENSRegistrationPayloads(
                 commitCall: result.commitCall,
                 registerCall: result.registerCall,
@@ -129,11 +136,12 @@ final class ENSService {
         key: String,
         value: String,
     ) async throws -> Call {
+        let canonicalName = Self.canonicalENSName(name)
         do {
             return try await withRetry {
                 try await self.client.setTextRecord(
                     TextRecordRequestModel(
-                        name: name,
+                        name: canonicalName,
                         recordKey: key,
                         recordValue: value,
                     ),
@@ -148,14 +156,41 @@ final class ENSService {
         name: String,
         key: String,
     ) async throws -> String {
+        let canonicalName = Self.canonicalENSName(name)
         do {
             return try await withRetry {
                 try await self.client.textRecord(
-                    TextRecordRequestModel(name: name, recordKey: key),
+                    TextRecordRequestModel(name: canonicalName, recordKey: key),
                 )
             }
         } catch {
             throw ENSServiceError.actionFailed(error)
+        }
+    }
+
+    func prefetchProfile(eoaAddress: String, cache: ENSProfileCache) async {
+        do {
+            let resolvedName = try await reverseAddress(address: eoaAddress)
+            let label = Self.ensLabel(resolvedName)
+            let fullName = Self.canonicalENSName(resolvedName)
+            guard !label.isEmpty, !fullName.isEmpty else { return }
+
+            var avatar = ""
+            var bio = ""
+
+            if let avatarRecord = try? await textRecord(name: fullName, key: "avatar") {
+                avatar = avatarRecord.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if let descriptionRecord = try? await textRecord(name: fullName, key: "description") {
+                bio = descriptionRecord
+            }
+
+            cache.save(
+                CachedENSProfileModel(name: label, avatarURL: avatar, bio: bio, updatedAt: Date()),
+                for: eoaAddress,
+            )
+        } catch {
+            // Pre-warm is best-effort; ignore errors
         }
     }
 

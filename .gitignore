@@ -24,6 +24,7 @@ DerivedData/
 *.xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
+IDEFindNavigatorScopes.plist
 
 # Foundry
 contracts/cache/

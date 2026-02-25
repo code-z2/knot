@@ -173,3 +173,25 @@
 "transaction_receipt_type_approval" = "Approvazione token";
 "transaction_receipt_contract_ens_registrar" = "Registro ENS";
 "transaction_receipt_contract_ens_resolver" = "Resolver pubblico ENS";
+
+"transaction_chain_unknown" = "Unknown";
+"transaction_route_label" = "Route";
+"transaction_route_step_transfer" = "Transfer";
+"transaction_route_step_swap" = "Swap";
+"transaction_route_step_bridge" = "Bridge";
+"transaction_route_step_accumulate" = "Bridge";
+
+"transaction_type_transfer" = "Transfer";
+"transaction_type_ens_register" = "ENS - Name Registration";
+"transaction_type_ens_update" = "ENS - Profile Update";
+"search_dismiss_accessibility" = "Dismiss search";
+"profile_edit_photo" = "Edit Photo";
+"profile_ens_disclosure_text" = "Your ENS name is visible on the blockchain. Including your text records, i.e photo and bio.";
+"send_money_route_finding" = "Finding best route...";
+"send_money_route_not_found_format" = "No route found: %@";
+"send_money_route_provider_unavailable_format" = "%@ quote unavailable";
+"send_money_route_unsupported_chain" = "Unsupported chain";
+"send_money_route_unsupported_asset" = "Unsupported asset";
+"send_money_route_summary_format" = "Route: %@. Recipient gets %@ %@";
+"send_money_destination_submitted" = "Destination submitted. Remaining chain intents are deferred until accumulator fill completes.";
+"send_money_parallel_submissions" = "Submitted. Additional chain submissions are processing in parallel.";
