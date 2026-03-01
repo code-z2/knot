@@ -4,10 +4,9 @@ import {
   type SendTransactionParameters,
   type Status,
 } from "@gelatocloud/gasless";
-import type { Address } from "viem";
+import { zeroAddress } from "viem";
 
 import { BadRequestError } from "../errors";
-import { parsePositiveInt } from "../utils";
 
 import { estimateRelayRequestGas } from "./gas-estimator";
 import type {
@@ -20,7 +19,6 @@ import type {
 
 type RelayMethod = "relayer_sendTransaction" | "relayer_sendTransactionSync";
 
-const DEFAULT_SYNC_TIMEOUT_MS = 30_000;
 export async function quoteTotalWei(
   txs: readonly RelayTxEnvelopeModel[],
   defaultSupportMode: SupportMode,
@@ -32,12 +30,12 @@ export async function quoteTotalWei(
     const supportMode = tx.supportMode ?? defaultSupportMode;
     const client = getClientForSupportMode(supportMode, env);
     const gas = await estimateRelayRequestGas(tx.chainId, tx.request);
-    
+
     // Always request quote against the NATIVE zero token
     const quote = await client.getFeeQuote({
       chainId: tx.chainId,
       gas,
-      token: "0x0000000000000000000000000000000000000000" as Address, 
+      token: zeroAddress,
     });
     total += quote.fee;
   }
@@ -57,11 +55,7 @@ export async function sendRelayTransaction(
   const id = await client.sendTransaction(payload);
 
   if (method === "relayer_sendTransactionSync") {
-    const timeout = parsePositiveInt(
-      env.GELATO_SYNC_TIMEOUT_MS,
-      DEFAULT_SYNC_TIMEOUT_MS,
-    );
-    const receipt = await client.waitForReceipt({ id }, { timeout });
+    const receipt = await client.waitForReceipt({ id }, { usePolling: true, throwOnReverted: false });
     return { id, transactionHash: receipt.transactionHash };
   }
 

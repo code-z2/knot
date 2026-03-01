@@ -17,6 +17,8 @@
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 		D0F0B0022F35C1A7001A2B3C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0F0B0012F35C1A7001A2B3C /* Localizable.strings */; };
 		D0QRC0022F6A2002001771BB /* QRCode in Frameworks */ = {isa = PBXBuildFile; productRef = D0QRC0012F6A2001001771BB /* QRCode */; };
+		D0NUK0032F8A0003001771BB /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = D0NUK0012F8A0001001771BB /* Nuke */; };
+		D0NUK0042F8A0004001771BB /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = D0NUK0022F8A0002001771BB /* NukeUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,6 +111,8 @@
 				D0EAD1462F338A17003B1EE1 /* AA in Frameworks */,
 				D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */,
 				D0QRC0022F6A2002001771BB /* QRCode in Frameworks */,
+				D0NUK0032F8A0003001771BB /* Nuke in Frameworks */,
+				D0NUK0042F8A0004001771BB /* NukeUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,6 +185,8 @@
 				D0TXN0012F3B0001001771BB /* Transactions */,
 				D0CMP0022F4B0002001771BB /* Compose */,
 				D0QRC0012F6A2001001771BB /* QRCode */,
+				D0NUK0012F8A0001001771BB /* Nuke */,
+				D0NUK0022F8A0002001771BB /* NukeUI */,
 			);
 			productName = knot;
 			productReference = D0EEE96A2F312A96001771BB /* knot.app */;
@@ -290,6 +296,7 @@
 				D0BAL0002F3A0000001771BB /* XCLocalSwiftPackageReference "../../packages/balance" */,
 				D0CMP0002F4B0000001771BB /* XCLocalSwiftPackageReference "../../packages/compose" */,
 				D0QRC0002F6A2000001771BB /* XCRemoteSwiftPackageReference "QRCode" */,
+				D0NUK0002F8A0000001771BB /* XCRemoteSwiftPackageReference "Nuke" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D0EEE96B2F312A96001771BB /* Products */;
@@ -754,6 +761,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		D0NUK0002F8A0000001771BB /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
 		D0QRC0002F6A2000001771BB /* XCRemoteSwiftPackageReference "QRCode" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/dagronf/QRCode.git";
@@ -784,6 +799,16 @@
 		D0EEE9C22F3145FD001771BB /* AccountSetup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AccountSetup;
+		};
+		D0NUK0012F8A0001001771BB /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D0NUK0002F8A0000001771BB /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		D0NUK0022F8A0002001771BB /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D0NUK0002F8A0000001771BB /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeUI;
 		};
 		D0QRC0012F6A2001001771BB /* QRCode */ = {
 			isa = XCSwiftPackageProductDependency;

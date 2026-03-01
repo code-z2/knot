@@ -51,3 +51,5 @@ dist/
 .bun-cache
 .bun-tmp
 .swiftpm/
+
+localization_audit.py

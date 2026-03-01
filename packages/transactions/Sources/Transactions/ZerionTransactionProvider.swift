@@ -208,16 +208,14 @@ public actor ZerionTransactionProvider {
         }
 
         let operationType = (item.attributes.operationType ?? "").lowercased()
+        let transfers = item.attributes.transfers ?? []
 
-        let transfer = selectPrimaryTransfer(
-            transfers: item.attributes.transfers ?? [],
-        )
+        let incomingTransfer = selectPrimaryTransfer(transfers: transfers, preferredDirection: "in")
+        let outgoingTransfer = selectPrimaryTransfer(transfers: transfers, preferredDirection: "out")
+        let anyTransfer = selectPrimaryTransfer(transfers: transfers)
 
-        let tokenSymbol = transfer?.symbol
-            ?? item.attributes.fee?.fungibleInfo?.symbol
-            ?? chainDefinition.assetName.uppercased()
-        let amountText = transfer?.amountText ?? ""
-        let valueQuoteUSD = transfer?.valueUSD ?? 0
+        let hasIncomingTransfer = hasTransfer(in: transfers, direction: "in")
+        let hasOutgoingTransfer = hasTransfer(in: transfers, direction: "out")
 
         let variant: TransactionRecordVariant = if let accumulatorAddress,
                                                    from == accumulatorAddress,
@@ -225,13 +223,36 @@ public actor ZerionTransactionProvider {
                                                    ["send", "trade", "execute", "withdraw"].contains(operationType)
         {
             .multichain
-        } else if operationType == "receive" || (ownedAddresses.contains(to) && !ownedAddresses.contains(from)) {
+        } else if hasIncomingTransfer, hasOutgoingTransfer {
+            .contract
+        } else if operationType == "receive", hasIncomingTransfer {
             .received
-        } else if operationType == "send" || ownedAddresses.contains(from) {
-            .sent
+        } else if operationType == "send", hasOutgoingTransfer {
+            .transfer
+        } else if !operationType.isEmpty {
+            .contract
+        } else if hasIncomingTransfer {
+            .received
+        } else if hasOutgoingTransfer {
+            .transfer
         } else {
             .contract
         }
+
+        let primaryTransfer: PrimaryTransfer? = switch variant {
+        case .received:
+            incomingTransfer ?? anyTransfer
+        case .transfer:
+            outgoingTransfer ?? anyTransfer
+        case .contract, .multichain:
+            anyTransfer
+        }
+
+        let tokenSymbol = primaryTransfer?.symbol
+            ?? item.attributes.fee?.fungibleInfo?.symbol
+            ?? chainDefinition.assetName.uppercased()
+        let amountText = primaryTransfer?.amountText ?? ""
+        let valueQuoteUSD = primaryTransfer?.valueUSD ?? 0
 
         let feeUSD = computeFeeUSD(item.attributes.fee)
 
@@ -276,8 +297,19 @@ public actor ZerionTransactionProvider {
 
     private func selectPrimaryTransfer(
         transfers: [ZerionTransactionTransfer],
+        preferredDirection: String? = nil,
     ) -> PrimaryTransfer? {
-        guard let transfer = transfers.first else {
+        let matchingTransfers = if let preferredDirection {
+            transfers.filter { ($0.direction?.lowercased() ?? "") == preferredDirection.lowercased() }
+        } else {
+            transfers
+        }
+
+        guard let transfer = matchingTransfers.first(where: { transfer in
+            let quantity = transfer.quantity?.decimalValue ?? 0
+            let symbol = transfer.fungibleInfo?.symbol?.uppercased() ?? ""
+            return quantity > 0 && !symbol.isEmpty
+        }) else {
             return nil
         }
 
@@ -294,6 +326,17 @@ public actor ZerionTransactionProvider {
             amountText: formatAmount(quantity, symbol: symbol),
             valueUSD: valueUSD,
         )
+    }
+
+    private func hasTransfer(
+        in transfers: [ZerionTransactionTransfer],
+        direction: String,
+    ) -> Bool {
+        transfers.contains { transfer in
+            let transferDirection = transfer.direction?.lowercased() ?? ""
+            let quantity = transfer.quantity?.decimalValue ?? 0
+            return transferDirection == direction && quantity > 0
+        }
     }
 
     private func computeFeeUSD(_ fee: ZerionTransactionFee?) -> Decimal {

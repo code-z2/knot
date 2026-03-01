@@ -169,7 +169,7 @@ public struct AppButton: View {
     private var horizontalPadding: CGFloat {
         switch size {
         case .regular:
-            18
+            14
         case .compact:
             AppSpacing.sm
         }
@@ -178,7 +178,7 @@ public struct AppButton: View {
     private var verticalPadding: CGFloat {
         switch size {
         case .regular:
-            14
+            10
         case .compact:
             AppSpacing.xs
         }
@@ -224,5 +224,4 @@ public struct AppButton: View {
         ) {}
     }
     .padding(AppSpacing.lg)
-    .background(AppThemeColor.fixedDarkSurface)
 }

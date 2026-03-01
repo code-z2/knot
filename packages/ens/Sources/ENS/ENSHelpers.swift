@@ -24,12 +24,33 @@ extension ENSClient {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    public static func ethLabel(from value: String) -> String {
+    public static func ethLabel(from value: String, tld: String) -> String {
         let normalized = normalizedENSName(value)
-        if normalized.hasSuffix(".eth") {
-            return String(normalized.dropLast(4))
+        let suffix = tld
+        if normalized.hasSuffix(suffix) {
+            return String(normalized.dropLast(suffix.count))
         }
         return normalized
+    }
+
+    public static func canonicalENSName(_ value: String, tld: String) -> String {
+        let label = ethLabel(from: value, tld: tld)
+        guard !label.isEmpty else { return "" }
+        return normalizedENSName("\(label)\(tld)")
+    }
+
+    static func registrationLabelAndNodeName(
+        from value: String,
+        tld: String,
+    ) throws -> (label: String, nodeName: String) {
+        let label = ethLabel(from: value, tld: tld)
+        guard !label.isEmpty, !label.contains(".") else {
+            throw ENSError.invalidName
+        }
+
+        let normalizedLabel = normalizedENSName(label)
+        let nodeName = normalizedENSName("\(normalizedLabel)\(tld)")
+        return (normalizedLabel, nodeName)
     }
 
     static func reverseNode(for address: EthereumAddress) -> String {

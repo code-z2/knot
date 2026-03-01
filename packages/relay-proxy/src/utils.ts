@@ -57,20 +57,6 @@ export function randomHex(bytes: number): string {
     .join("");
 }
 
-export function parseBigint(value: string): bigint {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) {
-    return 0n;
-  }
-  if (normalized.startsWith("0x")) {
-    return BigInt(normalized);
-  }
-  if (/^-?\d+$/.test(normalized)) {
-    return BigInt(normalized);
-  }
-  throw new BadRequestError(`Cannot parse bigint value: ${value}`);
-}
-
 export function parseBoundedInteger(
   value: string,
   min: number,
@@ -86,17 +72,6 @@ export function parseBoundedInteger(
     return fallback;
   }
   return rounded;
-}
-
-export function parsePositiveInt(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return Math.floor(parsed);
 }
 
 export function normalizeAddress(value: string): string {
@@ -119,7 +94,7 @@ export function parseUsdToWei(value: string): bigint {
   if (!trimmed) {
     return 0n;
   }
-  
+
   if (trimmed.startsWith("-")) {
     const positivePart = trimmed.slice(1);
     try {
@@ -134,27 +109,6 @@ export function parseUsdToWei(value: string): bigint {
   } catch {
     return 0n;
   }
-}
-
-
-
-export function pickString(dict: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const value = dict[key];
-    if (typeof value === "string" && value.trim() !== "") {
-      return value;
-    }
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return String(value);
-    }
-    if (value && typeof value === "object") {
-      const nested = pickString(value as Record<string, unknown>, keys);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-  return null;
 }
 
 export async function authorizeRequest(request: Request, env: Env, rawBody: string): Promise<void> {

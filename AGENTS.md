@@ -66,3 +66,9 @@
 - **Swift App Architecture**: SwiftUI expert skills
 - **Node Package Manager**: Bun Development
 - **Typescript Typing**: Typescript Advanced Types
+
+## Localization Discipline
+
+- Follow `/Users/peter/Developer/knot/.agents/rules/localization-practices.md` for all user-facing text work.
+- Run localization audit before finalizing localization edits:
+  - `python3 /Users/peter/Developer/knot/apps/ios/scripts/localization_audit.py --root /Users/peter/Developer/knot`

@@ -56,3 +56,19 @@
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimat Impact**: Changes should only touch what's necessary. Avoid introducing bugs
+
+## Core Skills
+
+- **Swift**: Swift Coding Guidelines
+- **SwiftUI**: SwiftUI Coding Guidelines
+- **Swift Concurrency**: Swift Concurrency Expert
+- **UI Principles**: SwiftUI expert skills
+- **Swift App Architecture**: SwiftUI expert skills
+- **Node Package Manager**: Bun Development
+- **Typescript Typing**: Typescript Advanced Types
+
+## Localization Discipline
+
+- Follow `/Users/peter/Developer/knot/.agents/rules/localization-practices.md` for all user-facing text work.
+- Run localization audit before finalizing localization edits:
+  - `python3 /Users/peter/Developer/knot/apps/ios/scripts/localization_audit.py --root /Users/peter/Developer/knot`

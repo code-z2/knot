@@ -5,17 +5,9 @@ import web3swift
 public extension ENSClient {
     func resolveName(_ request: ResolveNameRequestModel) async throws -> String {
         let name = Self.normalizedENSName(request.name)
-        print("[ENSClient] resolveName: normalized=\(name), chainID=\(configuration.chainID)")
         guard !name.isEmpty else { throw ENSError.invalidName }
 
-        let context: ENSResolverContext
-        do {
-            context = try await universalResolverContext(forName: name)
-            print("[ENSClient] got resolver context: resolver=\(context.resolverAddress.address)")
-        } catch {
-            print("[ENSClient] ❌ universalResolverContext failed: \(error)")
-            throw error
-        }
+        let context = try await universalResolverContext(forName: name)
 
         let encodedCall = try makeCallData(
             web3: context.web3,
@@ -24,28 +16,18 @@ public extension ENSClient {
             parameters: [context.nodeHash],
         )
 
-        let resolved: Data
-        do {
-            resolved = try await universalResolve(
-                web3: context.web3,
-                normalizedName: context.normalizedName,
-                callData: encodedCall,
-            )
-            print("[ENSClient] universalResolve returned \(resolved.count) bytes")
-        } catch {
-            print("[ENSClient] ❌ universalResolve failed: \(error)")
-            throw error
-        }
+        let resolved = try await universalResolve(
+            web3: context.web3,
+            normalizedName: context.normalizedName,
+            callData: encodedCall,
+        )
 
         guard let address = Self.abiDecodeAddress(from: resolved) else {
-            print("[ENSClient] ❌ could not decode address from resolved data")
             throw ENSError.ensUnavailable
         }
         guard address.address.lowercased() != Self.zeroAddressHex else {
-            print("[ENSClient] ❌ resolved to zero address")
             throw ENSError.ensUnavailable
         }
-        print("[ENSClient] ✅ resolved \(name) → \(address.address)")
         return address.address
     }
 

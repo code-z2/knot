@@ -6,6 +6,7 @@ final class ENSTests: XCTestCase {
     func testDefaultConfigurationIsSepolia() {
         let client = ENSClient()
         XCTAssertEqual(client.configuration.chainID, 11_155_111)
+        XCTAssertEqual(client.configuration.tld, ".eth")
         XCTAssertEqual(
             client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968",
         )
@@ -20,6 +21,7 @@ final class ENSTests: XCTestCase {
     func testExplicitSepoliaConfigurationMatchesDefault() {
         let client = ENSClient(configuration: .sepolia)
         XCTAssertEqual(client.configuration.chainID, 11_155_111)
+        XCTAssertEqual(client.configuration.tld, ".eth")
         XCTAssertEqual(
             client.configuration.registrarControllerAddress, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968",
         )
@@ -32,8 +34,8 @@ final class ENSTests: XCTestCase {
     }
 
     func testEthLabelRemovesSuffix() {
-        XCTAssertEqual(ENSClient.ethLabel(from: "vitalik.eth"), "vitalik")
-        XCTAssertEqual(ENSClient.ethLabel(from: "vitalik"), "vitalik")
+        XCTAssertEqual(ENSClient.ethLabel(from: "vitalik.eth", tld: ".eth"), "vitalik")
+        XCTAssertEqual(ENSClient.ethLabel(from: "vitalik", tld: ".eth"), "vitalik")
     }
 
     func testReverseNodeFormat() throws {
@@ -47,5 +49,28 @@ final class ENSTests: XCTestCase {
     func testDNSEncodedName() {
         let encoded = ENSClient.dnsEncodedName("vitalik.eth")
         XCTAssertEqual(encoded?.toHexString(), "07766974616c696b0365746800")
+    }
+
+    func testRegistrationLabelAndNodeNameFromLabel() throws {
+        let names = try ENSClient.registrationLabelAndNodeName(from: "javierleon", tld: ".eth")
+        XCTAssertEqual(names.label, "javierleon")
+        XCTAssertEqual(names.nodeName, "javierleon.eth")
+    }
+
+    func testRegistrationLabelAndNodeNameFromEthName() throws {
+        let names = try ENSClient.registrationLabelAndNodeName(from: "javierleon.eth", tld: ".eth")
+        XCTAssertEqual(names.label, "javierleon")
+        XCTAssertEqual(names.nodeName, "javierleon.eth")
+    }
+
+    func testCanonicalNameWithCustomTLD() {
+        XCTAssertEqual(ENSClient.canonicalENSName("javierleon", tld: ".xyz"), "javierleon.xyz")
+        XCTAssertEqual(ENSClient.canonicalENSName("javierleon.xyz", tld: ".xyz"), "javierleon.xyz")
+    }
+
+    func testRegistrationLabelAndNodeNameWithCustomTLD() throws {
+        let names = try ENSClient.registrationLabelAndNodeName(from: "javierleon.xyz", tld: ".xyz")
+        XCTAssertEqual(names.label, "javierleon")
+        XCTAssertEqual(names.nodeName, "javierleon.xyz")
     }
 }
