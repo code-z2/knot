@@ -12,7 +12,7 @@ public extension ENSClient {
         -> NameAvailabilityQuoteModel
     {
         let normalizedName = Self.normalizedENSName(request.name)
-        let label = Self.ethLabel(from: normalizedName)
+        let label = Self.ethLabel(from: normalizedName, tld: configuration.tld)
         guard !label.isEmpty, !label.contains(".") else {
             throw ENSError.invalidName
         }
@@ -67,11 +67,8 @@ public extension ENSClient {
     func registerName(_ request: RegisterNameRequestModel) async throws
         -> RegisterNameResultModel
     {
-        let normalizedName = Self.normalizedENSName(request.name)
-        let label = Self.ethLabel(from: normalizedName)
-        guard !label.isEmpty, !label.contains(".") else {
-            throw ENSError.invalidName
-        }
+        let names = try Self.registrationLabelAndNodeName(from: request.name, tld: configuration.tld)
+        let label = names.label
 
         guard let owner = EthereumAddress(request.ownerAddress) else {
             throw ENSError.invalidAddress(request.ownerAddress)
@@ -84,7 +81,7 @@ public extension ENSClient {
         guard let resolverAddress = EthereumAddress(resolverAddressString) else {
             throw ENSError.invalidAddress(resolverAddressString)
         }
-        guard let nodeHash = NameHash.nameHash(normalizedName) else {
+        guard let nodeHash = NameHash.nameHash(names.nodeName) else {
             throw ENSError.invalidName
         }
 

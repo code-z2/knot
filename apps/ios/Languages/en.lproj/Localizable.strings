@@ -48,13 +48,11 @@
 "wallet_backup_instructions" = "Write the words in the sequence below and keep them safe. Do Not Share!";
 "wallet_backup_secret_phrase" = "Secret Phrase";
 "wallet_backup_copy" = "Copy To Clipboard";
-"onboarding_title" = "Skip Chains\\nJust Pay.";
+"onboarding_title" = "Skip Chains Just Pay.";
 "onboarding_subtitle" = "Agentic payments wallet. Enter an amount and let the wallet juggle between chains for you";
 "onboarding_create_wallet" = "Create Wallet";
 "onboarding_log_in" = "Log In";
-"session_key_title" = "Session Key";
-"session_key_coming_soon" = "Coming Soon";
-"session_key_description" = "Each contactless session key card\\nis a  temporary wallet with\\npermissions to spend from your wallet.\\nYou can customize these permissions\\nafter setup.";
+
 "profile_title" = "Profile";
 "profile_save" = "Save";
 "profile_saving" = "Saving";
@@ -184,7 +182,6 @@
 "transaction_route_step_bridge" = "Bridge";
 "transaction_route_step_accumulate" = "Bridge";
 
-"transaction_type_transfer" = "Transfer";
 "transaction_type_ens_register" = "ENS - Name Registration";
 "transaction_type_ens_update" = "ENS - Profile Update";
 "search_dismiss_accessibility" = "Dismiss search";
@@ -198,3 +195,8 @@
 "send_money_route_summary_format" = "Route: %@. Recipient gets %@ %@";
 "send_money_destination_submitted" = "Destination submitted. Remaining chain intents are deferred until accumulator fill completes.";
 "send_money_parallel_submissions" = "Submitted. Additional chain submissions are processing in parallel.";
+"transaction_type_transfer" = "Transfer";
+"common_delete" = "Delete";
+"profile_success_registered_format" = "%@ registered successfully.";
+"profile_success_registered_updated_format" = "%@ registered and profile updated.";
+"profile_success_updated_profile" = "ENS profile updated.";

@@ -107,7 +107,7 @@ final class TransactionsTests: XCTestCase {
         XCTAssertEqual(page.sections[0].transactions.count, 2)
 
         let byHash = Dictionary(uniqueKeysWithValues: page.sections[0].transactions.map { ($0.txHash, $0) })
-        XCTAssertEqual(byHash["0x01"]?.variant, .sent)
+        XCTAssertEqual(byHash["0x01"]?.variant, .transfer)
         XCTAssertEqual(byHash["0x02"]?.variant, .received)
     }
 
@@ -181,6 +181,257 @@ final class TransactionsTests: XCTestCase {
         XCTAssertEqual(page.sections[0].transactions.count, 1)
         XCTAssertEqual(page.sections[0].transactions[0].variant, .multichain)
         XCTAssertEqual(page.sections[0].transactions[0].multichainRecipient, "0xrecipient")
+    }
+
+    func testFetchTransactionsDoesNotMarkReceiveWithoutIncomingTransferAsReceived() async throws {
+        URLProtocolStub.handler = { request in
+            let payload = """
+            {
+              "data": [
+                {
+                  "id": "contract-like-receive",
+                  "attributes": {
+                    "operation_type": "receive",
+                    "hash": "0x03",
+                    "mined_at_block": 125,
+                    "mined_at": "2026-02-01T08:00:00Z",
+                    "sent_from": "0xrouter",
+                    "sent_to": "0xabc",
+                    "status": "confirmed",
+                    "nonce": 3,
+                    "fee": { "value": "0.1" },
+                    "transfers": [
+                      {
+                        "direction": "out",
+                        "quantity": { "numeric": "0.5" },
+                        "value": "1500",
+                        "fungible_info": { "symbol": "ETH", "name": "Ethereum", "icon": { "url": "https://cdn.zerion.io/eth.png" } }
+                      }
+                    ]
+                  },
+                  "relationships": {
+                    "chain": { "data": { "type": "chains", "id": "sepolia" } }
+                  }
+                }
+              ],
+              "links": { "next": null }
+            }
+            """
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil,
+            )!
+            return (response, Data(payload.utf8))
+        }
+
+        let provider = ZerionTransactionProvider(session: makeStubSession())
+        let page = try await provider.fetchTransactions(
+            walletAddress: "0xabc",
+            accumulatorAddress: nil,
+            transactionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/transactions/",
+            apiKey: "test-key",
+            supportedChainIDs: [11_155_111],
+            includeTestnets: true,
+            cursorAfter: nil,
+            zerionChainMapping: mapping(chainIDs: [11_155_111]),
+        )
+
+        XCTAssertEqual(page.sections.count, 1)
+        XCTAssertEqual(page.sections[0].transactions.count, 1)
+        XCTAssertEqual(page.sections[0].transactions[0].variant, .contract)
+        XCTAssertEqual(page.sections[0].transactions[0].chainId, 11_155_111)
+    }
+
+    func testFetchTransactionsClassifiesIncomingTransferAsReceivedEvenWhenOperationTypeUnknown() async throws {
+        URLProtocolStub.handler = { request in
+            let payload = """
+            {
+              "data": [
+                {
+                  "id": "unknown-op-incoming",
+                  "attributes": {
+                    "operation_type": null,
+                    "hash": "0x04",
+                    "mined_at_block": 126,
+                    "mined_at": "2026-02-01T07:00:00Z",
+                    "sent_from": "0xexternal",
+                    "sent_to": "0xabc",
+                    "status": "confirmed",
+                    "nonce": 4,
+                    "fee": { "value": "0.01" },
+                    "transfers": [
+                      {
+                        "direction": "in",
+                        "quantity": { "numeric": "2" },
+                        "value": "2",
+                        "fungible_info": { "symbol": "USDC", "name": "USDC", "icon": { "url": "https://cdn.zerion.io/usdc.png" } }
+                      }
+                    ]
+                  },
+                  "relationships": {
+                    "chain": { "data": { "type": "chains", "id": "base" } }
+                  }
+                }
+              ],
+              "links": { "next": null }
+            }
+            """
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil,
+            )!
+            return (response, Data(payload.utf8))
+        }
+
+        let provider = ZerionTransactionProvider(session: makeStubSession())
+        let page = try await provider.fetchTransactions(
+            walletAddress: "0xabc",
+            accumulatorAddress: nil,
+            transactionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/transactions/",
+            apiKey: "test-key",
+            supportedChainIDs: [8453],
+            includeTestnets: false,
+            cursorAfter: nil,
+            zerionChainMapping: mapping(chainIDs: [8453]),
+        )
+
+        XCTAssertEqual(page.sections.count, 1)
+        XCTAssertEqual(page.sections[0].transactions.count, 1)
+        XCTAssertEqual(page.sections[0].transactions[0].variant, .received)
+    }
+
+    func testFetchTransactionsClassifiesExecuteWithOutgoingTransferAsContract() async throws {
+        URLProtocolStub.handler = { request in
+            let payload = """
+            {
+              "data": [
+                {
+                  "id": "execute-outgoing",
+                  "attributes": {
+                    "operation_type": "execute",
+                    "hash": "0x05",
+                    "mined_at_block": 127,
+                    "mined_at": "2026-02-01T06:00:00Z",
+                    "sent_from": "0xabc",
+                    "sent_to": "0xdapp",
+                    "status": "confirmed",
+                    "nonce": 5,
+                    "fee": { "value": "0.03" },
+                    "transfers": [
+                      {
+                        "direction": "out",
+                        "quantity": { "numeric": "1.25" },
+                        "value": "1.25",
+                        "fungible_info": { "symbol": "USDC", "name": "USDC", "icon": { "url": "https://cdn.zerion.io/usdc.png" } }
+                      }
+                    ]
+                  },
+                  "relationships": {
+                    "chain": { "data": { "type": "chains", "id": "sepolia" } }
+                  }
+                }
+              ],
+              "links": { "next": null }
+            }
+            """
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil,
+            )!
+            return (response, Data(payload.utf8))
+        }
+
+        let provider = ZerionTransactionProvider(session: makeStubSession())
+        let page = try await provider.fetchTransactions(
+            walletAddress: "0xabc",
+            accumulatorAddress: nil,
+            transactionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/transactions/",
+            apiKey: "test-key",
+            supportedChainIDs: [11_155_111],
+            includeTestnets: true,
+            cursorAfter: nil,
+            zerionChainMapping: mapping(chainIDs: [11_155_111]),
+        )
+
+        XCTAssertEqual(page.sections.count, 1)
+        XCTAssertEqual(page.sections[0].transactions.count, 1)
+        XCTAssertEqual(page.sections[0].transactions[0].variant, .contract)
+    }
+
+    func testFetchTransactionsClassifiesSwapLikeReceiveWithInAndOutAsContract() async throws {
+        URLProtocolStub.handler = { request in
+            let payload = """
+            {
+              "data": [
+                {
+                  "id": "swap-like-receive",
+                  "attributes": {
+                    "operation_type": "receive",
+                    "hash": "0x06",
+                    "mined_at_block": 128,
+                    "mined_at": "2026-02-01T05:00:00Z",
+                    "sent_from": "0xrouter",
+                    "sent_to": "0xabc",
+                    "status": "confirmed",
+                    "nonce": 6,
+                    "fee": { "value": "0.02" },
+                    "transfers": [
+                      {
+                        "direction": "out",
+                        "quantity": { "numeric": "1000" },
+                        "value": "1000",
+                        "fungible_info": { "symbol": "USDC", "name": "USDC", "icon": { "url": "https://cdn.zerion.io/usdc.png" } }
+                      },
+                      {
+                        "direction": "in",
+                        "quantity": { "numeric": "0.4" },
+                        "value": "1200",
+                        "fungible_info": { "symbol": "ETH", "name": "Ethereum", "icon": { "url": "https://cdn.zerion.io/eth.png" } }
+                      }
+                    ]
+                  },
+                  "relationships": {
+                    "chain": { "data": { "type": "chains", "id": "sepolia" } }
+                  }
+                }
+              ],
+              "links": { "next": null }
+            }
+            """
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil,
+            )!
+            return (response, Data(payload.utf8))
+        }
+
+        let provider = ZerionTransactionProvider(session: makeStubSession())
+        let page = try await provider.fetchTransactions(
+            walletAddress: "0xabc",
+            accumulatorAddress: nil,
+            transactionsAPIURL: "https://api.zerion.io/v1/wallets/{walletAddress}/transactions/",
+            apiKey: "test-key",
+            supportedChainIDs: [11_155_111],
+            includeTestnets: true,
+            cursorAfter: nil,
+            zerionChainMapping: mapping(chainIDs: [11_155_111]),
+        )
+
+        XCTAssertEqual(page.sections.count, 1)
+        XCTAssertEqual(page.sections[0].transactions.count, 1)
+        XCTAssertEqual(page.sections[0].transactions[0].variant, .contract)
     }
 
     func testFetchTransactionsCanIncludeTrashWhenRequested() async throws {

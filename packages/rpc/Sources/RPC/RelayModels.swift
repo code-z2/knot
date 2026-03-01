@@ -123,22 +123,22 @@ public struct RelaySubmitResultModel: Sendable, Decodable, Equatable {
     public struct Accounting: Sendable, Decodable, Equatable {
         public let supportMode: String
 
-        public let estimatedDebitUsdc: String
+        public let estimatedDebitNative: String
 
-        public let balanceBeforeUsdc: String
+        public let balanceBeforeNative: String
 
-        public let balanceAfterUsdc: String
+        public let balanceAfterNative: String
 
         public init(
             supportMode: String,
-            estimatedDebitUsdc: String,
-            balanceBeforeUsdc: String,
-            balanceAfterUsdc: String,
+            estimatedDebitNative: String,
+            balanceBeforeNative: String,
+            balanceAfterNative: String,
         ) {
             self.supportMode = supportMode
-            self.estimatedDebitUsdc = estimatedDebitUsdc
-            self.balanceBeforeUsdc = balanceBeforeUsdc
-            self.balanceAfterUsdc = balanceAfterUsdc
+            self.estimatedDebitNative = estimatedDebitNative
+            self.balanceBeforeNative = balanceBeforeNative
+            self.balanceAfterNative = balanceAfterNative
         }
     }
 
@@ -197,13 +197,13 @@ public struct RelayCreditResultModel: Sendable, Decodable, Equatable {
 
     public let supportMode: String
 
-    public let balanceUsdc: String
+    public let balanceNative: String
 
-    public init(ok: Bool, account: String, supportMode: String, balanceUsdc: String) {
+    public init(ok: Bool, account: String, supportMode: String, balanceNative: String) {
         self.ok = ok
         self.account = account
         self.supportMode = supportMode
-        self.balanceUsdc = balanceUsdc
+        self.balanceNative = balanceNative
     }
 }
 
@@ -261,17 +261,17 @@ public struct RelayPaymentRequiredModel: Sendable, Decodable, Equatable {
 
     public let supportMode: String
 
-    public let estimatedDebitUsdc: String
+    public let estimatedDebitNative: String
 
-    public let balanceUsdc: String
+    public let balanceNative: String
 
-    public let postDebitUsdc: String
+    public let postDebitNative: String
 
-    public let minimumAllowedUsdc: String
+    public let minimumAllowedNative: String
 
-    public let requiredTopUpUsdc: String
+    public let requiredTopUpNative: String
 
-    public let suggestedTopUpUsdc: String
+    public let suggestedTopUpNative: String
 
     public let paymentOptions: [RelayPaymentOptionModel]
 
@@ -280,25 +280,55 @@ public struct RelayPaymentRequiredModel: Sendable, Decodable, Equatable {
         error: String,
         account: String,
         supportMode: String,
-        estimatedDebitUsdc: String,
-        balanceUsdc: String,
-        postDebitUsdc: String,
-        minimumAllowedUsdc: String,
-        requiredTopUpUsdc: String,
-        suggestedTopUpUsdc: String,
+        estimatedDebitNative: String,
+        balanceNative: String,
+        postDebitNative: String,
+        minimumAllowedNative: String,
+        requiredTopUpNative: String,
+        suggestedTopUpNative: String,
         paymentOptions: [RelayPaymentOptionModel],
     ) {
         self.ok = ok
         self.error = error
         self.account = account
         self.supportMode = supportMode
-        self.estimatedDebitUsdc = estimatedDebitUsdc
-        self.balanceUsdc = balanceUsdc
-        self.postDebitUsdc = postDebitUsdc
-        self.minimumAllowedUsdc = minimumAllowedUsdc
-        self.requiredTopUpUsdc = requiredTopUpUsdc
-        self.suggestedTopUpUsdc = suggestedTopUpUsdc
+        self.estimatedDebitNative = estimatedDebitNative
+        self.balanceNative = balanceNative
+        self.postDebitNative = postDebitNative
+        self.minimumAllowedNative = minimumAllowedNative
+        self.requiredTopUpNative = requiredTopUpNative
+        self.suggestedTopUpNative = suggestedTopUpNative
         self.paymentOptions = paymentOptions
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case error
+        case account
+        case supportMode
+        case estimatedDebitNative
+        case balanceNative
+        case postDebitNative
+        case minimumAllowedNative
+        case requiredTopUpNative
+        case suggestedTopUpNative
+        case paymentOptions
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ok = try container.decode(Bool.self, forKey: .ok)
+        error = try container.decode(String.self, forKey: .error)
+        account = try container.decode(String.self, forKey: .account)
+        supportMode = try container.decode(String.self, forKey: .supportMode)
+        estimatedDebitNative = try container.decode(String.self, forKey: .estimatedDebitNative)
+        balanceNative = try container.decode(String.self, forKey: .balanceNative)
+        postDebitNative = try container.decode(String.self, forKey: .postDebitNative)
+        minimumAllowedNative = try container.decode(String.self, forKey: .minimumAllowedNative)
+        requiredTopUpNative = try container.decode(String.self, forKey: .requiredTopUpNative)
+        suggestedTopUpNative = try container.decode(String.self, forKey: .suggestedTopUpNative)
+        paymentOptions =
+            try container.decodeIfPresent([RelayPaymentOptionModel].self, forKey: .paymentOptions) ?? []
     }
 }
 

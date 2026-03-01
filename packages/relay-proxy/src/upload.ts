@@ -67,7 +67,7 @@ async function createPinataSignedUploadURL(
   const pinata = new PinataSDK({ pinataJwt: jwt });
 
   try {
-    const signedUrl = await pinata.upload.private.createSignedURL({
+    const signedUrl = await pinata.upload.public.createSignedURL({
       expires: expiresSeconds,
       name: payload.fileName,
       groupId: groupID,
@@ -90,10 +90,12 @@ async function createPinataSignedUploadURL(
 }
 
 function resolvePinataGatewayBaseURL(env: Env): string {
-  const raw = resolveRequiredEnvValue(env.PINATA_GATEWAY_BASE_URL, "PINATA_GATEWAY_BASE_URL");
+  const raw = resolveRequiredEnvValue(env.PINATA_GATEWAY_BASE_URL, "PINATA_GATEWAY_BASE_URL")
+    .trim()
+    .replace(/\/+$/, "");
   try {
     const parsed = new URL(raw);
-    return parsed.origin;
+    return `${parsed.origin}/ipfs`;
   } catch {
     throw new BadRequestError("Invalid PINATA_GATEWAY_BASE_URL.");
   }

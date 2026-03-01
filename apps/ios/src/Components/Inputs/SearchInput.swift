@@ -65,7 +65,7 @@ struct SearchInput: View {
         .buttonStyle(.plain)
         .clipShape(.circle)
         .modifier(SearchDismissButtonBackgroundModifier())
-        .accessibilityLabel(Text("Dismiss search"))
+        .accessibilityLabel(Text("search_dismiss_accessibility"))
     }
 
     private func dismissSearchFocus() {

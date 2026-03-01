@@ -53,7 +53,7 @@ extension RPCError: LocalizedError {
             "Relay proxy error (\(status)): \(message)"
 
         case let .relayPaymentRequired(payload):
-            "Gas tank top-up required. Need at least \(payload.requiredTopUpUsdc) USDC (suggested \(payload.suggestedTopUpUsdc) USDC)."
+            "Gas tank top-up required. Need at least \(payload.requiredTopUpNative) native (suggested \(payload.suggestedTopUpNative) native)."
         }
     }
 }
