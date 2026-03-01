@@ -1,3 +1,4 @@
+import NukeUI
 import SwiftUI
 import UIKit
 
@@ -40,15 +41,12 @@ struct ProfileAvatarSectionView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else if let remoteAvatarURL {
-            AsyncImage(url: remoteAvatarURL) { phase in
-                switch phase {
-                case let .success(image):
+            LazyImage(url: remoteAvatarURL) { state in
+                if let image = state.image {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                case .empty, .failure:
-                    avatarPlaceholder
-                @unknown default:
+                } else {
                     avatarPlaceholder
                 }
             }

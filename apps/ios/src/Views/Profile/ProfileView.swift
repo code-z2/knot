@@ -15,6 +15,7 @@ struct ProfileView: View {
     let ensProfileCache: ENSProfileCache
     let preferencesStore: PreferencesStore
     let currencyRateStore: CurrencyRateStore
+    let ethBalance: Decimal?
 
     @State var ensName = ""
 
@@ -80,6 +81,29 @@ struct ProfileView: View {
 
     @State var pendingConfirmation: TransactionConfirmationModel?
 
+    @State var pendingProfilePayloads: ProfilePayloadsModel?
+
+    @State var pendingENSRevealJob: PendingENSRevealJob?
+
+    @State var ensConfirmationActionIDs: ENSConfirmationActionIDs?
+
+    @State var revealCountdownSeconds: Int?
+
+    @State var revealCountdownTask: Task<Void, Never>?
+
+    @State var revealWindowTask: Task<Void, Never>?
+
+    @State var showProfileSuccessStep = false
+
+    @State var profileSuccessDetailText: String?
+
+    @State var profileSuccessRelayTaskID: String?
+
+    @State var profileSuccessChainID: UInt64?
+
+    @Environment(\.openURL)
+    var openURL
+
     @FocusState var focusedField: ProfileFocusedField?
     let quoteWorker: ENSQuoteWorker
 
@@ -94,6 +118,7 @@ struct ProfileView: View {
         ensProfileCache: ENSProfileCache,
         preferencesStore: PreferencesStore,
         currencyRateStore: CurrencyRateStore,
+        ethBalance: Decimal?,
     ) {
         self.eoaAddress = eoaAddress
         self.accountService = accountService
@@ -104,6 +129,7 @@ struct ProfileView: View {
         self.ensProfileCache = ensProfileCache
         self.preferencesStore = preferencesStore
         self.currencyRateStore = currencyRateStore
+        self.ethBalance = ethBalance
         quoteWorker = ENSQuoteWorker(configuration: ensService.configuration)
     }
 
@@ -184,7 +210,6 @@ struct ProfileView: View {
         )
         .task {
             await loadProfile()
-            await resumePendingCommitRevealIfNeeded()
         }
         .onChange(of: ensName) { _, newValue in
             guard !isNameLocked else { return }
@@ -201,7 +226,7 @@ struct ProfileView: View {
         ) {
             Button(String(localized: "profile_photo_library")) { showPhotoPicker = true }
             Button(String(localized: "profile_files")) { showFileImporter = true }
-            if localAvatarImage != nil || !avatarURL.isEmpty {
+            if localAvatarImage != nil || pendingAvatarUpload != nil {
                 Button(String(localized: "profile_remove_photo"), role: .destructive) {
                     clearAvatarSelection()
                 }
@@ -230,11 +255,28 @@ struct ProfileView: View {
             errorMessageResetTask = nil
             successMessageResetTask?.cancel()
             successMessageResetTask = nil
+            revealCountdownTask?.cancel()
+            revealCountdownTask = nil
+            revealWindowTask?.cancel()
+            revealWindowTask = nil
         }
         .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
         .sensoryFeedback(AppHaptic.error.sensoryFeedback, trigger: errorTrigger) { _, _ in true }
-        .sheet(item: $pendingConfirmation) { model in
+        .sheet(item: $pendingConfirmation, onDismiss: {
+            discardPendingCommitRevealState()
+        }) { model in
             TransactionConfirmationSheet(model: model)
+        }
+        .navigationDestination(isPresented: $showProfileSuccessStep) {
+            ProfileSuccessView(
+                detailText: profileSuccessDetailText,
+                onViewTransaction: { openProfileSuccessExplorerURL() },
+            )
+            .appNavigation(
+                titleKey: "",
+                displayMode: .inline,
+                hidesBackButton: false,
+            )
         }
     }
 
@@ -288,7 +330,7 @@ struct ProfileView: View {
                         Spacer(minLength: 8)
 
                         HStack(spacing: 6) {
-                            Text(".eth")
+                            Text(ensService.tld)
                                 .font(.custom("Roboto-Medium", size: 14))
                                 .foregroundStyle(AppThemeColor.labelSecondary)
 
@@ -371,7 +413,7 @@ struct ProfileView: View {
     }
 
     var hasReadyNameRegistration: Bool {
-        let normalizedName = ENSService.ensLabel(ensName)
+        let normalizedName = ensService.ensLabel(ensName)
         return !normalizedName.isEmpty
             && normalizedName == lastQuotedName
             && nameInfoTone == .success
@@ -384,7 +426,9 @@ struct ProfileView: View {
     }
 
     var remoteAvatarURL: URL? {
-        URL(string: avatarURL.trimmingCharacters(in: .whitespacesAndNewlines))
+        let trimmed = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
     }
 }
 
@@ -400,6 +444,7 @@ struct ProfileView: View {
             ensProfileCache: ENSProfileCache(),
             preferencesStore: PreferencesStore(),
             currencyRateStore: CurrencyRateStore(),
+            ethBalance: nil,
         )
     }
 }
@@ -416,6 +461,7 @@ struct ProfileView: View {
             ensProfileCache: ENSProfileCache(),
             preferencesStore: PreferencesStore(),
             currencyRateStore: CurrencyRateStore(),
+            ethBalance: nil,
         )
     }
 }

@@ -86,7 +86,7 @@ struct AddressBookView: View {
                         } label: {
                             Image(systemName: "trash")
                         }
-                        .accessibilityLabel(Text("delete text"))
+                        .accessibilityLabel(Text("common_delete"))
                     }
             }
         }

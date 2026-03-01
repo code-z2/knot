@@ -151,6 +151,9 @@ struct AppRootView: View {
     private func destinationView(for destination: AppRootDestination) -> some View {
         switch destination {
         case .profile:
+            let ethBalanceSnapshot = balanceStore.balances
+                .first(where: { $0.symbol.uppercased() == "ETH" })?
+                .totalBalance
             ProfileView(
                 eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
                 accountService: appSessionFlowService.accountService,
@@ -161,6 +164,7 @@ struct AppRootView: View {
                 ensProfileCache: ensProfileCache,
                 preferencesStore: preferencesStore,
                 currencyRateStore: currencyRateStore,
+                ethBalance: ethBalanceSnapshot,
             )
         case .preferences:
             PreferencesView(

@@ -94,11 +94,7 @@ struct SendMoneyView: View {
 
     @State var amountActionTask: Task<Void, Never>?
 
-    @State var currentRoute: TransferRouteModel?
-
-    @State var routeError: RouteError?
-
-    @State var isRoutingInProgress = false
+    @State var routeState: RouteResolutionState = .idle
 
     @State var routeDebounceTask: Task<Void, Never>?
 
@@ -126,6 +122,12 @@ struct SendMoneyView: View {
         contentWithInteractions
             .navigationDestination(isPresented: $showAmountStep) {
                 amountStepContent
+                    .onChange(of: amountInput) { _, _ in
+                        resolveRoute()
+                    }
+                    .onChange(of: selectedSpendAsset?.id) { _, _ in
+                        resolveRoute()
+                    }
                     .appNavigation(
                         titleKey: "send_money_enter_amount_title",
                         displayMode: .inline,
@@ -203,16 +205,6 @@ struct SendMoneyView: View {
             .onChange(of: selectedAsset?.id) { _, _ in
                 if currentStep == .recipient {
                     selectedSpendAsset = selectedAsset
-                }
-            }
-            .onChange(of: amountInput) { _, _ in
-                if currentStep == .amount {
-                    resolveRoute()
-                }
-            }
-            .onChange(of: selectedSpendAsset?.id) { _, _ in
-                if currentStep == .amount {
-                    resolveRoute()
                 }
             }
     }

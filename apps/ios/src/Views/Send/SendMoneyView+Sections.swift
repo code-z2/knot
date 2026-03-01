@@ -38,8 +38,7 @@ extension SendMoneyView {
                             } else {
                                 amountInput = ""
                             }
-                            currentRoute = nil
-                            routeError = nil
+                            routeState = .idle
                             routeDebounceTask?.cancel()
                         }
                         if converted > 0 {

@@ -1,6 +1,6 @@
 //
 //  TransactionConfirmationActionModel.swift
-//  Created by Martin Lasek on 24/02/2026.
+//  Created by Peter Anyaogu on 24/02/2026.
 //
 
 import SwiftUI
@@ -9,6 +9,8 @@ struct TransactionConfirmationActionModel: Identifiable {
     let id: UUID
 
     let label: LocalizedStringKey
+
+    let icon: String?
 
     let variant: AppButtonVariant
 
@@ -21,6 +23,7 @@ struct TransactionConfirmationActionModel: Identifiable {
     init(
         id: UUID = UUID(),
         label: LocalizedStringKey,
+        icon: String? = nil,
         variant: AppButtonVariant = .default,
         visualState: AppButtonVisualState = .normal,
         isEnabled: Bool = true,
@@ -28,6 +31,7 @@ struct TransactionConfirmationActionModel: Identifiable {
     ) {
         self.id = id
         self.label = label
+        self.icon = icon
         self.variant = variant
         self.visualState = visualState
         self.isEnabled = isEnabled

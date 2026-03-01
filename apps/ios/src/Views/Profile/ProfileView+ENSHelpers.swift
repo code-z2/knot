@@ -8,6 +8,27 @@ struct ENSConfirmationActionIDs {
 }
 
 extension ProfileView {
+    func profileSuccessMessage(
+        nameDisplay: String,
+        isRegistered: Bool,
+        hasProfileUpdates: Bool,
+    ) -> String {
+        if isRegistered {
+            if hasProfileUpdates {
+                return String.localizedStringWithFormat(
+                    NSLocalizedString("profile_success_registered_updated_format", comment: ""),
+                    nameDisplay,
+                )
+            }
+            return String.localizedStringWithFormat(
+                NSLocalizedString("profile_success_registered_format", comment: ""),
+                nameDisplay,
+            )
+        }
+
+        return String(localized: "profile_success_updated_profile")
+    }
+
     func makeEnsDetails(
         typeText: String,
         feeText: String,
@@ -21,6 +42,38 @@ extension ProfileView {
             chainName: chainName,
             chainAssetName: chainAssetName,
         )
+    }
+
+    func estimateFeeETH() async throws -> Decimal {
+        try await aaExecutionService.estimateExecutionFee(
+            chainId: ensService.chainID,
+        )
+    }
+
+    func formatFee(feeETH: Decimal) async -> String {
+        await currencyRateStore.ensureRate(for: "ETH")
+        let feeUSD = currencyRateStore.convertSelectedToUSD(feeETH, currencyCode: "ETH")
+        let feeFiat = currencyRateStore.convertUSDToSelected(
+            feeUSD, currencyCode: preferencesStore.selectedCurrencyCode,
+        )
+
+        if feeFiat < 0.01 {
+            let sym = currencyRateStore.symbol(
+                for: preferencesStore.selectedCurrencyCode, locale: preferencesStore.locale,
+            )
+            return "<\(sym)0.01"
+        }
+
+        return currencyRateStore.formatUSD(
+            feeUSD,
+            currencyCode: preferencesStore.selectedCurrencyCode,
+            locale: preferencesStore.locale,
+        )
+    }
+
+    func hasSufficientEthBalance(for feeETH: Decimal) -> Bool {
+        guard let ethBalance else { return true }
+        return ethBalance >= feeETH
     }
 
     func prepareRevealWindow(for pendingJob: PendingENSRevealJob) async {
@@ -46,9 +99,7 @@ extension ProfileView {
                 pendingENSRevealJob = updatedJob
                 commitRevealStore.saveJob(updatedJob)
                 startRevealCountdown(until: revealNotBefore)
-            } catch {
-                print("[ProfileView] ENS reveal window failed: \(error.localizedDescription)")
-            }
+            } catch {}
         }
     }
 
@@ -58,36 +109,22 @@ extension ProfileView {
         cancelRevealCountdownOnly()
     }
 
+    func discardPendingCommitRevealState() {
+        cancelRevealTimers()
+        ensConfirmationActionIDs = nil
+        pendingProfilePayloads = nil
+        pendingENSRevealJob = nil
+        revealCountdownSeconds = nil
+        pendingConfirmation = nil
+        commitRevealStore.clearJob(for: eoaAddress)
+    }
+
     func waitForRevealWindowStart(for job: PendingENSRevealJob) async throws -> Date {
         let commitIncludedAt = try await aaExecutionService.waitForRelayInclusion(
             chainId: job.chainId,
             relayTaskID: job.submissionHash,
         )
         return commitIncludedAt.addingTimeInterval(TimeInterval(job.minCommitmentAgeSeconds))
-    }
-
-    func estimateFormattedFee() async throws -> String {
-        await currencyRateStore.ensureRate(for: "ETH")
-        let feeETH = try await aaExecutionService.estimateExecutionFee(
-            chainId: ensService.chainID,
-        )
-        let feeUSD = currencyRateStore.convertSelectedToUSD(feeETH, currencyCode: "ETH")
-        let feeFiat = currencyRateStore.convertUSDToSelected(
-            feeUSD, currencyCode: preferencesStore.selectedCurrencyCode,
-        )
-
-        if feeFiat < 0.01 {
-            let sym = currencyRateStore.symbol(
-                for: preferencesStore.selectedCurrencyCode, locale: preferencesStore.locale,
-            )
-            return "<\(sym)0.01"
-        }
-
-        return currencyRateStore.formatUSD(
-            feeUSD,
-            currencyCode: preferencesStore.selectedCurrencyCode,
-            locale: preferencesStore.locale,
-        )
     }
 
     private func startRevealCountdown(until revealNotBefore: Date) {
@@ -103,7 +140,7 @@ extension ProfileView {
                     if let actionIDs = ensConfirmationActionIDs {
                         updatePendingConfirmationActions(
                             actionId: actionIDs.commit,
-                            visualState: .normal,
+                            visualState: .success,
                             isEnabled: false,
                             disableOthers: false,
                         )
@@ -136,7 +173,7 @@ extension ProfileView {
         return formatter.string(from: TimeInterval(seconds)) ?? "\(seconds)s"
     }
 
-    private func updatePendingConfirmationConnectorText(_ text: String?) {
+    func updatePendingConfirmationConnectorText(_ text: String?) {
         guard let model = pendingConfirmation else { return }
         pendingConfirmation = model.withActionConnectorText(text)
     }

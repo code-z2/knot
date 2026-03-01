@@ -3,6 +3,13 @@ import Compose
 import Foundation
 import SwiftUI
 
+enum RouteResolutionState {
+    case idle
+    case resolving
+    case resolved(TransferRouteModel)
+    case failed(RouteError)
+}
+
 extension SendMoneyView {
     var currentStep: SendMoneyStep {
         if showSuccessStep {
@@ -105,7 +112,7 @@ extension SendMoneyView {
     var amountButtonVariant: AppButtonVariant {
         switch amountButtonState {
         case .normal:
-            .default
+            if case .resolved = routeState { .default } else { .neutral }
         case .loading:
             .neutral
         case .error:
@@ -133,7 +140,9 @@ extension SendMoneyView {
     }
 
     var canAttemptAmountAction: Bool {
-        enteredMainAmount > 0 && amountButtonState == .normal
+        guard enteredMainAmount > 0, amountButtonState == .normal else { return false }
+        if case .resolved = routeState { return true }
+        return false
     }
 
     var amountActionButtonOpacity: Double {
@@ -244,11 +253,14 @@ extension SendMoneyView {
             return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
         }
 
-        if isRoutingInProgress {
-            return (String(localized: "send_money_route_finding"), AppThemeColor.labelSecondary)
-        }
+        switch routeState {
+        case .idle:
+            return nil
 
-        if let routeError {
+        case .resolving:
+            return (String(localized: "send_money_route_finding"), AppThemeColor.labelSecondary)
+
+        case let .failed(routeError):
             switch routeError {
             case .insufficientBalance:
                 return (String(localized: "send_money_insufficient_balance"), AppThemeColor.accentRed)
@@ -273,9 +285,8 @@ extension SendMoneyView {
             case .unsupportedAsset:
                 return (String(localized: "send_money_route_unsupported_asset"), AppThemeColor.accentRed)
             }
-        }
 
-        if let route = currentRoute {
+        case let .resolved(route):
             let isPhaseOneDirectTransfer =
                 route.jobId == nil
                     && route.steps.count == 1
@@ -306,8 +317,6 @@ extension SendMoneyView {
             )
             return (summary, AppThemeColor.accentBrown)
         }
-
-        return nil
     }
 
     var selectedChainExplorerChainId: UInt64? {
