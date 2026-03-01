@@ -1,6 +1,6 @@
 enum TransactionVariant: Hashable {
     case received
-    case sent
+    case transfer
     case contract
     case multichain
 
@@ -8,7 +8,7 @@ enum TransactionVariant: Hashable {
         switch self {
         case .received:
             "arrow.down"
-        case .sent:
+        case .transfer:
             "paperplane"
         case .contract:
             "wallet.pass"

@@ -40,6 +40,5 @@ struct HomeBalanceSectionView: View {
                 .padding(.vertical, 10)
         }
         .buttonStyle(.borderedProminent)
-        .tint(AppThemeColor.accentBrown)
     }
 }

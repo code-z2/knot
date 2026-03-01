@@ -280,18 +280,10 @@ extension SendMoneyView {
     }
 
     func confirmAmount() {
-        guard canAttemptAmountAction else { return }
+        guard canAttemptAmountAction,
+              case let .resolved(route) = routeState
+        else { return }
         amountActionTask?.cancel()
-
-        if isInsufficientBalance {
-            showInsufficientBalanceFeedback()
-            return
-        }
-
-        guard let route = currentRoute else {
-            resolveRoute()
-            return
-        }
 
         amountButtonState = .loading
         amountActionTask = Task { @MainActor in
@@ -359,6 +351,7 @@ extension SendMoneyView {
                 TransactionConfirmationActionModel(
                     id: confirmActionId,
                     label: "send_money_confirm_sign",
+                    icon: "person.badge.key.fill",
                     variant: .default,
                 ) {
                     handleConfirmSend(actionId: confirmActionId)
@@ -504,7 +497,7 @@ extension SendMoneyView {
     }
 
     private func executeConfirmedSend(actionId: UUID) {
-        guard let route = currentRoute else { return }
+        guard case let .resolved(route) = routeState else { return }
 
         amountButtonState = .loading
         amountActionTask = Task { @MainActor in
@@ -540,14 +533,13 @@ extension SendMoneyView {
     /// Debounced route resolution triggered when amount/asset/chain changes.
     func resolveRoute() {
         routeDebounceTask?.cancel()
-        currentRoute = nil
-        routeError = nil
 
         guard enteredMainAmount > 0,
               let spendAsset = currentSpendAsset,
               let selectedChain,
               let toAddress = resolvedAddress
         else {
+            routeState = .idle
             return
         }
 
@@ -555,20 +547,15 @@ extension SendMoneyView {
         let destTokenSymbol = selectedAsset?.symbol ?? spendAsset.symbol
         let destTokenDecimals = selectedAsset?.decimals ?? spendAsset.decimals
 
-        isRoutingInProgress = true
+        routeState = .resolving
         routeDebounceTask = Task { @MainActor in
-            defer { isRoutingInProgress = false }
             // Debounce: wait for input to stabilize.
             do {
                 try await Task.sleep(for: .milliseconds(500))
-            } catch {
-                return
-            }
+            } catch { return }
             guard !Task.isCancelled else { return }
 
             do {
-                guard !Task.isCancelled else { return }
-
                 let route = try await sendFlowService.resolveRoute(
                     eoaAddress: eoaAddress,
                     toAddress: toAddress,
@@ -582,23 +569,20 @@ extension SendMoneyView {
                 )
 
                 guard !Task.isCancelled else { return }
-                currentRoute = route
-                routeError = nil
+                routeState = .resolved(route)
             } catch let sendError as SendFlowServiceError {
                 guard !Task.isCancelled else { return }
                 switch sendError {
                 case let .routeResolutionFailed(error):
-                    routeError = error
+                    routeState = .failed(error)
                 case .invalidRoute:
-                    routeError = .noRouteFound(reason: sendError.localizedDescription)
+                    routeState = .failed(.noRouteFound(reason: sendError.localizedDescription))
                 case .submissionFailed, .unknown:
-                    routeError = .noRouteFound(reason: sendError.localizedDescription)
+                    routeState = .failed(.noRouteFound(reason: sendError.localizedDescription))
                 }
-                currentRoute = nil
             } catch {
                 guard !Task.isCancelled else { return }
-                routeError = .noRouteFound(reason: error.localizedDescription)
-                currentRoute = nil
+                routeState = .failed(.noRouteFound(reason: error.localizedDescription))
             }
         }
     }

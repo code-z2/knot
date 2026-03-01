@@ -1,3 +1,4 @@
+import NukeUI
 import SwiftUI
 
 /// Displays a remote token logo from a URL, with a circle placeholder fallback.
@@ -6,13 +7,12 @@ struct TokenLogo: View {
     var size: CGFloat = 32
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case let .success(image):
+        LazyImage(url: url) { state in
+            if let image = state.image {
                 image
                     .resizable()
                     .scaledToFill()
-            default:
+            } else {
                 Circle()
                     .fill(AppThemeColor.fillSecondary)
             }

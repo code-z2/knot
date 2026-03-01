@@ -69,16 +69,24 @@ struct TransactionConfirmationSheet: View {
                                 variant: effectiveVariant(for: action),
                                 visualState: action.visualState,
                                 showIcon: true,
+                                iconName: action.icon,
                                 iconSize: 16,
                                 action: action.handler,
                             )
                             .disabled(action.visualState == .loading ? false : !action.isEnabled)
 
                             if index < model.actions.count - 1 {
-                                DashedLine()
-                                    .stroke(style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
-                                    .frame(width: 24, height: 2)
-                                    .foregroundColor(AppThemeColor.separatorOpaque)
+                                if let connectorText = model.actionConnectorText {
+                                    Text(connectorText)
+                                        .font(AppTypography.monoRegularSmall)
+                                        .foregroundStyle(AppThemeColor.labelSecondary)
+                                        .frame(minWidth: 24)
+                                } else {
+                                    DashedLine()
+                                        .stroke(style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
+                                        .frame(width: 24, height: 2)
+                                        .foregroundColor(AppThemeColor.separatorOpaque)
+                                }
                             }
                         }
                     }

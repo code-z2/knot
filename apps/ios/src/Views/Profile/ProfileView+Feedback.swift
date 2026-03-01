@@ -22,6 +22,9 @@ extension ProfileView {
 
     @MainActor
     func showError(_ error: Error) {
+        if pendingConfirmation != nil {
+            return
+        }
         successMessage = nil
         successMessageResetTask?.cancel()
         successMessageResetTask = nil
@@ -39,6 +42,9 @@ extension ProfileView {
 
     @MainActor
     func showSuccess(_ message: String) {
+        if pendingConfirmation != nil {
+            return
+        }
         errorMessage = nil
         errorMessageResetTask?.cancel()
         errorMessageResetTask = nil

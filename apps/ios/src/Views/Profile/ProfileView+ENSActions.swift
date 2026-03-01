@@ -4,9 +4,11 @@ import SwiftUI
 import Transactions
 
 struct ProfilePayloadsModel {
+    let name: String
     let commit: Call?
     let postCommit: [Call]
     let minAge: UInt64
+    let preparedPayloadCount: Int
 }
 
 extension ProfileView {
@@ -23,30 +25,24 @@ extension ProfileView {
             isNameLocked = true
             nameInfoText = nil
             lastQuotedName = cached.name
+
+            if !cached.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return
+            }
         }
 
         do {
             let resolvedName = try await ensService.reverseAddress(address: eoaAddress)
-            let normalizedName = ENSService.ensLabel(resolvedName)
+            let normalizedName = ensService.ensLabel(resolvedName)
             if !normalizedName.isEmpty {
-                let fullName = ENSService.canonicalENSName(resolvedName)
+                let fullName = ensService.canonicalENSName(resolvedName)
 
-                var loadedAvatar = ""
-                var loadedBio = ""
+                async let avatarFetch: String = await (try? ensService.textRecord(name: fullName, key: "avatar"))?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                async let bioFetch: String = await (try? ensService.textRecord(name: fullName, key: "description")) ?? ""
 
-                if let avatarRecord = try? await ensService.textRecord(
-                    name: fullName,
-                    key: "avatar",
-                ) {
-                    loadedAvatar = avatarRecord.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-
-                if let descriptionRecord = try? await ensService.textRecord(
-                    name: fullName,
-                    key: "description",
-                ) {
-                    loadedBio = descriptionRecord
-                }
+                let loadedAvatar = await avatarFetch
+                let loadedBio = await bioFetch
 
                 // Set initial values BEFORE display values to prevent button flash
                 initialENSName = normalizedName
@@ -72,6 +68,14 @@ extension ProfileView {
                 return
             }
         } catch {
+            switch error {
+            case let ENSServiceError.actionFailed(cause as ENSError):
+                if case .ensUnavailable = cause {
+                    break
+                }
+            default:
+                break
+            }
             if initialENSName.isEmpty {
                 isNameLocked = false
             }
@@ -89,7 +93,7 @@ extension ProfileView {
     func scheduleQuoteLookup(for input: String) {
         quoteTask?.cancel()
 
-        let normalized = ENSService.ensLabel(input)
+        let normalized = ensService.ensLabel(input)
         guard !normalized.isEmpty else {
             isCheckingName = false
             nameInfoText = nil
@@ -107,12 +111,12 @@ extension ProfileView {
 
                 let shouldContinue =
                     !isNameLocked
-                        && ENSService.ensLabel(ensName) == normalized
+                        && ensService.ensLabel(ensName) == normalized
                 guard shouldContinue else { return }
 
                 isCheckingName = true
                 defer {
-                    if ENSService.ensLabel(self.ensName) == normalized {
+                    if ensService.ensLabel(self.ensName) == normalized {
                         self.isCheckingName = false
                     }
                 }
@@ -121,7 +125,7 @@ extension ProfileView {
                 try Task.checkCancellation()
 
                 guard !isNameLocked else { return }
-                guard ENSService.ensLabel(ensName) == normalized else { return }
+                guard ensService.ensLabel(ensName) == normalized else { return }
 
                 lastQuotedName = quote.normalizedName
                 ensName = quote.normalizedName
@@ -141,7 +145,7 @@ extension ProfileView {
             } catch is CancellationError {
                 return
             } catch {
-                guard ENSService.ensLabel(ensName) == normalized else { return }
+                guard ensService.ensLabel(ensName) == normalized else { return }
                 nameInfoText = error.localizedDescription
                 nameInfoTone = .error
                 isCheckingName = false
@@ -156,98 +160,132 @@ extension ProfileView {
         Task { @MainActor in
             defer { isPreparingConfirmation = false }
             do {
-                let payloads = try await buildProfilePayloads()
-                let calls = ensCalls(from: payloads)
-                guard !calls.isEmpty else {
+                async let payloadsFetch = buildProfilePayloads()
+                async let feeFetch = estimateFeeETH()
+
+                let payloads = try await payloadsFetch
+                guard payloads.preparedPayloadCount > 0 else {
+                    pendingProfilePayloads = nil
                     pendingConfirmation = nil
                     showSuccess(String(localized: "profile_no_changes_to_save"))
                     return
                 }
+                pendingProfilePayloads = payloads
+                preparedPayloads = payloads.preparedPayloadCount
 
-                let feeFormatted = try await estimateFormattedFee()
+                let feeETH = try await feeFetch
+                let feeFormatted = await formatFee(feeETH: feeETH)
+                let hasSufficientEth = hasSufficientEthBalance(for: feeETH)
+                let warning: LocalizedStringKey? = hasSufficientEth ? nil : "send_money_insufficient_balance"
                 let chainDefinition = ChainRegistry.resolve(chainID: ensService.chainID)
                 let chainName = chainDefinition?.name
                     ?? String(localized: "transaction_chain_unknown")
                 let chainAssetName = chainDefinition?.assetName ?? chainName
 
-                pendingConfirmation = makeEnsConfirmationModel(
-                    isRegistering: shouldRegisterEnsName,
-                    feeText: feeFormatted,
-                    chainName: chainName,
-                    chainAssetName: chainAssetName,
-                )
+                if payloads.commit != nil {
+                    presentCommitRevealConfirmation(
+                        feeText: feeFormatted,
+                        chainName: chainName,
+                        chainAssetName: chainAssetName,
+                        warning: warning,
+                        isCommitEnabled: hasSufficientEth,
+                    )
+                } else {
+                    pendingConfirmation = makeSingleStepEnsConfirmationModel(
+                        feeText: feeFormatted,
+                        chainName: chainName,
+                        chainAssetName: chainAssetName,
+                        warning: warning,
+                        isConfirmEnabled: hasSufficientEth,
+                    )
+                }
             } catch {
+                pendingProfilePayloads = nil
                 pendingConfirmation = nil
                 showError(error)
             }
         }
     }
 
-    private var shouldRegisterEnsName: Bool {
-        !isNameLocked && !ENSService.ensLabel(ensName).isEmpty
-    }
-
-    private func ensCalls(from payloads: ProfilePayloadsModel) -> [Call] {
-        var allCalls = payloads.postCommit
-        if let commit = payloads.commit {
-            allCalls.insert(commit, at: 0)
-        }
-        return allCalls
-    }
-
-    private func makeEnsConfirmationModel(
-        isRegistering: Bool,
+    private func presentCommitRevealConfirmation(
         feeText: String,
         chainName: String,
         chainAssetName: String,
-    ) -> TransactionConfirmationModel {
-        let confirmationBuilder = TransactionConfirmationBuilder()
-        let typeKey: String.LocalizationValue =
-            isRegistering ? "transaction_type_ens_register" : "transaction_type_ens_update"
-        let details = confirmationBuilder.ensDetails(
-            typeText: String(localized: typeKey),
+        warning: LocalizedStringKey?,
+        isCommitEnabled: Bool,
+    ) {
+        let actionIDs = ENSConfirmationActionIDs(commit: UUID(), register: UUID())
+        ensConfirmationActionIDs = actionIDs
+        revealCountdownSeconds = nil
+        pendingENSRevealJob = nil
+        cancelRevealTimers()
+
+        let details = makeEnsDetails(
+            typeText: String(localized: "transaction_type_ens_register"),
             feeText: feeText,
             chainName: chainName,
             chainAssetName: chainAssetName,
         )
 
-        return TransactionConfirmationModel(
+        pendingConfirmation = TransactionConfirmationModel(
             title: "confirm_title",
+            warning: warning,
             details: details,
-            actions: ensConfirmationActions(isRegistering: isRegistering),
+            actions: [
+                TransactionConfirmationActionModel(
+                    id: actionIDs.commit,
+                    label: "ens_confirm_commit",
+                    variant: .default,
+                    isEnabled: isCommitEnabled,
+                ) {
+                    confirmCommitAction()
+                },
+                TransactionConfirmationActionModel(
+                    id: actionIDs.register,
+                    label: "ens_confirm_register",
+                    variant: .default,
+                    visualState: .normal,
+                    isEnabled: false,
+                ) {
+                    confirmRegisterAction()
+                },
+            ],
         )
     }
 
-    private func ensConfirmationActions(
-        isRegistering: Bool,
-    ) -> [TransactionConfirmationActionModel] {
-        if isRegistering {
-            let commitActionId = UUID()
-            return [
-                TransactionConfirmationActionModel(
-                    id: commitActionId,
-                    label: "ens_confirm_commit",
-                    variant: .default,
-                ) {
-                    confirmEnsAction(actionId: commitActionId, isRegistering: true)
-                },
-                disabledEnsAction(label: "ens_confirm_register", variant: .neutral),
-            ]
-        }
-
+    private func makeSingleStepEnsConfirmationModel(
+        feeText: String,
+        chainName: String,
+        chainAssetName: String,
+        warning: LocalizedStringKey?,
+        isConfirmEnabled: Bool,
+    ) -> TransactionConfirmationModel {
         let signActionId = UUID()
-        return [
-            TransactionConfirmationActionModel(
-                id: signActionId,
-                label: "ens_confirm_sign",
-                variant: .default,
-            ) {
-                confirmEnsAction(actionId: signActionId, isRegistering: false)
-            },
-        ]
+        let details = makeEnsDetails(
+            typeText: String(localized: "transaction_type_ens_update"),
+            feeText: feeText,
+            chainName: chainName,
+            chainAssetName: chainAssetName,
+        )
+        return TransactionConfirmationModel(
+            title: "confirm_title",
+            warning: warning,
+            details: details,
+            actions: [
+                TransactionConfirmationActionModel(
+                    id: signActionId,
+                    label: "ens_confirm_sign",
+                    icon: "person.badge.key.fill",
+                    variant: .default,
+                    isEnabled: isConfirmEnabled,
+                ) {
+                    confirmSingleStepAction(actionId: signActionId)
+                },
+            ],
+        )
     }
 
-    private func confirmEnsAction(actionId: UUID, isRegistering _: Bool) {
+    private func confirmSingleStepAction(actionId: UUID) {
         updatePendingConfirmationActions(
             actionId: actionId,
             visualState: .loading,
@@ -255,21 +293,155 @@ extension ProfileView {
             disableOthers: true,
         )
         Task { @MainActor in
-            await saveProfile()
-            switch saveFlowState {
-            case .failed:
-                showConfirmationErrorState(actionId: actionId)
-            case .succeeded:
+            isSaving = true
+            defer { isSaving = false }
+            saveFlowState = .inProgress
+            do {
+                let payloads = try confirmedPayloads()
+                guard !payloads.postCommit.isEmpty else {
+                    pendingConfirmation = nil
+                    pendingProfilePayloads = nil
+                    return
+                }
+
+                let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
+                let submissionID = try await aaExecutionService.executeCalls(
+                    accountService: accountService,
+                    account: sessionAccount,
+                    chainId: ensService.chainID,
+                    calls: payloads.postCommit,
+                )
+
                 showConfirmationSuccessState(actionId: actionId)
-                try? await Task.sleep(for: .milliseconds(250))
-                pendingConfirmation = nil
-            case .idle, .inProgress:
-                pendingConfirmation = nil
+                successTrigger += 1
+                try await Task.sleep(for: .milliseconds(250))
+                completeProfileSuccess(
+                    preparedPayloadCount: payloads.preparedPayloadCount,
+                    lockName: false,
+                    relayTaskID: submissionID,
+                    chainId: ensService.chainID,
+                )
+            } catch {
+                errorTrigger += 1
+                saveFlowState = .failed(error.localizedDescription)
+                showConfirmationErrorState(actionId: actionId)
             }
         }
     }
 
-    private func updatePendingConfirmationActions(
+    private func confirmCommitAction() {
+        guard let actionIDs = ensConfirmationActionIDs else { return }
+        updatePendingConfirmationActions(
+            actionId: actionIDs.commit,
+            visualState: .loading,
+            isEnabled: false,
+            disableOthers: true,
+        )
+        updatePendingConfirmationConnectorText(nil)
+
+        Task { @MainActor in
+            isSaving = true
+            defer { isSaving = false }
+            saveFlowState = .inProgress
+            do {
+                let payloads = try confirmedPayloads()
+                guard let commitCall = payloads.commit else {
+                    throw ENSServiceError.actionFailed(
+                        NSError(
+                            domain: "ENS",
+                            code: 4,
+                            userInfo: [NSLocalizedDescriptionKey: "Missing ENS commit call."],
+                        ),
+                    )
+                }
+
+                let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
+                let submissionHash = try await aaExecutionService.executeCalls(
+                    accountService: accountService,
+                    account: sessionAccount,
+                    chainId: ensService.chainID,
+                    calls: [commitCall],
+                )
+
+                let pendingJob = PendingENSRevealJob(
+                    eoaAddress: eoaAddress,
+                    name: payloads.name,
+                    chainId: ensService.chainID,
+                    submissionHash: submissionHash,
+                    minCommitmentAgeSeconds: payloads.minAge,
+                    revealNotBeforeUnix: 0,
+                    postCommitCalls: payloads.postCommit,
+                    preparedPayloadCount: payloads.preparedPayloadCount,
+                )
+                pendingENSRevealJob = pendingJob
+                commitRevealStore.saveJob(pendingJob)
+                showConfirmationSuccessState(actionId: actionIDs.commit)
+                successTrigger += 1
+
+                await prepareRevealWindow(for: pendingJob)
+            } catch {
+                errorTrigger += 1
+                saveFlowState = .failed(error.localizedDescription)
+                showConfirmationErrorState(actionId: actionIDs.commit)
+            }
+        }
+    }
+
+    func confirmRegisterAction() {
+        guard let actionIDs = ensConfirmationActionIDs else { return }
+        updatePendingConfirmationActions(
+            actionId: actionIDs.register,
+            visualState: .loading,
+            isEnabled: false,
+            disableOthers: true,
+        )
+        cancelRevealTimers()
+
+        Task { @MainActor in
+            isSaving = true
+            defer { isSaving = false }
+            saveFlowState = .inProgress
+            do {
+                let pendingJob = try currentPendingENSRevealJob()
+                guard !pendingJob.postCommitCalls.isEmpty else {
+                    throw ENSServiceError.actionFailed(
+                        NSError(
+                            domain: "ENS",
+                            code: 5,
+                            userInfo: [NSLocalizedDescriptionKey: "Missing ENS register call."],
+                        ),
+                    )
+                }
+
+                let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
+                let submissionID = try await aaExecutionService.executeCalls(
+                    accountService: accountService,
+                    account: sessionAccount,
+                    chainId: pendingJob.chainId,
+                    calls: pendingJob.postCommitCalls,
+                )
+
+                showConfirmationSuccessState(actionId: actionIDs.register)
+                successTrigger += 1
+                commitRevealStore.clearJob(for: eoaAddress)
+                pendingENSRevealJob = nil
+                pendingProfilePayloads = nil
+                try await Task.sleep(for: .milliseconds(250))
+                completeProfileSuccess(
+                    preparedPayloadCount: pendingJob.preparedPayloadCount,
+                    lockName: true,
+                    relayTaskID: submissionID,
+                    chainId: pendingJob.chainId,
+                )
+            } catch {
+                errorTrigger += 1
+                saveFlowState = .failed(error.localizedDescription)
+                showConfirmationErrorState(actionId: actionIDs.register)
+            }
+        }
+    }
+
+    func updatePendingConfirmationActions(
         actionId: UUID,
         visualState: AppButtonVisualState,
         isEnabled: Bool,
@@ -321,48 +493,125 @@ extension ProfileView {
         )
     }
 
-    private func disabledEnsAction(
-        label: LocalizedStringKey,
-        variant: AppButtonVariant,
-        visualState: AppButtonVisualState = .normal,
-    ) -> TransactionConfirmationActionModel {
-        TransactionConfirmationActionModel(
-            label: label,
-            variant: variant,
-            visualState: visualState,
-            isEnabled: false,
-        ) {}
+    private func confirmedPayloads() throws -> ProfilePayloadsModel {
+        guard let payloads = pendingProfilePayloads else {
+            throw ENSServiceError.actionFailed(
+                NSError(
+                    domain: "ENS",
+                    code: 6,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing prepared ENS payloads."],
+                ),
+            )
+        }
+        return payloads
     }
 
-    private func estimateFormattedFee() async throws -> String {
-        await currencyRateStore.ensureRate(for: "ETH")
-        let feeETH = try await aaExecutionService.estimateExecutionFee(
-            chainId: ensService.chainID,
+    private func currentPendingENSRevealJob() throws -> PendingENSRevealJob {
+        if let pendingENSRevealJob {
+            return pendingENSRevealJob
+        }
+        if let stored = commitRevealStore.loadJob(for: eoaAddress) {
+            pendingENSRevealJob = stored
+            return stored
+        }
+        throw ENSServiceError.actionFailed(
+            NSError(
+                domain: "ENS",
+                code: 7,
+                userInfo: [NSLocalizedDescriptionKey: "Missing pending ENS reveal job."],
+            ),
         )
-        let feeUSD = currencyRateStore.convertSelectedToUSD(feeETH, currencyCode: "ETH")
-        let feeFiat = currencyRateStore.convertUSDToSelected(
-            feeUSD, currencyCode: preferencesStore.selectedCurrencyCode,
+    }
+
+    private func resetEnsConfirmationState() {
+        cancelRevealTimers()
+        ensConfirmationActionIDs = nil
+        pendingProfilePayloads = nil
+        pendingENSRevealJob = nil
+        revealCountdownSeconds = nil
+        pendingConfirmation = nil
+    }
+
+    private func completeProfileSuccess(
+        preparedPayloadCount: Int,
+        lockName: Bool,
+        relayTaskID: String?,
+        chainId: UInt64,
+    ) {
+        let avatarChanged = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            != initialAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bioChanged = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+            != initialBio.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasProfileUpdates = avatarChanged || bioChanged
+        let nameDisplay = "\(ensName)\(ensService.tld)"
+        let message = profileSuccessMessage(
+            nameDisplay: nameDisplay,
+            isRegistered: lockName,
+            hasProfileUpdates: hasProfileUpdates,
         )
 
-        if feeFiat < 0.01 {
-            let sym = currencyRateStore.symbol(
-                for: preferencesStore.selectedCurrencyCode, locale: preferencesStore.locale,
-            )
-            return "<\(sym)0.01"
+        if lockName {
+            isNameLocked = true
+        }
+        initialAvatarURL = avatarURL
+        initialBio = bio
+        initialENSName = ensName
+        ensProfileCache.save(
+            CachedENSProfileModel(
+                name: ensName,
+                avatarURL: avatarURL,
+                bio: bio,
+                updatedAt: Date(),
+            ),
+            for: eoaAddress,
+        )
+
+        saveFlowState = .succeeded
+        preparedPayloads = preparedPayloadCount
+        resetEnsConfirmationState()
+        profileSuccessDetailText = message
+        profileSuccessRelayTaskID = relayTaskID
+        profileSuccessChainID = chainId
+        showProfileSuccessStep = true
+    }
+
+    @MainActor
+    func openProfileSuccessExplorerURL() {
+        let chainId = profileSuccessChainID ?? ensService.chainID
+        let fallbackURL = BlockExplorer.addressURL(chainId: chainId, address: eoaAddress)
+
+        guard let relayTaskID = profileSuccessRelayTaskID else {
+            if let fallbackURL {
+                openURL(fallbackURL, prefersInApp: true)
+            }
+            return
         }
 
-        return currencyRateStore.formatUSD(
-            feeUSD,
-            currencyCode: preferencesStore.selectedCurrencyCode,
-            locale: preferencesStore.locale,
-        )
+        Task { @MainActor in
+            do {
+                let status = try await aaExecutionService.relayStatus(relayTaskID: relayTaskID)
+                if let transactionHash = status.transactionHash,
+                   let txURL = BlockExplorer.transactionURL(
+                       chainId: chainId,
+                       transactionHash: transactionHash,
+                   )
+                {
+                    openURL(txURL, prefersInApp: true)
+                    return
+                }
+            } catch {}
+
+            if let fallbackURL {
+                openURL(fallbackURL, prefersInApp: true)
+            }
+        }
     }
 
     @MainActor
     func buildProfilePayloads() async throws -> ProfilePayloadsModel {
         try await ensureAvatarUploadCompletedIfNeeded()
 
-        let normalizedName = ENSService.ensLabel(ensName)
+        let normalizedName = ensService.ensLabel(ensName)
         if normalizedName.isEmpty {
             throw ENSServiceError.actionFailed(
                 NSError(
@@ -376,7 +625,7 @@ extension ProfileView {
                 ),
             )
         }
-        let canonicalName = ENSService.canonicalENSName(normalizedName)
+        let canonicalName = ensService.canonicalENSName(normalizedName)
 
         var commitCall: Call?
         var postCommitCalls: [Call] = []
@@ -418,131 +667,44 @@ extension ProfileView {
             minCommitmentAgeSeconds = max(1, registrationPayloads.minCommitmentAgeSeconds)
         }
 
-        if avatar != initialAvatarURL, !embeddedRecordKeys.contains("avatar") {
-            let avatarPayload = try await ensService.setTextRecordPayload(
-                name: canonicalName,
-                key: "avatar",
-                value: avatar,
-            )
-            postCommitCalls.append(avatarPayload)
-        }
+        let needsAvatarUpdate = avatar != initialAvatarURL && !embeddedRecordKeys.contains("avatar")
+        let needsBioUpdate = description != initialBio && !embeddedRecordKeys.contains("description")
 
-        if description != initialBio, !embeddedRecordKeys.contains("description") {
-            let bioPayload = try await ensService.setTextRecordPayload(
-                name: canonicalName,
-                key: "description",
-                value: description,
+        if needsAvatarUpdate, needsBioUpdate {
+            async let avatarPayload = ensService.setTextRecordPayload(
+                name: canonicalName, key: "avatar", value: avatar,
             )
-            postCommitCalls.append(bioPayload)
+            async let bioPayload = ensService.setTextRecordPayload(
+                name: canonicalName, key: "description", value: description,
+            )
+            try await postCommitCalls.append(avatarPayload)
+            try await postCommitCalls.append(bioPayload)
+        } else if needsAvatarUpdate {
+            try await postCommitCalls.append(
+                ensService.setTextRecordPayload(
+                    name: canonicalName, key: "avatar", value: avatar,
+                ),
+            )
+        } else if needsBioUpdate {
+            try await postCommitCalls.append(
+                ensService.setTextRecordPayload(
+                    name: canonicalName, key: "description", value: description,
+                ),
+            )
         }
 
         return ProfilePayloadsModel(
+            name: normalizedName,
             commit: commitCall,
             postCommit: postCommitCalls,
             minAge: minCommitmentAgeSeconds,
+            preparedPayloadCount: (commitCall != nil ? 1 : 0) + postCommitCalls.count,
         )
     }
 
     @MainActor
-    func saveProfile() async {
-        guard !isSaving else { return }
-        isSaving = true
-        saveFlowState = .inProgress
-        preparedPayloads = 0
-        defer { isSaving = false }
-
-        do {
-            let payloads = try await buildProfilePayloads()
-            let commitCall = payloads.commit
-            let postCommitCalls = payloads.postCommit
-            let minCommitmentAgeSeconds = payloads.minAge
-            let normalizedName = ENSService.ensLabel(ensName)
-
-            preparedPayloads = (commitCall != nil ? 1 : 0) + postCommitCalls.count
-
-            guard commitCall != nil || !postCommitCalls.isEmpty else {
-                showSuccess(String(localized: "profile_no_changes_to_save"))
-                saveFlowState = .succeeded
-                return
-            }
-
-            let sessionAccount = try await accountService.restoreSession(eoaAddress: eoaAddress)
-            if let commitCall {
-                let commitSubmissionHash = try await aaExecutionService.executeCalls(
-                    accountService: accountService,
-                    account: sessionAccount,
-                    chainId: ensService.chainID,
-                    calls: [commitCall],
-                )
-                var pendingJob = PendingENSRevealJob(
-                    eoaAddress: eoaAddress,
-                    name: normalizedName,
-                    chainId: ensService.chainID,
-                    submissionHash: commitSubmissionHash,
-                    minCommitmentAgeSeconds: minCommitmentAgeSeconds,
-                    revealNotBeforeUnix: 0,
-                    postCommitCalls: postCommitCalls,
-                    preparedPayloadCount: preparedPayloads,
-                )
-                commitRevealStore.saveJob(pendingJob)
-                showSuccess(String(localized: "profile_commit_submitted_progress"))
-
-                let revealNotBefore = try await waitForRevealWindowStart(for: pendingJob)
-                pendingJob = PendingENSRevealJob(
-                    eoaAddress: pendingJob.eoaAddress,
-                    name: pendingJob.name,
-                    chainId: pendingJob.chainId,
-                    submissionHash: pendingJob.submissionHash,
-                    minCommitmentAgeSeconds: pendingJob.minCommitmentAgeSeconds,
-                    revealNotBeforeUnix: revealNotBefore.timeIntervalSince1970,
-                    postCommitCalls: pendingJob.postCommitCalls,
-                    preparedPayloadCount: pendingJob.preparedPayloadCount,
-                )
-                commitRevealStore.saveJob(pendingJob)
-
-                let delay = max(0, revealNotBefore.timeIntervalSinceNow)
-                if delay > 0 {
-                    try await Task.sleep(for: .seconds(delay))
-                }
-            }
-
-            if !postCommitCalls.isEmpty {
-                _ = try await aaExecutionService.executeCalls(
-                    accountService: accountService,
-                    account: sessionAccount,
-                    chainId: ensService.chainID,
-                    calls: postCommitCalls,
-                )
-            }
-
-            if commitCall != nil {
-                isNameLocked = true
-                commitRevealStore.clearJob(for: eoaAddress)
-            }
-
-            initialAvatarURL = avatarURL
-            initialBio = bio
-            initialENSName = ensName
-            let message = String.localizedStringWithFormat(
-                NSLocalizedString("profile_saved_changes", comment: ""),
-                preparedPayloads,
-            )
-            showSuccess(message)
-            saveFlowState = .succeeded
-            successTrigger += 1
-        } catch {
-            errorTrigger += 1
-            saveFlowState = .failed(error.localizedDescription)
-            if pendingConfirmation == nil {
-                showError(error)
-            } else {
-                print("[ProfileView] ENS confirmation failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    @MainActor
     func cancelEditing() {
+        resetEnsConfirmationState()
         quoteTask?.cancel()
         quoteTask = nil
         avatarUploadTask?.cancel()
@@ -559,7 +721,7 @@ extension ProfileView {
         isCheckingName = false
         nameInfoText = nil
         nameInfoTone = .info
-        lastQuotedName = ENSService.ensLabel(initialENSName)
+        lastQuotedName = ensService.ensLabel(initialENSName)
         saveFlowState = .idle
     }
 }

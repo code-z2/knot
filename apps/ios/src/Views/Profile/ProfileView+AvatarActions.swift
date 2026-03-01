@@ -1,3 +1,4 @@
+import Nuke
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -33,9 +34,12 @@ extension ProfileView {
 
     @MainActor
     func preparePendingAvatarUpload(from imageData: Data) throws {
-        guard let image = UIImage(data: imageData),
-              let jpegData = image.jpegData(compressionQuality: 0.86)
-        else {
+        guard let original = UIImage(data: imageData) else {
+            throw URLError(.cannotDecodeRawData)
+        }
+
+        let image = Self.downsizedAvatar(original, maxDimension: 512)
+        guard let jpegData = image.jpegData(compressionQuality: 0.82) else {
             throw URLError(.cannotDecodeRawData)
         }
 
@@ -99,6 +103,7 @@ extension ProfileView {
             )
 
             guard pendingAvatarUpload?.id == pending.id else { return }
+            Self.seedImageCache(data: pending.data, url: uploadedURL)
             avatarURL = uploadedURL.absoluteString
             pendingAvatarUpload = nil
             avatarUploadFlowState = .succeeded
@@ -120,5 +125,27 @@ extension ProfileView {
         localAvatarImage = nil
         pendingAvatarUpload = nil
         avatarUploadFlowState = .idle
+    }
+
+    private static func seedImageCache(data: Data, url: URL) {
+        let pipeline = ImagePipeline.shared
+        let request = ImageRequest(url: url)
+        pipeline.cache.storeCachedData(data, for: request)
+    }
+
+    private static func downsizedAvatar(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        guard max(size.width, size.height) > maxDimension else { return image }
+
+        let scale: CGFloat = maxDimension / max(size.width, size.height)
+        let targetSize = CGSize(
+            width: (size.width * scale).rounded(.down),
+            height: (size.height * scale).rounded(.down),
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
     }
 }
