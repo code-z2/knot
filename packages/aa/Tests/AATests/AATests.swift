@@ -154,6 +154,7 @@ final class AATests: XCTestCase {
             inputAmount: BigUInt(110),
             inputToken: "0x0000000000000000000000000000000000000002",
             minOutput: BigUInt(100),
+            recipient: "0x0000000000000000000000000000000000000099",
         )
 
         let envelope = try SmartAccount.Dispatch.buildOrder(fillDeadline: 12345, dispatchOrder: order)
@@ -187,6 +188,7 @@ final class AATests: XCTestCase {
             inputAmount: BigUInt(55),
             inputToken: "0x0000000000000000000000000000000000000002",
             minOutput: BigUInt(50),
+            recipient: "0x0000000000000000000000000000000000000099",
         )
 
         let call = try SmartAccount.Dispatch.asCall(

@@ -22,7 +22,7 @@ enum AAUtils {
 
     /// EIP-712 typehash for DispatchOrder, used as `orderDataType` in OnchainCrossChainOrder.
     static let dispatchOrderTypeHash = Data(
-        "DispatchOrder(bytes32 salt,uint256 destChainId,address outputToken,uint256 sumOutput,uint256 inputAmount,address inputToken,uint256 minOutput)"
+        "DispatchOrder(bytes32 salt,uint256 destChainId,address outputToken,uint256 sumOutput,uint256 inputAmount,address inputToken,uint256 minOutput,address recipient)"
             .utf8,
     ).sha3(.keccak256)
 
