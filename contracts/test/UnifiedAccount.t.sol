@@ -625,10 +625,7 @@ contract UnifiedAccountTest is Test {
 
         assertEq(spokePool.depositCallCount(), 1);
 
-        (
-            ,
-            bytes32 recipient,,,,,,,,,,,
-        ) = spokePool.lastDeposit();
+        (, bytes32 recipient,,,,,,,,,,,) = spokePool.lastDeposit();
 
         // Recipient should be the direct recipient, NOT the accumulator
         assertEq(recipient, bytes32(uint256(uint160(directRecipient))));

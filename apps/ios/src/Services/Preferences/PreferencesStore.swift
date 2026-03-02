@@ -119,6 +119,10 @@ final class PreferencesStore {
         }
     }
 
+    /// Session-scoped balance visibility toggle. Resets to `false` on each app launch.
+    /// Not persisted — intentionally ephemeral so balances are always visible on fresh start.
+    var isBalanceHidden = false
+
     init(
         defaults: UserDefaults = .standard,
         supportedCurrencies: [CurrencyOption] = PreferencesStore.defaultCurrencies,

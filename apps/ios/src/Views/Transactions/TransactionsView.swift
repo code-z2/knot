@@ -20,12 +20,12 @@ struct TransactionsView: View {
         self.currencyRateStore = currencyRateStore
     }
 
-    @State var isBalanceHidden = false
     @State var selectedTransaction: TransactionRecordModel?
     @State var selectionTrigger = 0
     @Environment(\.openURL) var openURL
 
     var body: some View {
+        @Bindable var store = preferencesStore
         ZStack {
             AppThemeColor.backgroundPrimary.ignoresSafeArea()
 
@@ -36,7 +36,7 @@ struct TransactionsView: View {
                         currencyCode: preferencesStore.selectedCurrencyCode,
                         locale: preferencesStore.locale,
                     ),
-                    isBalanceHidden: $isBalanceHidden,
+                    isBalanceHidden: $store.isBalanceHidden,
                 )
                 .safeAreaPadding(.top, AppSpacing.sm)
 
