@@ -25,6 +25,7 @@ public struct DispatchOrder: Sendable, Equatable {
     public let inputAmount: BigUInt
     public let inputToken: String
     public let minOutput: BigUInt
+    public let recipient: String
 
     public init(
         salt: Data,
@@ -34,6 +35,7 @@ public struct DispatchOrder: Sendable, Equatable {
         inputAmount: BigUInt,
         inputToken: String,
         minOutput: BigUInt,
+        recipient: String,
     ) {
         self.salt = salt
         self.destChainId = destChainId
@@ -42,6 +44,7 @@ public struct DispatchOrder: Sendable, Equatable {
         self.inputAmount = inputAmount
         self.inputToken = inputToken
         self.minOutput = minOutput
+        self.recipient = recipient
     }
 }
 
@@ -316,7 +319,8 @@ public enum SmartAccount {
             let inputAmount = ABIWord.uint(order.inputAmount)
             let inputToken = try ABIWord.address(order.inputToken)
             let minOutput = ABIWord.uint(order.minOutput)
-            return salt + destChainId + outputToken + sumOutput + inputAmount + inputToken + minOutput
+            let recipient = try ABIWord.address(order.recipient)
+            return salt + destChainId + outputToken + sumOutput + inputAmount + inputToken + minOutput + recipient
         }
     }
 

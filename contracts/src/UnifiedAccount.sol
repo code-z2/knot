@@ -63,7 +63,7 @@ contract UnifiedAccount is
     /// @dev EIP-712 typehash for DispatchOrder, used as `orderDataType` in OnchainCrossChainOrder.
     bytes32 public constant DISPATCH_ORDER_TYPEHASH = keccak256(
         "DispatchOrder(bytes32 salt,uint256 destChainId,address outputToken,"
-        "uint256 sumOutput,uint256 inputAmount,address inputToken,uint256 minOutput)"
+        "uint256 sumOutput,uint256 inputAmount,address inputToken,uint256 minOutput,address recipient)"
     );
 
     // ═══════════════════════════════════════════════════════════════════════════

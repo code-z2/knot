@@ -57,8 +57,14 @@ abstract contract Dispatcher is IDispatcher {
     function _dispatch(OnchainCrossChainOrder calldata envelope) internal virtual {
         DispatchOrder memory order = abi.decode(envelope.orderData, (DispatchOrder));
 
-        // Build the slim destination message (accumulation-only fields).
-        (bytes32 jobId, bytes memory message) = _buildDestinationMessage(order, envelope.fillDeadline);
+        // Build the destination message only when routing through the Accumulator.
+        // Direct bridges (recipient != accumulator) use an empty message so the
+        // SpokePool delivers tokens without calling handleV3AcrossMessage.
+        bytes32 jobId;
+        bytes memory message;
+        if (order.recipient == _getAccumulator()) {
+            (jobId, message) = _buildDestinationMessage(order, envelope.fillDeadline);
+        }
 
         // Resolve msg.value vs ERC-20 approval.
         uint256 value;
@@ -71,7 +77,7 @@ abstract contract Dispatcher is IDispatcher {
         // Build Across order data.
         AcrossOrderData memory acrossOrderData = AcrossOrderData({
             depositor: _toBytes32(msg.sender),
-            recipient: _toBytes32(_getAccumulator()),
+            recipient: _toBytes32(order.recipient),
             inputToken: _toBytes32(order.inputToken),
             outputToken: _toBytes32(order.outputToken),
             inputAmount: order.inputAmount,

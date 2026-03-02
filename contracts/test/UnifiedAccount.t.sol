@@ -65,6 +65,10 @@ contract MockSpokePoolForAccount is ISpokePool {
     uint256 public depositCallCount;
     DepositCall public lastDeposit;
 
+    function lastDepositMessage() external view returns (bytes memory) {
+        return lastDeposit.message;
+    }
+
     function deposit(
         bytes32 depositor,
         bytes32 recipient,
@@ -450,7 +454,8 @@ contract UnifiedAccountTest is Test {
                 sumOutput: 100,
                 inputAmount: 110,
                 inputToken: address(token),
-                minOutput: 100
+                minOutput: 100,
+                recipient: account.accumulator()
             })
         );
 
@@ -494,7 +499,8 @@ contract UnifiedAccountTest is Test {
                 sumOutput: 100,
                 inputAmount: 110,
                 inputToken: address(token),
-                minOutput: 100
+                minOutput: 100,
+                recipient: account.accumulator()
             })
         );
 
@@ -513,7 +519,8 @@ contract UnifiedAccountTest is Test {
                 sumOutput: 100,
                 inputAmount: 110,
                 inputToken: address(token),
-                minOutput: 100
+                minOutput: 100,
+                recipient: account.accumulator()
             })
         );
 
@@ -539,7 +546,8 @@ contract UnifiedAccountTest is Test {
                 sumOutput: 100,
                 inputAmount: 110,
                 inputToken: address(token),
-                minOutput: 100
+                minOutput: 100,
+                recipient: account.accumulator()
             })
         );
 
@@ -572,7 +580,8 @@ contract UnifiedAccountTest is Test {
                     sumOutput: 100,
                     inputAmount: 110,
                     inputToken: address(token),
-                    minOutput: 100
+                    minOutput: 100,
+                    recipient: account.accumulator()
                 })
             )
         });
@@ -586,6 +595,47 @@ contract UnifiedAccountTest is Test {
 
         vm.expectRevert();
         account.executeX(calls, salt, new bytes32[](0), sig);
+    }
+
+    function test_dispatch_directBridge_recipientIsNotAccumulator() public {
+        address directRecipient = address(0xBEEF);
+        uint32 fillDeadline = uint32(block.timestamp + 10 minutes);
+        OnchainCrossChainOrder memory order = _buildCrossChainOrder(
+            fillDeadline,
+            DispatchOrder({
+                salt: keccak256("direct-bridge"),
+                destChainId: 42161,
+                outputToken: address(token),
+                sumOutput: 100,
+                inputAmount: 110,
+                inputToken: address(token),
+                minOutput: 100,
+                recipient: directRecipient
+            })
+        );
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: address(account), value: 0, data: abi.encodeCall(UnifiedAccount.dispatch, (order))});
+        bytes32 salt = keccak256("direct-bridge-salt");
+
+        bytes32 leafHash = _computeLeafHash(calls, salt);
+        bytes memory sig = _signDigest(accountPk, MessageHashUtils.toEthSignedMessageHash(leafHash));
+
+        account.executeX(calls, salt, new bytes32[](0), sig);
+
+        assertEq(spokePool.depositCallCount(), 1);
+
+        (
+            ,
+            bytes32 recipient,,,,,,,,,,,
+        ) = spokePool.lastDeposit();
+
+        // Recipient should be the direct recipient, NOT the accumulator
+        assertEq(recipient, bytes32(uint256(uint160(directRecipient))));
+        assertNotEq(recipient, bytes32(uint256(uint160(account.accumulator()))));
+
+        // Message should be empty for direct bridge
+        assertEq(spokePool.lastDepositMessage().length, 0);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

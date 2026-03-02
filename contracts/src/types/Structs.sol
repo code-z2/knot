@@ -39,6 +39,10 @@ struct OnchainCrossChainOrder {
 /// @dev Order data for dispatching a single cross-chain leg via the SpokePool.
 ///      Encoded inside OnchainCrossChainOrder.orderData.
 ///      Each source chain gets its own dispatch call inside the executeX Call[] batch.
+///
+///      `recipient` determines the routing mode:
+///        - accumulator address → full accumulation message, `handleV3AcrossMessage` callback.
+///        - any other address  → empty message, SpokePool delivers tokens directly (no accumulation).
 struct DispatchOrder {
     bytes32 salt; // shared salt across the intent (for fillId derivation)
     uint256 destChainId; // destination chain id
@@ -47,6 +51,7 @@ struct DispatchOrder {
     uint256 inputAmount; // amount of input token on this source chain
     address inputToken; // input token on this source chain
     uint256 minOutput; // min output for this source chain's fill
+    address recipient; // dest chain recipient (accumulator for gather flows, user for direct bridges)
 }
 
 enum FillStatus {
