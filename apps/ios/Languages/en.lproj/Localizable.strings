@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ registered successfully.";
 "profile_success_registered_updated_format" = "%@ registered and profile updated.";
 "profile_success_updated_profile" = "ENS profile updated.";
+
+"biometric_reason_wallet_backup" = "Authenticate to reveal your recovery phrase";

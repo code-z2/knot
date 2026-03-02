@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ 注册成功。";
 "profile_success_registered_updated_format" = "%@ 已注册，资料也已更新。";
 "profile_success_updated_profile" = "ENS 资料已更新。";
+
+"biometric_reason_wallet_backup" = "请进行身份验证以显示你的恢复短语";

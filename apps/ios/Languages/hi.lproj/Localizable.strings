@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ सफलतापूर्वक पंजीकृत हुआ।";
 "profile_success_registered_updated_format" = "%@ पंजीकृत हुआ और प्रोफ़ाइल भी अपडेट हुई।";
 "profile_success_updated_profile" = "ENS प्रोफ़ाइल अपडेट हुई।";
+
+"biometric_reason_wallet_backup" = "अपना रिकवरी फ़्रेज़ देखने के लिए प्रमाणित करें";

@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ imesajiliwa kwa mafanikio.";
 "profile_success_registered_updated_format" = "%@ imesajiliwa na wasifu pia umesasishwa.";
 "profile_success_updated_profile" = "Wasifu wa ENS umesasishwa.";
+
+"biometric_reason_wallet_backup" = "Thibitisha ili kuonyesha kifungu chako cha urejeshaji";

@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ kasil didaftar.";
 "profile_success_registered_updated_format" = "%@ wis didaftar lan profil uga dianyari.";
 "profile_success_updated_profile" = "Profil ENS wis dianyari.";
+
+"biometric_reason_wallet_backup" = "Autentikasi kanggo nampilake frasa pemulihanmu";

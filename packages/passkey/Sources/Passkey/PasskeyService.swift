@@ -2,7 +2,6 @@ import AuthenticationServices
 import CryptoKit
 import Foundation
 import SwiftCBOR
-import UIKit
 
 public struct PasskeyRelyingPartyModel: Sendable, Equatable {
     public let rpID: String

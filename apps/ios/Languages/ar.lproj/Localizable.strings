@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "تم تسجيل %@ بنجاح.";
 "profile_success_registered_updated_format" = "تم تسجيل %@ وتحديث الملف الشخصي.";
 "profile_success_updated_profile" = "تم تحديث ملف ENS الشخصي.";
+
+"biometric_reason_wallet_backup" = "قم بالمصادقة لإظهار عبارة الاسترداد الخاصة بك";

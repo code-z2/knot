@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ başarıyla kaydedildi.";
 "profile_success_registered_updated_format" = "%@ kaydedildi ve profil de güncellendi.";
 "profile_success_updated_profile" = "ENS profili güncellendi.";
+
+"biometric_reason_wallet_backup" = "Kurtarma ifadenizi göstermek için kimliğinizi doğrulayın";

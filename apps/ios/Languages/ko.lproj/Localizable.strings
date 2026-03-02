@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ 등록이 완료되었습니다.";
 "profile_success_registered_updated_format" = "%@ 등록과 프로필 업데이트가 완료되었습니다.";
 "profile_success_updated_profile" = "ENS 프로필이 업데이트되었습니다.";
+
+"biometric_reason_wallet_backup" = "복구 문구를 표시하려면 인증하세요";
