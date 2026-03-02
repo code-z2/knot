@@ -9,4 +9,6 @@ struct TransactionConfirmationAssetChangeModel {
     let amount: String
 
     let fiatAmount: String
+
+    let tokenSymbol: String
 }

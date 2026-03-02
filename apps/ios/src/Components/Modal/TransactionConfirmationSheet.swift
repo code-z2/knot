@@ -60,7 +60,7 @@ struct TransactionConfirmationSheet: View {
                     }
                 }
 
-                if !model.actions.isEmpty {
+                if model.warning == nil, !model.actions.isEmpty {
                     HStack(spacing: AppSpacing.md) {
                         ForEach(Array(model.actions.enumerated()), id: \.element.id) { index, action in
                             AppButton(

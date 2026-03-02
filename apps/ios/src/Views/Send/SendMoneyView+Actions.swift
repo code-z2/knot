@@ -344,6 +344,7 @@ extension SendMoneyView {
             assetChange: TransactionConfirmationAssetChangeModel(
                 amount: transferAmountDisplay,
                 fiatAmount: transferFiatDisplay,
+                tokenSymbol: currentSpendAsset?.symbol ?? "",
             ),
             warning: nil,
             details: details,
@@ -440,13 +441,15 @@ extension SendMoneyView {
 
     private var transferAmountDisplay: String {
         let symbol = currentSpendAsset?.symbol ?? ""
-        guard !symbol.isEmpty else { return transferAmountText }
-        return "\(transferAmountText) \(symbol)"
+        let tokenValue = format(assetAmount, minFractionDigits: 1, maxFractionDigits: 4)
+        guard !symbol.isEmpty else { return tokenValue }
+        return "-\(tokenValue) \(symbol)"
     }
 
     private var transferFiatDisplay: String {
         let symbol = currencyRateStore.symbol(for: selectedFiatCode, locale: preferencesStore.locale)
-        return "-\(symbol)\(transferFiatText)"
+        let fiatValue = format(displayFiatAmount, minFractionDigits: 2, maxFractionDigits: 2)
+        return "-\(symbol)\(fiatValue)"
     }
 
     private var transferChainDisplay: String {
@@ -474,7 +477,8 @@ extension SendMoneyView {
             return "~<\(symbol)0.01"
         }
 
-        return "~\(currencyRateStore.formatUSD(feeUSD, currencyCode: selectedFiatCode, locale: preferencesStore.locale))"
+        return
+            "~\(currencyRateStore.formatUSD(feeUSD, currencyCode: selectedFiatCode, locale: preferencesStore.locale))"
     }
 
     private func routeSummaryText(from route: TransferRouteModel) -> String? {

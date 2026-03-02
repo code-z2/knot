@@ -199,6 +199,7 @@ public extension ENSClient {
             registerCall: registerPayload,
             minCommitmentAgeSeconds: minCommitmentAgeSeconds,
             secretHex: secretHex,
+            rentPriceWei: rentPriceWei.description,
         )
     }
 
