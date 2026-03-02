@@ -19,6 +19,10 @@ export interface Env {
   FLOOR_LIMITED_MAINNET_NATIVE?: string;
   FLOOR_FULL_MAINNET_NATIVE?: string;
   FAUCET_PRIVATE_KEY?: string;
+  SINGLETON_ADDRESS?: string;
+  SINGLETON_ACCUMULATOR_FACTORY?: string;
+  SINGLETON_VERSION?: string;
+  SINGLETON_RELEASE_NOTES?: string;
 }
 
 export type SupportMode = "LIMITED_TESTNET" | "LIMITED_MAINNET" | "FULL_MAINNET";
