@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ успешно зарегистрирован.";
 "profile_success_registered_updated_format" = "%@ зарегистрирован, профиль также обновлён.";
 "profile_success_updated_profile" = "Профиль ENS обновлён.";
+
+"biometric_reason_wallet_backup" = "Пройдите аутентификацию, чтобы показать фразу восстановления";

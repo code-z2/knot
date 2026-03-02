@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ வெற்றிகரமாக பதிவு செய்யப்பட்டது.";
 "profile_success_registered_updated_format" = "%@ பதிவு செய்யப்பட்டது, மேலும் சுயவிவரமும் புதுப்பிக்கப்பட்டது.";
 "profile_success_updated_profile" = "ENS சுயவிவரம் புதுப்பிக்கப்பட்டது.";
+
+"biometric_reason_wallet_backup" = "உங்கள் மீட்பு சொற்றொடரை காண அங்கீகரிக்கவும்";

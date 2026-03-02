@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ の登録が完了しました。";
 "profile_success_registered_updated_format" = "%@ を登録し、プロフィールも更新しました。";
 "profile_success_updated_profile" = "ENSプロフィールを更新しました。";
+
+"biometric_reason_wallet_backup" = "リカバリーフレーズを表示するには認証してください";

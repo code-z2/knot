@@ -200,3 +200,5 @@
 "profile_success_registered_format" = "%@ విజయవంతంగా నమోదు చేయబడింది.";
 "profile_success_registered_updated_format" = "%@ నమోదు చేయబడింది మరియు ప్రొఫైల్ కూడా నవీకరించబడింది.";
 "profile_success_updated_profile" = "ENS ప్రొఫైల్ నవీకరించబడింది.";
+
+"biometric_reason_wallet_backup" = "మీ రికవరీ ఫ్రేజ్ చూపించడానికి ధృవీకరించండి";
