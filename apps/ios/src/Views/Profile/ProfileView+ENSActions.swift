@@ -9,6 +9,7 @@ struct ProfilePayloadsModel {
     let postCommit: [Call]
     let minAge: UInt64
     let preparedPayloadCount: Int
+    let rentPriceWei: String?
 }
 
 extension ProfileView {
@@ -37,9 +38,11 @@ extension ProfileView {
             if !normalizedName.isEmpty {
                 let fullName = ensService.canonicalENSName(resolvedName)
 
-                async let avatarFetch: String = await (try? ensService.textRecord(name: fullName, key: "avatar"))?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                async let bioFetch: String = await (try? ensService.textRecord(name: fullName, key: "description")) ?? ""
+                async let avatarFetch: String =
+                    await (try? ensService.textRecord(name: fullName, key: "avatar"))?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                async let bioFetch: String =
+                    await (try? ensService.textRecord(name: fullName, key: "description")) ?? ""
 
                 let loadedAvatar = await avatarFetch
                 let loadedBio = await bioFetch
@@ -175,12 +178,28 @@ extension ProfileView {
 
                 let feeETH = try await feeFetch
                 let feeFormatted = await formatFee(feeETH: feeETH)
-                let hasSufficientEth = hasSufficientEthBalance(for: feeETH)
-                let warning: LocalizedStringKey? = hasSufficientEth ? nil : "send_money_insufficient_balance"
+
+                let rentPriceETH: Decimal = {
+                    guard let rentWei = payloads.rentPriceWei else { return 0 }
+                    let ethString = TokenFormatters.weiToEthString(rentWei)
+                    return Decimal(string: ethString) ?? 0
+                }()
+                let totalCostETH = feeETH + rentPriceETH
+                let hasSufficientEth = hasSufficientEthBalance(for: totalCostETH)
+                let warning: LocalizedStringKey? =
+                    hasSufficientEth ? nil : "send_money_insufficient_balance"
                 let chainDefinition = ChainRegistry.resolve(chainID: ensService.chainID)
-                let chainName = chainDefinition?.name
-                    ?? String(localized: "transaction_chain_unknown")
+                let chainName =
+                    chainDefinition?.name
+                        ?? String(localized: "transaction_chain_unknown")
                 let chainAssetName = chainDefinition?.assetName ?? chainName
+
+                let assetChange: TransactionConfirmationAssetChangeModel? =
+                    if let rentWei = payloads.rentPriceWei {
+                        await buildRentPriceAssetChange(rentPriceWei: rentWei)
+                    } else {
+                        nil
+                    }
 
                 if payloads.commit != nil {
                     presentCommitRevealConfirmation(
@@ -189,6 +208,7 @@ extension ProfileView {
                         chainAssetName: chainAssetName,
                         warning: warning,
                         isCommitEnabled: hasSufficientEth,
+                        assetChange: assetChange,
                     )
                 } else {
                     pendingConfirmation = makeSingleStepEnsConfirmationModel(
@@ -197,6 +217,7 @@ extension ProfileView {
                         chainAssetName: chainAssetName,
                         warning: warning,
                         isConfirmEnabled: hasSufficientEth,
+                        assetChange: assetChange,
                     )
                 }
             } catch {
@@ -213,6 +234,7 @@ extension ProfileView {
         chainAssetName: String,
         warning: LocalizedStringKey?,
         isCommitEnabled: Bool,
+        assetChange: TransactionConfirmationAssetChangeModel?,
     ) {
         let actionIDs = ENSConfirmationActionIDs(commit: UUID(), register: UUID())
         ensConfirmationActionIDs = actionIDs
@@ -229,6 +251,7 @@ extension ProfileView {
 
         pendingConfirmation = TransactionConfirmationModel(
             title: "confirm_title",
+            assetChange: assetChange,
             warning: warning,
             details: details,
             actions: [
@@ -259,6 +282,7 @@ extension ProfileView {
         chainAssetName: String,
         warning: LocalizedStringKey?,
         isConfirmEnabled: Bool,
+        assetChange: TransactionConfirmationAssetChangeModel?,
     ) -> TransactionConfirmationModel {
         let signActionId = UUID()
         let details = makeEnsDetails(
@@ -269,6 +293,7 @@ extension ProfileView {
         )
         return TransactionConfirmationModel(
             title: "confirm_title",
+            assetChange: assetChange,
             warning: warning,
             details: details,
             actions: [
@@ -538,10 +563,12 @@ extension ProfileView {
         relayTaskID: String?,
         chainId: UInt64,
     ) {
-        let avatarChanged = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
-            != initialAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        let bioChanged = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-            != initialBio.trimmingCharacters(in: .whitespacesAndNewlines)
+        let avatarChanged =
+            avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                != initialAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bioChanged =
+            bio.trimmingCharacters(in: .whitespacesAndNewlines)
+                != initialBio.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasProfileUpdates = avatarChanged || bioChanged
         let nameDisplay = "\(ensName)\(ensService.tld)"
         let message = profileSuccessMessage(
@@ -634,6 +661,8 @@ extension ProfileView {
         let description = bio.trimmingCharacters(in: .whitespacesAndNewlines)
         var embeddedRecordKeys = Set<String>()
 
+        var registrationRentPriceWei: String?
+
         if !isNameLocked {
             if normalizedName != lastQuotedName || nameInfoTone != .success {
                 throw ENSServiceError.actionFailed(
@@ -665,6 +694,7 @@ extension ProfileView {
             commitCall = registrationPayloads.commitCall
             postCommitCalls.append(registrationPayloads.registerCall)
             minCommitmentAgeSeconds = max(1, registrationPayloads.minCommitmentAgeSeconds)
+            registrationRentPriceWei = registrationPayloads.rentPriceWei
         }
 
         let needsAvatarUpdate = avatar != initialAvatarURL && !embeddedRecordKeys.contains("avatar")
@@ -699,6 +729,7 @@ extension ProfileView {
             postCommit: postCommitCalls,
             minAge: minCommitmentAgeSeconds,
             preparedPayloadCount: (commitCall != nil ? 1 : 0) + postCommitCalls.count,
+            rentPriceWei: registrationRentPriceWei,
         )
     }
 

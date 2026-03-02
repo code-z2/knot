@@ -50,6 +50,7 @@ public struct RegisterNameResultModel: Sendable {
     public let registerCall: Call
     public let minCommitmentAgeSeconds: UInt64
     public let secretHex: String
+    public let rentPriceWei: String
 
     public var calls: [Call] {
         [commitCall, registerCall]
@@ -60,11 +61,13 @@ public struct RegisterNameResultModel: Sendable {
         registerCall: Call,
         minCommitmentAgeSeconds: UInt64,
         secretHex: String,
+        rentPriceWei: String,
     ) {
         self.commitCall = commitCall
         self.registerCall = registerCall
         self.minCommitmentAgeSeconds = minCommitmentAgeSeconds
         self.secretHex = secretHex
+        self.rentPriceWei = rentPriceWei
     }
 }
 

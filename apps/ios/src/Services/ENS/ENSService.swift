@@ -22,6 +22,7 @@ struct ENSRegistrationPayloads {
     let commitCall: Call
     let registerCall: Call
     let minCommitmentAgeSeconds: UInt64
+    let rentPriceWei: String
 
     var calls: [Call] {
         [commitCall, registerCall]
@@ -128,6 +129,7 @@ final class ENSService {
                 commitCall: result.commitCall,
                 registerCall: result.registerCall,
                 minCommitmentAgeSeconds: result.minCommitmentAgeSeconds,
+                rentPriceWei: result.rentPriceWei,
             )
         } catch {
             throw ENSServiceError.actionFailed(error)
@@ -178,8 +180,9 @@ final class ENSService {
             let fullName = canonicalENSName(resolvedName)
             guard !label.isEmpty, !fullName.isEmpty else { return }
 
-            async let avatarFetch: String = await (try? textRecord(name: fullName, key: "avatar"))?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            async let avatarFetch: String =
+                await (try? textRecord(name: fullName, key: "avatar"))?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             async let bioFetch: String = await (try? textRecord(name: fullName, key: "description")) ?? ""
 
             let avatar = await avatarFetch
@@ -224,7 +227,8 @@ final class ENSService {
         throw lastError
             ?? ENSServiceError.actionFailed(
                 NSError(
-                    domain: "ENSService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown ENS error"],
+                    domain: "ENSService", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Unknown ENS error"],
                 ),
             )
     }

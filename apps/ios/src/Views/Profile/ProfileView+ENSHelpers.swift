@@ -76,15 +76,39 @@ extension ProfileView {
         return ethBalance >= feeETH
     }
 
+    func buildRentPriceAssetChange(
+        rentPriceWei: String,
+        tokenSymbol: String = "ETH",
+    ) async -> TransactionConfirmationAssetChangeModel {
+        let ethString = TokenFormatters.weiToEthString(rentPriceWei)
+        let amount = "-\(ethString) \(tokenSymbol)"
+
+        await currencyRateStore.ensureRate(for: tokenSymbol)
+        let ethDecimal = Decimal(string: ethString) ?? 0
+        let priceUSD = currencyRateStore.convertSelectedToUSD(ethDecimal, currencyCode: tokenSymbol)
+        let fiatFormatted = currencyRateStore.formatUSD(
+            priceUSD,
+            currencyCode: preferencesStore.selectedCurrencyCode,
+            locale: preferencesStore.locale,
+        )
+
+        return TransactionConfirmationAssetChangeModel(
+            amount: amount,
+            fiatAmount: "-\(fiatFormatted)",
+            tokenSymbol: tokenSymbol,
+        )
+    }
+
     func prepareRevealWindow(for pendingJob: PendingENSRevealJob) async {
         cancelRevealTimers()
         revealWindowTask = Task { @MainActor in
             do {
-                let revealNotBefore: Date = if pendingJob.revealNotBeforeUnix > 0 {
-                    Date(timeIntervalSince1970: pendingJob.revealNotBeforeUnix)
-                } else {
-                    try await waitForRevealWindowStart(for: pendingJob)
-                }
+                let revealNotBefore: Date =
+                    if pendingJob.revealNotBeforeUnix > 0 {
+                        Date(timeIntervalSince1970: pendingJob.revealNotBeforeUnix)
+                    } else {
+                        try await waitForRevealWindowStart(for: pendingJob)
+                    }
 
                 let updatedJob = PendingENSRevealJob(
                     eoaAddress: pendingJob.eoaAddress,
