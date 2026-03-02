@@ -92,7 +92,6 @@ struct HomeView: View {
         }
     }
 
-    @State private var isBalanceHidden: Bool = false
     @State var activeModal: HomeModal?
     @State private var assetSearchText = ""
     @State var isLoggingOut = false
@@ -131,9 +130,10 @@ struct HomeView: View {
     }
 
     private var balanceSection: some View {
-        HomeBalanceSectionView(
+        @Bindable var store = preferencesStore
+        return HomeBalanceSectionView(
             accountBalanceDisplay: accountBalanceDisplay,
-            isBalanceHidden: $isBalanceHidden,
+            isBalanceHidden: $store.isBalanceHidden,
             onAddMoney: { handleAddMoneyTap() },
             onSendMoney: { handleSendMoneyTap() },
         )
