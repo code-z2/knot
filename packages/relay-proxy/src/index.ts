@@ -3,6 +3,7 @@ import { handleFaucetFund } from "./faucet";
 export { FaucetTracker } from "./faucet/do";
 import { handleCredit, handleRelayStatus, handleSubmitRelay } from "./relay";
 import type { Env } from "./relay";
+import { handleSingletonVersion } from "./singleton";
 import { handleDirectImageUpload } from "./upload";
 import {
   authorizeRequest,
@@ -52,6 +53,10 @@ export default {
         const rawBody = await request.text();
         await authorizeRequest(request, env, rawBody);
         return await handleDirectImageUpload(rawBody, env);
+      }
+
+      if (request.method === "GET" && path === "/v1/account/singleton-version") {
+        return handleSingletonVersion(env);
       }
 
       if (request.method === "POST" && path === "/v1/faucet/fund") {
