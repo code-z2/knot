@@ -1,3 +1,6 @@
+// ProfileView.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import ENS
 import PhotosUI
 import SwiftUI
@@ -435,7 +438,7 @@ struct ProfileView: View {
     }
 }
 
-#Preview {
+#Preview("UnRegistered") {
     NavigationStack {
         ProfileView(
             eoaAddress: "0xF5bB7F874D8e3f41821175c0Aa9910d30d10e193",
@@ -452,7 +455,7 @@ struct ProfileView: View {
     }
 }
 
-#Preview {
+#Preview("Registered") {
     NavigationStack {
         ProfileView(
             eoaAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",

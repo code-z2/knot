@@ -1,3 +1,6 @@
+// AccountUpdateBannerView.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import SwiftUI
 
 struct AccountUpdateBannerView: View {
@@ -118,13 +121,6 @@ struct AccountUpdateBannerView: View {
             ),
         )
     }
-}
-
-enum UpdateBannerPhase: Equatable {
-    case hidden
-    case available
-    case inProgress
-    case complete
 }
 
 #Preview("Available") {

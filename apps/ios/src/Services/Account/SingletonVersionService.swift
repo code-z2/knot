@@ -1,3 +1,6 @@
+// SingletonVersionService.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import Foundation
 import RPC
 

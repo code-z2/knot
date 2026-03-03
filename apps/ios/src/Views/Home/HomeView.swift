@@ -1,3 +1,6 @@
+// HomeView.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import Balance
 import SwiftUI
 
@@ -61,10 +64,18 @@ struct HomeView: View {
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.xxl)
 
-                balanceSection
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.bottom, AppSpacing.xl)
+                HomeBalanceSectionView(
+                    accountBalanceDisplay: accountBalanceDisplay,
+                    isBalanceHidden: Binding(
+                        get: { preferencesStore.isBalanceHidden },
+                        set: { preferencesStore.isBalanceHidden = $0 }
+                    ),
+                    onAddMoney: { handleAddMoneyTap() },
+                    onSendMoney: { handleSendMoneyTap() },
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.xl)
 
                 Rectangle()
                     .foregroundColor(.clear)
@@ -81,7 +92,20 @@ struct HomeView: View {
                     .animation(.spring(response: 0.5, dampingFraction: 0.8), value: updateBannerPhase)
                 }
 
-                settingsList
+                HomeSettingsListView(
+                    assetsSummaryLabel: assetsSummaryLabel,
+                    showWalletBackup: showWalletBackup,
+                    isLoggingOut: isLoggingOut,
+                    isCheckingForUpdates: isCheckingForUpdates,
+                    onPresentAssets: { presentAssetsModal() },
+                    onProfileTap: { handleProfileTap() },
+                    onPreferencesTap: { handlePreferencesTap() },
+                    onWalletBackupTap: { handleWalletBackupTap() },
+                    onAddressBookTap: { handleAddressBookTap() },
+                    onCheckForUpdates: { checkForUpdates() },
+                    onBeginLogout: { beginLogout() },
+                    onRefresh: { await refreshBalances() },
+                )
             }
             .safeAreaPadding(.top, AppSpacing.sm)
         }
@@ -146,33 +170,6 @@ struct HomeView: View {
 
         guard assetCount > 0 else { return Text("home_assets_summary_empty") }
         return Text("home_assets_summary_dynamic \(assetCount) \(chainCount)")
-    }
-
-    private var balanceSection: some View {
-        @Bindable var store = preferencesStore
-        return HomeBalanceSectionView(
-            accountBalanceDisplay: accountBalanceDisplay,
-            isBalanceHidden: $store.isBalanceHidden,
-            onAddMoney: { handleAddMoneyTap() },
-            onSendMoney: { handleSendMoneyTap() },
-        )
-    }
-
-    private var settingsList: some View {
-        HomeSettingsListView(
-            assetsSummaryLabel: assetsSummaryLabel,
-            showWalletBackup: showWalletBackup,
-            isLoggingOut: isLoggingOut,
-            isCheckingForUpdates: isCheckingForUpdates,
-            onPresentAssets: { presentAssetsModal() },
-            onProfileTap: { handleProfileTap() },
-            onPreferencesTap: { handlePreferencesTap() },
-            onWalletBackupTap: { handleWalletBackupTap() },
-            onAddressBookTap: { handleAddressBookTap() },
-            onCheckForUpdates: { checkForUpdates() },
-            onBeginLogout: { beginLogout() },
-            onRefresh: { await refreshBalances() },
-        )
     }
 
     private func performUpdate() {
