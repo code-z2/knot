@@ -1,3 +1,6 @@
+// HomeSettingsListView.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import SwiftUI
 
 struct HomeSettingsListView: View {
@@ -17,11 +20,6 @@ struct HomeSettingsListView: View {
     private let groupedSectionGap: CGFloat = 16
     private let rowIconSize: CGFloat = 14
     private let rowBadgePadding: CGFloat = 6
-
-    private enum HomeIconBadgeStyle {
-        case solid(background: Color, icon: Color? = nil)
-        case gradient(colors: [Color], icon: Color? = nil)
-    }
 
     var body: some View {
         List {

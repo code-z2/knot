@@ -1,3 +1,6 @@
+// RPCClient+Relay.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import CryptoKit
 import Foundation
 
@@ -18,17 +21,6 @@ public extension RPCClient {
             deferredTxs: deferredTxs,
             paymentOptions: paymentOptions,
         )
-
-        do {
-            let encoded = try JSONEncoder().encode(payload)
-            if let jsonString = String(data: encoded, encoding: .utf8) {
-                print("================ [RELAYER SUBMIT PAYLOAD] ================")
-                print(jsonString)
-                print("==========================================================")
-            }
-        } catch {
-            print("   [DEBUG-RPC] failed to debug-encode relay submit payload: \(error)")
-        }
 
         return try await relayCall(
             path: "/v1/relay/submit",

@@ -1,3 +1,6 @@
+// PreferencesView.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import Observation
 import SwiftUI
 
@@ -50,19 +53,25 @@ struct PreferencesView: View {
                     title: Text("preferences_haptics"),
                     iconName: "iphone.radiowaves.left.and.right",
                     iconBackground: Color(hex: "#FF9F0A"),
-                    trailing: .toggle(isOn: $preferencesStore.hapticsEnabled),
+                    trailing: .toggle(isOn: Binding(
+                        get: { preferencesStore.hapticsEnabled },
+                        set: { preferencesStore.setHapticsEnabled($0) }
+                    )),
                 )
                 PreferenceRow(
                     title: Text("preferences_network_mode"),
                     iconName: "point.3.connected.trianglepath.dotted",
                     iconBackground: Color(hex: "#0A84FF"),
-                    trailing: .custom(AnyView(NetworkModePullDown(mode: $preferencesStore.chainSupportMode))),
+                    trailing: .custom(AnyView(NetworkModePullDown(mode: Binding(
+                        get: { preferencesStore.chainSupportMode },
+                        set: { preferencesStore.selectChainSupportMode($0) }
+                    )))),
                 )
                 NavigationLink {
                     CurrencySelectionPage(
                         currencies: preferencesStore.supportedCurrencies,
                         selectedCode: preferencesStore.selectedCurrencyCode,
-                        onSelect: { preferencesStore.selectedCurrencyCode = $0 },
+                        onSelect: { preferencesStore.selectCurrency($0) },
                     )
                     .appNavigation(
                         titleKey: "sheet_currency_title",
@@ -90,7 +99,7 @@ struct PreferencesView: View {
                     LanguageSelectionPage(
                         languages: preferencesStore.supportedLanguages,
                         selectedCode: preferencesStore.languageCode,
-                        onSelect: { preferencesStore.languageCode = $0 },
+                        onSelect: { preferencesStore.selectLanguage($0) },
                     )
                     .appNavigation(
                         titleKey: "sheet_language_title",

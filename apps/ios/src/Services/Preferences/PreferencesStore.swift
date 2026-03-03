@@ -1,44 +1,9 @@
+// PreferencesStore.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import Foundation
 import Observation
 import RPC
-
-enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
-    case dark
-    case system
-    case light
-
-    var id: String {
-        rawValue
-    }
-
-    var displayName: String {
-        switch self {
-        case .dark: "Dark"
-        case .system: "System"
-        case .light: "Light"
-        }
-    }
-}
-
-struct CurrencyOption: Identifiable, Equatable, Sendable {
-    let code: String
-    let name: String
-    let iconAssetName: String
-
-    var id: String {
-        code
-    }
-}
-
-struct LanguageOption: Identifiable, Equatable, Sendable {
-    let code: String
-    let displayName: String
-    let flag: String
-
-    var id: String {
-        code
-    }
-}
 
 @MainActor
 @Observable
@@ -54,71 +19,15 @@ final class PreferencesStore {
 
     @ObservationIgnored
     private let defaults: UserDefaults
-    @ObservationIgnored
-    private var suppressCurrencyTracking = false
+
     private(set) var supportedCurrencies: [CurrencyOption]
     private(set) var supportedLanguages: [LanguageOption]
-    private(set) var hasExplicitCurrencySelection: Bool {
-        didSet { defaults.set(hasExplicitCurrencySelection, forKey: Key.hasExplicitCurrencySelection) }
-    }
-
-    var selectedCurrencyCode: String {
-        didSet {
-            let normalized = PreferencesStore.normalizeCurrencyCode(
-                selectedCurrencyCode, supported: supportedCurrencies,
-            )
-            if selectedCurrencyCode != normalized {
-                selectedCurrencyCode = normalized
-                return
-            }
-            defaults.set(normalized, forKey: Key.selectedCurrencyCode)
-            if !suppressCurrencyTracking {
-                hasExplicitCurrencySelection = true
-            }
-        }
-    }
-
-    var hapticsEnabled: Bool {
-        didSet { defaults.set(hapticsEnabled, forKey: Key.hapticsEnabled) }
-    }
-
-    var languageCode: String {
-        didSet {
-            let normalized = PreferencesStore.normalizeLanguageCode(
-                languageCode, supported: supportedLanguages,
-            )
-            if languageCode != normalized {
-                languageCode = normalized
-                return
-            }
-            defaults.set(normalized, forKey: Key.languageCode)
-            autoApplyCurrencyFromLanguageIfNeeded()
-        }
-    }
-
-    var appearance: AppAppearance {
-        didSet {
-            let normalized = PreferencesStore.normalizeAppearance(appearance)
-            if appearance != normalized {
-                appearance = normalized
-                return
-            }
-            defaults.set(normalized.rawValue, forKey: Key.appearance)
-        }
-    }
-
-    var chainSupportMode: ChainSupportMode {
-        didSet {
-            let normalized = PreferencesStore.normalizeChainSupportMode(chainSupportMode)
-            if chainSupportMode != normalized {
-                chainSupportMode = normalized
-                return
-            }
-            defaults.set(normalized.rawValue, forKey: Key.chainSupportMode)
-            ChainSupportRuntime.setPreferredMode(normalized, defaults: defaults)
-        }
-    }
-
+    private(set) var hasExplicitCurrencySelection: Bool
+    private(set) var selectedCurrencyCode: String
+    private(set) var hapticsEnabled: Bool
+    private(set) var languageCode: String
+    private(set) var appearance: AppAppearance
+    private(set) var chainSupportMode: ChainSupportMode
     var isBalanceHidden = false
 
     init(
@@ -184,6 +93,41 @@ final class PreferencesStore {
 
     var locale: Locale {
         Locale(identifier: languageCode)
+    }
+
+    func selectCurrency(_ code: String, trackExplicit: Bool = true) {
+        let normalized = PreferencesStore.normalizeCurrencyCode(code, supported: supportedCurrencies)
+        selectedCurrencyCode = normalized
+        defaults.set(normalized, forKey: Key.selectedCurrencyCode)
+        if trackExplicit {
+            hasExplicitCurrencySelection = true
+            defaults.set(true, forKey: Key.hasExplicitCurrencySelection)
+        }
+    }
+
+    func setHapticsEnabled(_ value: Bool) {
+        hapticsEnabled = value
+        defaults.set(value, forKey: Key.hapticsEnabled)
+    }
+
+    func selectLanguage(_ code: String) {
+        let normalized = PreferencesStore.normalizeLanguageCode(code, supported: supportedLanguages)
+        languageCode = normalized
+        defaults.set(normalized, forKey: Key.languageCode)
+        autoApplyCurrencyFromLanguageIfNeeded()
+    }
+
+    func selectAppearance(_ value: AppAppearance) {
+        let normalized = PreferencesStore.normalizeAppearance(value)
+        appearance = normalized
+        defaults.set(normalized.rawValue, forKey: Key.appearance)
+    }
+
+    func selectChainSupportMode(_ mode: ChainSupportMode) {
+        let normalized = PreferencesStore.normalizeChainSupportMode(mode)
+        chainSupportMode = normalized
+        defaults.set(normalized.rawValue, forKey: Key.chainSupportMode)
+        ChainSupportRuntime.setPreferredMode(normalized, defaults: defaults)
     }
 
     private static func normalizeCurrencyCode(_ code: String, supported: [CurrencyOption]) -> String {
@@ -285,9 +229,7 @@ final class PreferencesStore {
             supported: supportedCurrencies,
         )
         guard selectedCurrencyCode != suggested else { return }
-        suppressCurrencyTracking = true
-        selectedCurrencyCode = suggested
-        suppressCurrencyTracking = false
+        selectCurrency(suggested, trackExplicit: false)
     }
 
     nonisolated static let defaultLanguageCode = "en"

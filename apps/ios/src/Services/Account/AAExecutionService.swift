@@ -1,3 +1,6 @@
+// AAExecutionService.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import AA
 import AccountSetup
 import BigInt
@@ -308,13 +311,6 @@ final class AAExecutionService {
     private func currentSupportMode() -> ChainSupportMode {
         ChainSupportRuntime.resolveMode()
     }
-}
-
-struct AAExecutionSubmissionResultModel: Sendable {
-    let destinationSubmission: RelaySubmissionModel
-    let immediateSubmissions: [RelaySubmissionModel]
-    let backgroundSubmissions: [RelaySubmissionModel]
-    let deferredSubmissions: [RelaySubmissionModel]
 }
 
 private struct ExecutionContext {

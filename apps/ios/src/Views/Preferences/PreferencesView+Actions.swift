@@ -1,3 +1,6 @@
+// PreferencesView+Actions.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import SwiftUI
 
 extension PreferencesView {
@@ -8,7 +11,7 @@ extension PreferencesView {
             AppearancePickerModal(
                 selectedAppearance: preferencesStore.appearance,
                 onSelect: { appearance in
-                    preferencesStore.appearance = appearance
+                    preferencesStore.selectAppearance(appearance)
                     dismissModal()
                 },
             )

@@ -1,3 +1,6 @@
+// SingletonConfigStore.swift
+// Created by Peter Anyaogu on 03/03/2026.
+
 import Foundation
 import Keychain
 
@@ -28,17 +31,5 @@ struct SingletonConfigStore {
 
     private func accountKey(for eoaAddress: String) -> String {
         "singleton.config.v1." + eoaAddress.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    }
-}
-
-struct StoredSingletonConfig: Codable, Sendable, Equatable {
-    let delegateAddress: String
-    let accumulatorFactory: String
-    let version: String
-
-    init(delegateAddress: String, accumulatorFactory: String, version: String) {
-        self.delegateAddress = delegateAddress.lowercased()
-        self.accumulatorFactory = accumulatorFactory.lowercased()
-        self.version = version
     }
 }
