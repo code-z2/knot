@@ -8,7 +8,7 @@ struct ReceiveView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             VStack {
                 ReceiveQRCodeCard(address: address) { items in

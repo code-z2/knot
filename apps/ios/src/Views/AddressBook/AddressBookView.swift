@@ -17,7 +17,7 @@ struct AddressBookView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             VStack(spacing: 0) {
                 if visibleBeneficiaries.isEmpty {
@@ -92,7 +92,6 @@ struct AddressBookView: View {
         }
         .listStyle(.automatic)
         .scrollContentBackground(.hidden)
-        .background(AppThemeColor.backgroundPrimary)
         .padding(.bottom, 30)
     }
 

@@ -138,7 +138,7 @@ struct ProfileView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             ScrollView {
                 VStack(spacing: 0) {

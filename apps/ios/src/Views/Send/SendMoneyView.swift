@@ -149,7 +149,7 @@ struct SendMoneyView: View {
 
     var baseContent: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             recipientStepContent
 
