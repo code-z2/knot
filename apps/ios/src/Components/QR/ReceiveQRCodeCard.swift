@@ -28,7 +28,7 @@ struct ReceiveQRCodeCard: View {
         .padding(.vertical, 28)
         .background(
             RoundedRectangle(cornerRadius: 34, style: .continuous)
-                .fill(AppThemeColor.backgroundSecondary),
+                .fill(.clear),
         )
         .task(id: qrTaskID) {
             regenerateQRCode()

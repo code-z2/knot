@@ -11,7 +11,7 @@ struct WalletBackupView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             VStack(spacing: 36) {
                 VStack(alignment: .leading, spacing: 53) {

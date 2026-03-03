@@ -16,7 +16,7 @@ struct PreferencesView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
             pageContent
         }
         .appNavigation(

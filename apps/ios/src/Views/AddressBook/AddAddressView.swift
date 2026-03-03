@@ -53,7 +53,7 @@ struct AddAddressView: View {
 
     var body: some View {
         ZStack {
-            AppThemeColor.backgroundPrimary.ignoresSafeArea()
+            AppBackgroundView()
 
             VStack(spacing: 0) {
                 addressInputField
