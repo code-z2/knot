@@ -83,7 +83,7 @@ struct SendMoneyBalanceWidget: View {
     var body: some View {
         HStack(spacing: AppSpacing.md) {
             TokenLogo(url: asset.logoURL, size: 32)
-                .frame(width: 37, height: 37)
+                .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(asset.symbol) \(String(localized: "send_money_balance_suffix"))")
@@ -99,7 +99,7 @@ struct SendMoneyBalanceWidget: View {
 
             AppButton(
                 label: "send_money_switch",
-                variant: .neutral,
+                variant: .outline,
                 size: .compact,
                 underlinedLabel: true,
                 foregroundColorOverride: AppThemeColor.labelSecondary,
@@ -111,14 +111,7 @@ struct SendMoneyBalanceWidget: View {
         .padding(.horizontal, 14)
         .padding(.vertical, AppSpacing.sm)
         .frame(maxWidth: .infinity, minHeight: 65, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppThemeColor.fillPrimary)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(AppThemeColor.fillSecondary, lineWidth: 1),
-                ),
-        )
+        .glassEffect(.clear)
     }
 }
 

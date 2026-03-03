@@ -12,7 +12,7 @@ struct AccountUpdateBannerView: View {
 
     @State private var isVisible = false
 
-    private let bannerHeight: CGFloat = 42
+    private let bannerHeight: CGFloat = 36
 
     var body: some View {
         if phase != .hidden {
@@ -41,25 +41,25 @@ struct AccountUpdateBannerView: View {
 
     private var availableBanner: some View {
         Button(action: onUpdateTap) {
-            HStack(spacing: AppSpacing.xs) {
+            HStack(spacing: AppSpacing.xxs) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.yellow)
 
                 Text(String(format: String(localized: "account_update_available_format"), version))
-                    .font(.custom("RobotoMono-Medium", size: 11))
+                    .font(.custom("RobotoMono-Medium", size: 10))
                     .lineLimit(1)
 
                 Spacer()
 
                 Text("account_update_tap_to_update")
-                    .font(.custom("RobotoMono-Bold", size: 11))
+                    .font(.custom("RobotoMono-Bold", size: 10))
                     .padding(.horizontal, AppSpacing.xs)
                     .padding(.vertical, AppSpacing.xxs)
                     .glassEffect(.clear)
             }
-            .foregroundStyle(AppThemeColor.labelPrimary)
-            .padding(.horizontal, AppSpacing.md)
+            .foregroundStyle(AppThemeColor.backgroundPrimary)
+            .padding(.horizontal, AppSpacing.xl)
             .frame(height: bannerHeight)
             .background(AppThemeColor.accentBrown)
         }
@@ -75,21 +75,22 @@ struct AccountUpdateBannerView: View {
     // MARK: - In Progress
 
     private var inProgressBanner: some View {
-        HStack(spacing: AppSpacing.xs) {
+        HStack(spacing: AppSpacing.xxs) {
             ProgressView()
-                .tint(AppThemeColor.labelPrimary)
+                .tint(AppThemeColor.backgroundPrimary)
                 .scaleEffect(0.7)
 
             Text("account_update_in_progress")
-                .font(.custom("RobotoMono-Medium", size: 11))
-                .foregroundStyle(AppThemeColor.labelPrimary)
+                .font(.custom("RobotoMono-Medium", size: 10))
+                .foregroundStyle(AppThemeColor.backgroundPrimary)
         }
-        .padding(.horizontal, AppSpacing.lg)
+        .padding(.horizontal, AppSpacing.xl)
         .frame(height: bannerHeight)
         .background(
             Capsule()
                 .fill(AppThemeColor.accentBrown),
         )
+        .padding(.top, 4)
         .frame(maxWidth: .infinity)
         .transition(.scale(scale: 0.92).combined(with: .opacity))
     }
@@ -97,21 +98,21 @@ struct AccountUpdateBannerView: View {
     // MARK: - Complete
 
     private var completeBanner: some View {
-        HStack(spacing: AppSpacing.xs) {
+        HStack(spacing: AppSpacing.xxs) {
             Image(systemName: "sparkles")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.yellow)
 
             Text(String(format: String(localized: "account_update_complete_format"), version))
-                .font(.custom("RobotoMono-Medium", size: 11))
+                .font(.custom("RobotoMono-Medium", size: 10))
 
             Spacer()
 
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
         }
-        .foregroundStyle(AppThemeColor.labelPrimary)
-        .padding(.horizontal, AppSpacing.md)
+        .foregroundStyle(AppThemeColor.backgroundPrimary)
+        .padding(.horizontal, AppSpacing.xl)
         .frame(height: bannerHeight)
         .background(AppThemeColor.accentGreen)
         .transition(

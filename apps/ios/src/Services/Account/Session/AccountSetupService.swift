@@ -73,9 +73,17 @@ final class AccountSetupService {
         accumulatorFactoryAddress: String,
     ) async throws -> String {
         do {
+            let resolvedChainId: UInt64 = switch ChainSupportRuntime.resolveMode() {
+            case .limitedTestnet:
+                11_155_111
+            case .limitedMainnet, .fullMainnet:
+                1
+            }
+
             return try await service.updateAccumulatorAddress(
                 eoaAddress: eoaAddress.lowercased(),
                 accumulatorFactoryAddress: accumulatorFactoryAddress,
+                chainId: resolvedChainId,
             )
         } catch {
             throw AccountSetupServiceError.restoreSessionFailed(error)

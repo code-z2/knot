@@ -55,7 +55,7 @@ struct PreferencesView: View {
                     iconBackground: Color(hex: "#FF9F0A"),
                     trailing: .toggle(isOn: Binding(
                         get: { preferencesStore.hapticsEnabled },
-                        set: { preferencesStore.setHapticsEnabled($0) }
+                        set: { preferencesStore.setHapticsEnabled($0) },
                     )),
                 )
                 PreferenceRow(
@@ -64,7 +64,7 @@ struct PreferencesView: View {
                     iconBackground: Color(hex: "#0A84FF"),
                     trailing: .custom(AnyView(NetworkModePullDown(mode: Binding(
                         get: { preferencesStore.chainSupportMode },
-                        set: { preferencesStore.selectChainSupportMode($0) }
+                        set: { preferencesStore.selectChainSupportMode($0) },
                     )))),
                 )
                 NavigationLink {

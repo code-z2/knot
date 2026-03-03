@@ -15,9 +15,9 @@ struct HomeView: View {
     let onPreferencesTap: () -> Void
     let onWalletBackupTap: () -> Void
     let onAddressBookTap: () -> Void
-    let onRefreshWallet: () async -> Void
-    let onCheckForUpdates: () async -> StoredSingletonConfig?
-    let onPerformUpdate: (StoredSingletonConfig) async -> Bool
+    let onRefreshWallet: @MainActor () async -> Void
+    let onCheckForUpdates: @MainActor () async -> StoredSingletonConfig?
+    let onPerformUpdate: @MainActor (StoredSingletonConfig) async -> Bool
     let showWalletBackup: Bool
 
     init(
@@ -31,9 +31,9 @@ struct HomeView: View {
         onPreferencesTap: @escaping () -> Void = {},
         onWalletBackupTap: @escaping () -> Void = {},
         onAddressBookTap: @escaping () -> Void = {},
-        onRefreshWallet: @escaping () async -> Void = {},
-        onCheckForUpdates: @escaping () async -> StoredSingletonConfig? = { nil },
-        onPerformUpdate: @escaping (StoredSingletonConfig) async -> Bool = { _ in false },
+        onRefreshWallet: @escaping @MainActor () async -> Void = {},
+        onCheckForUpdates: @escaping @MainActor () async -> StoredSingletonConfig? = { nil },
+        onPerformUpdate: @escaping @MainActor (StoredSingletonConfig) async -> Bool = { _ in false },
         showWalletBackup: Bool = true,
     ) {
         self.balanceStore = balanceStore
@@ -68,7 +68,7 @@ struct HomeView: View {
                     accountBalanceDisplay: accountBalanceDisplay,
                     isBalanceHidden: Binding(
                         get: { preferencesStore.isBalanceHidden },
-                        set: { preferencesStore.isBalanceHidden = $0 }
+                        set: { preferencesStore.isBalanceHidden = $0 },
                     ),
                     onAddMoney: { handleAddMoneyTap() },
                     onSendMoney: { handleSendMoneyTap() },
@@ -195,11 +195,13 @@ struct HomeView: View {
             }
 
             if success {
-                pendingSingletonConfig = nil
                 try? await Task.sleep(for: .seconds(3))
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     updateBannerPhase = .hidden
                 }
+
+                try? await Task.sleep(for: .milliseconds(500))
+                pendingSingletonConfig = nil
             }
         }
     }

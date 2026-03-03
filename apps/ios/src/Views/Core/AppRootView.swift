@@ -225,7 +225,9 @@ struct AppRootView: View {
                             )
                         },
                         onPerformUpdate: { config in
-                            guard let eoa = currentEOA else { return false }
+                            guard let eoa = currentEOA else {
+                                return false
+                            }
                             guard let accumulatorAddress = await appSessionFlowService
                                 .performSingletonUpdate(
                                     eoaAddress: eoa,
