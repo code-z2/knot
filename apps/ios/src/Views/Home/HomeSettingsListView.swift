@@ -4,11 +4,13 @@ struct HomeSettingsListView: View {
     let assetsSummaryLabel: Text
     let showWalletBackup: Bool
     let isLoggingOut: Bool
+    let isCheckingForUpdates: Bool
     let onPresentAssets: () -> Void
     let onProfileTap: () -> Void
     let onPreferencesTap: () -> Void
     let onWalletBackupTap: () -> Void
     let onAddressBookTap: () -> Void
+    let onCheckForUpdates: () -> Void
     let onBeginLogout: () -> Void
     let onRefresh: () async -> Void
 
@@ -25,7 +27,7 @@ struct HomeSettingsListView: View {
         List {
             assetsSection
             primaryActionsSection
-            logoutSection
+            secondaryActionsSection
         }
         .listStyle(.insetGrouped)
         .listSectionSpacing(groupedSectionGap)
@@ -62,27 +64,41 @@ struct HomeSettingsListView: View {
     private var primaryActionsSection: some View {
         Section {
             HomeSettingsRow(title: Text("home_profile"), action: onProfileTap) {
-                iconBadge(systemName: "person", style: .solid(background: Color(UIColor(.red)), icon: AppThemeColor.grayWhite))
+                iconBadge(
+                    systemName: "person",
+                    style: .solid(background: Color(UIColor(.red)), icon: AppThemeColor.grayWhite),
+                )
             }
 
             HomeSettingsRow(title: Text("home_preferences"), action: onPreferencesTap) {
-                iconBadge(systemName: "slider.horizontal.3", style: .solid(background: Color(UIColor(.cyan)), icon: AppThemeColor.grayWhite))
+                iconBadge(
+                    systemName: "slider.horizontal.3",
+                    style: .solid(background: Color(UIColor(.cyan)), icon: AppThemeColor.grayWhite),
+                )
             }
 
             if showWalletBackup {
                 HomeSettingsRow(title: Text("home_wallet_backup"), action: onWalletBackupTap) {
-                    iconBadge(systemName: "wallet.bifold", style: .solid(background: Color(UIColor(.blue)), icon: AppThemeColor.grayWhite))
+                    iconBadge(
+                        systemName: "wallet.bifold",
+                        style: .solid(background: Color(UIColor(.blue)), icon: AppThemeColor.grayWhite),
+                    )
                 }
             }
 
             HomeSettingsRow(title: Text("home_address_book"), action: onAddressBookTap) {
-                iconBadge(systemName: "person.2", style: .solid(background: Color(UIColor(.purple)), icon: AppThemeColor.grayWhite))
+                iconBadge(
+                    systemName: "person.2",
+                    style: .solid(background: Color(UIColor(.purple)), icon: AppThemeColor.grayWhite),
+                )
             }
 
             HomeSettingsRow(title: Text("home_ai_agent"), action: nil, showsChevron: false) {
                 iconBadge(
                     systemName: "cpu",
-                    style: .gradient(colors: [Color(UIColor(.teal)), Color(UIColor(.orange))], icon: AppThemeColor.grayWhite),
+                    style: .gradient(
+                        colors: [Color(UIColor(.teal)), Color(UIColor(.orange))], icon: AppThemeColor.grayWhite,
+                    ),
                 )
             }
         } header: {
@@ -91,8 +107,26 @@ struct HomeSettingsListView: View {
         .textCase(nil)
     }
 
-    private var logoutSection: some View {
+    private var secondaryActionsSection: some View {
         Section {
+            HomeSettingsRow(
+                title: Text("home_check_for_updates"),
+                action: onCheckForUpdates,
+                showsChevron: false,
+            ) {
+                iconBadge(
+                    systemName: "arrow.clockwise",
+                    style: .solid(background: Color(UIColor(.mint)), icon: AppThemeColor.grayWhite),
+                )
+            } trailing: {
+                if isCheckingForUpdates {
+                    ProgressView()
+                        .tint(AppThemeColor.labelSecondary)
+                        .transition(.opacity)
+                }
+            }
+            .disabled(isCheckingForUpdates)
+
             HomeSettingsRow(
                 title: Text("home_logout"),
                 action: onBeginLogout,

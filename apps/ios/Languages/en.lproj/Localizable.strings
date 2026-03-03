@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Wallet Backup";
 "home_address_book" = "Address Book";
 "home_ai_agent" = "AI Agent";
+"home_check_for_updates" = "Check for Updates";
 "home_logout" = "Logout";
 "address_book_title" = "Address Book";
 "search_placeholder" = "Search";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS profile updated.";
 
 "biometric_reason_wallet_backup" = "Authenticate to reveal your recovery phrase";
+
+"account_update_available_format" = "Account upgrade available — v%@";
+"account_update_tap_to_update" = "Tap to Update";
+"account_update_in_progress" = "Account upgrade in progress";
+"account_update_complete_format" = "Account upgraded to v%@";

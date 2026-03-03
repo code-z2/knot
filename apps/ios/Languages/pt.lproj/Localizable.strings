@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Backup da Carteira";
 "home_address_book" = "Lista de Endereços";
 "home_ai_agent" = "Agente de IA";
+"home_check_for_updates" = "Verificar atualizações";
 "home_logout" = "Sair";
 "address_book_title" = "Lista de Endereços";
 "search_placeholder" = "Buscar";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "Perfil ENS atualizado.";
 
 "biometric_reason_wallet_backup" = "Autentique-se para exibir sua frase de recuperação";
+
+"account_update_available_format" = "Atualização de conta disponível — v%@";
+"account_update_tap_to_update" = "Toque para atualizar";
+"account_update_in_progress" = "Atualização de conta em andamento";
+"account_update_complete_format" = "Conta atualizada para v%@";

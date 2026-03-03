@@ -1,5 +1,6 @@
 import BigInt
 import Foundation
+import RPC
 import web3swift
 
 enum AAUtils {
@@ -107,7 +108,8 @@ enum AAUtils {
         let chainWord = ABIWord.uint(BigUInt(chainId))
         let accountWord = try ABIWord.address(account)
         return Data(
-            (eip712DomainTypeHash + accountDomainNameHash + accountDomainVersionHash + chainWord + accountWord).sha3(
+            (eip712DomainTypeHash + accountDomainNameHash + accountDomainVersionHash + chainWord
+                + accountWord).sha3(
                 .keccak256,
             ),
         )
@@ -119,5 +121,12 @@ enum AAUtils {
 
     static func toEthSignedMessageHash(_ digest32: Data) -> Data {
         Data((Data("\u{19}Ethereum Signed Message:\n32".utf8) + digest32).sha3(.keccak256))
+    }
+
+    static func spokePoolAddress(chainId: UInt64) throws -> String {
+        guard let value = ChainRegistry.spokePoolAddress(chainID: chainId) else {
+            throw AAError.missingConfiguration(key: "spokePool", chainId: chainId)
+        }
+        return value
     }
 }

@@ -26,6 +26,7 @@
 "home_wallet_backup" = "钱包备份";
 "home_address_book" = "地址簿";
 "home_ai_agent" = "AI 助手";
+"home_check_for_updates" = "检查更新";
 "home_logout" = "退出登录";
 "address_book_title" = "地址簿";
 "search_placeholder" = "搜索";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS 资料已更新。";
 
 "biometric_reason_wallet_backup" = "请进行身份验证以显示你的恢复短语";
+
+"account_update_available_format" = "账户升级可用 — v%@";
+"account_update_tap_to_update" = "轻点更新";
+"account_update_in_progress" = "账户升级进行中";
+"account_update_complete_format" = "账户已升级到 v%@";

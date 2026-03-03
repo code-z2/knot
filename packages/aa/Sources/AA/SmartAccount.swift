@@ -320,7 +320,8 @@ public enum SmartAccount {
             let inputToken = try ABIWord.address(order.inputToken)
             let minOutput = ABIWord.uint(order.minOutput)
             let recipient = try ABIWord.address(order.recipient)
-            return salt + destChainId + outputToken + sumOutput + inputAmount + inputToken + minOutput + recipient
+            return salt + destChainId + outputToken + sumOutput + inputAmount + inputToken + minOutput
+                + recipient
         }
     }
 
@@ -358,7 +359,9 @@ public enum SmartAccount {
 
     public enum Accumulator {
         /// Hash `ExecutionParams` exactly as the on-chain Accumulator does (pre-domain EIP-712 struct hash).
-        public static func hashExecutionParamsStruct(_ params: AccumulatorExecutionParams) throws -> Data {
+        public static func hashExecutionParamsStruct(_ params: AccumulatorExecutionParams) throws
+            -> Data
+        {
             let salt = try ABIWord.bytes32(params.salt)
             let fillDeadline = ABIWord.uint(BigUInt(params.fillDeadline))
             let sumOutput = ABIWord.uint(params.sumOutput)
@@ -441,7 +444,9 @@ public enum SmartAccount {
             return Data(callHashes.sha3(.keccak256))
         }
 
-        private static func encodeExecutionParamsTuple(_ params: AccumulatorExecutionParams) throws -> Data {
+        private static func encodeExecutionParamsTuple(_ params: AccumulatorExecutionParams) throws
+            -> Data
+        {
             let salt = try ABIWord.bytes32(params.salt)
             let fillDeadline = ABIWord.uint(BigUInt(params.fillDeadline))
             let sumOutput = ABIWord.uint(params.sumOutput)
@@ -509,13 +514,26 @@ public actor SmartAccountClient {
         self.rpcClient = rpcClient
     }
 
-    public func isDeployed(account: String, chainId: UInt64) async throws -> Bool {
+    /// Returns `true` when the account needs an EIP-7702 delegation + `initialize()` call.
+    /// This happens when: no code at all, code is not EIP-7702, or delegation points to a different address.
+    public func needsSetup(account: String, chainId: UInt64, expectedDelegate: String) async throws
+        -> Bool
+    {
         let code = try await rpcClient.getCode(chainId: chainId, address: account)
         let normalized = code.lowercased()
-        return normalized != "0x" && normalized != "0x0"
+
+        // No code → needs full setup
+        if normalized == "0x" || normalized == "0x0" { return true }
+
+        // EIP-7702 delegation prefix: 0xef0100 + 20-byte address = "0x" + 46 hex chars = 48 total
+        guard normalized.hasPrefix("0xef0100"), normalized.count == 48 else { return true }
+
+        let currentDelegate = String(normalized.dropFirst(8)) // drop "0xef0100"
+        return currentDelegate != expectedDelegate.lowercased()
     }
 
-    public func getTransactionCount(account: String, chainId: UInt64, blockTag: String = "pending") async throws
+    public func getTransactionCount(account: String, chainId: UInt64, blockTag: String = "pending")
+        async throws
         -> UInt64
     {
         let nonceHex: String = try await rpcClient.makeRpcCall(
@@ -543,10 +561,13 @@ public actor SmartAccountClient {
     public func computeAccumulatorAddress(
         account: String,
         chainId: UInt64,
+        accumulatorFactoryAddress: String,
     ) async throws -> String {
-        let calldata = try SmartAccount.AccumulatorFactory.encodeComputeAddressCall(userAccount: account)
+        let calldata = try SmartAccount.AccumulatorFactory.encodeComputeAddressCall(
+            userAccount: account,
+        )
         let response = try await ethCallHex(
-            account: AAConstants.accumulatorFactoryAddress,
+            account: accumulatorFactoryAddress,
             chainId: chainId,
             data: calldata,
         )

@@ -26,6 +26,7 @@
 "home_wallet_backup" = "வாலட் காப்பு";
 "home_address_book" = "முகவரி புத்தகம்";
 "home_ai_agent" = "AI ஏஜென்ட்";
+"home_check_for_updates" = "புதுப்பிப்புகளை சரிபார்க்க";
 "home_logout" = "வெளியேறு";
 "address_book_title" = "முகவரி புத்தகம்";
 "search_placeholder" = "தேடு";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS சுயவிவரம் புதுப்பிக்கப்பட்டது.";
 
 "biometric_reason_wallet_backup" = "உங்கள் மீட்பு சொற்றொடரை காண அங்கீகரிக்கவும்";
+
+"account_update_available_format" = "கணக்கு மேம்பாடு கிடைக்கிறது — v%@";
+"account_update_tap_to_update" = "புதுப்பிக்கத் தட்டவும்";
+"account_update_in_progress" = "கணக்கு மேம்பாடு நடைபெறுகிறது";
+"account_update_complete_format" = "கணக்கு v%@ ஆக மேம்படுத்தப்பட்டது";

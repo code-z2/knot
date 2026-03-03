@@ -1,3 +1,4 @@
+import AA
 import AccountSetup
 import Foundation
 import RPC
@@ -19,17 +20,23 @@ final class AppSessionFlowService {
     let biometricAuth: BiometricAuthService
     private let sessionStore: SessionStore
     private let faucetService: FaucetService
+    private let singletonConfigStore: SingletonConfigStore
+    private let singletonVersionService: SingletonVersionService
 
     init(
         accountService: AccountSetupService? = nil,
         sessionStore: SessionStore? = nil,
         faucetService: FaucetService? = nil,
         biometricAuth: BiometricAuthService? = nil,
+        singletonConfigStore: SingletonConfigStore? = nil,
+        singletonVersionService: SingletonVersionService? = nil,
     ) {
         self.accountService = accountService ?? AccountSetupService()
         self.sessionStore = sessionStore ?? SessionStore()
         self.faucetService = faucetService ?? FaucetService()
         self.biometricAuth = biometricAuth ?? BiometricAuthService()
+        self.singletonConfigStore = singletonConfigStore ?? SingletonConfigStore()
+        self.singletonVersionService = singletonVersionService ?? SingletonVersionService()
     }
 
     func bootstrap() async -> AppBootstrapResultModel {
@@ -55,10 +62,26 @@ final class AppSessionFlowService {
     }
 
     func createWallet() async -> AppSessionStateModel? {
+        guard let latestConfig = await singletonVersionService.fetchLatest() else {
+            print("❌ [AppSessionFlowService] createWallet failed: missing singleton config")
+            return nil
+        }
+
         do {
-            let created = try await accountService.createWallet()
+            let created = try await accountService.createWallet(
+                delegateAddress: latestConfig.delegateAddress,
+                accumulatorFactoryAddress: latestConfig.accumulatorFactory,
+            )
             sessionStore.setActiveSession(eoaAddress: created.eoaAddress)
             let hasWallet = await accountService.hasLocalWalletMaterial(for: created.eoaAddress)
+
+            do {
+                try singletonConfigStore.save(latestConfig, for: created.eoaAddress)
+            } catch {
+                print("❌ [AppSessionFlowService] createWallet failed: keychain save error: \(error.localizedDescription)")
+                return nil
+            }
+
             return AppSessionStateModel(
                 eoaAddress: created.eoaAddress,
                 accumulatorAddress: created.accumulatorAddress,
@@ -66,6 +89,29 @@ final class AppSessionFlowService {
             )
         } catch {
             print("❌ [AppSessionFlowService] createWallet failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func checkForSingletonUpdate(eoaAddress: String) async -> StoredSingletonConfig? {
+        guard let latestConfig = await singletonVersionService.fetchLatest() else { return nil }
+        guard let currentConfig = singletonConfigStore.read(for: eoaAddress) else { return latestConfig }
+        return currentConfig.version == latestConfig.version ? nil : latestConfig
+    }
+
+    func performSingletonUpdate(
+        eoaAddress: String,
+        config: StoredSingletonConfig,
+    ) async -> String? {
+        do {
+            let accumulatorAddress = try await accountService.updateAccumulatorAddress(
+                for: eoaAddress,
+                accumulatorFactoryAddress: config.accumulatorFactory,
+            )
+            try singletonConfigStore.save(config, for: eoaAddress)
+            return accumulatorAddress
+        } catch {
+            print("❌ [AppSessionFlowService] update failed: \(error.localizedDescription)")
             return nil
         }
     }
@@ -104,25 +150,6 @@ final class AppSessionFlowService {
             return nil
         }
         return try? await accountService.localMnemonic(for: eoaAddress)
-    }
-
-    func resolveAccumulatorAddress(
-        eoaAddress: String?,
-        fallbackAccumulatorAddress: String?,
-    ) async -> String? {
-        if let fallbackAccumulatorAddress {
-            return fallbackAccumulatorAddress
-        }
-
-        guard let eoaAddress else {
-            return nil
-        }
-
-        guard let restored = try? await accountService.restoreSession(eoaAddress: eoaAddress) else {
-            return nil
-        }
-
-        return restored.accumulatorAddress
     }
 
     func triggerFaucetIfNeeded(walletAddress: String, mode: ChainSupportMode) async {

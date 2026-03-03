@@ -26,6 +26,7 @@
 "home_wallet_backup" = "వాలెట్ బ్యాకప్";
 "home_address_book" = "చిరునామా పుస్తకం";
 "home_ai_agent" = "AI ఏజెంట్";
+"home_check_for_updates" = "అప్‌డేట్ల కోసం తనిఖీ చేయండి";
 "home_logout" = "లాగ్ అవుట్";
 "address_book_title" = "చిరునామా పుస్తకం";
 "search_placeholder" = "శోధించు";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS ప్రొఫైల్ నవీకరించబడింది.";
 
 "biometric_reason_wallet_backup" = "మీ రికవరీ ఫ్రేజ్ చూపించడానికి ధృవీకరించండి";
+
+"account_update_available_format" = "ఖాతా అప్‌గ్రేడ్ అందుబాటులో ఉంది — v%@";
+"account_update_tap_to_update" = "అప్‌డేట్ చేయడానికి ట్యాప్ చేయండి";
+"account_update_in_progress" = "ఖాతా అప్‌గ్రేడ్ జరుగుతోంది";
+"account_update_complete_format" = "ఖాతా v%@ కు అప్‌గ్రేడ్ అయింది";

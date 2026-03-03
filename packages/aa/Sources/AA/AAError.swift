@@ -14,6 +14,8 @@ public enum AAError: Error {
     case invalidEip7702SenderCodePrefix(String)
 
     case missingEip7702Auth
+
+    case missingConfiguration(key: String, chainId: UInt64)
 }
 
 extension AAError: LocalizedError {
@@ -39,6 +41,9 @@ extension AAError: LocalizedError {
 
         case .missingEip7702Auth:
             "Missing EIP-7702 authorization."
+
+        case let .missingConfiguration(key, chainId):
+            "Missing configuration for key: \(key) on chain: \(chainId)"
         }
     }
 }

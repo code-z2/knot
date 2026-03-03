@@ -38,28 +38,32 @@ extension AccountSetupServiceError: LocalizedError {
 @MainActor
 final class AccountSetupService {
     private let service: AccountSetup.AccountSetupService
-    private let defaultDelegateAddress: String
     private let supportedChainIDs: [UInt64]
     private let rpcClient: RPCClient
 
     init(
         service: AccountSetup.AccountSetupService? = nil,
-        delegateAddress: String = AAConstants.delegateImplementationAddress,
         supportedChainIDs: [UInt64] = ChainSupportRuntime.resolveSupportedChainIDs(),
         rpcClient: RPCClient? = nil,
     ) {
         self.service =
-            service ?? AccountSetup.AccountSetupService(passkeyService: PasskeyService(anchor: nil))
-        defaultDelegateAddress = delegateAddress
+            service
+                ?? AccountSetup.AccountSetupService(
+                    passkeyService: PasskeyService(anchor: nil),
+                )
         self.supportedChainIDs = supportedChainIDs
         self.rpcClient = rpcClient ?? RPCClient()
     }
 
-    func createWallet() async throws -> AccountSession {
+    func createWallet(
+        delegateAddress: String,
+        accumulatorFactoryAddress: String,
+    ) async throws -> AccountSession {
         let creationChainId = supportedChainIDs.first ?? 1
         do {
             let created = try await service.provisionAccount(
-                delegateAddress: defaultDelegateAddress,
+                delegateAddress: delegateAddress,
+                accumulatorFactoryAddress: accumulatorFactoryAddress,
                 chainId: creationChainId,
                 nonce: 0,
             )
@@ -84,6 +88,20 @@ final class AccountSetupService {
     func restoreSession(eoaAddress: String) async throws -> AccountSession {
         do {
             return try await service.restoreAccount(eoaAddress: eoaAddress.lowercased())
+        } catch {
+            throw AccountSetupServiceError.restoreSessionFailed(error)
+        }
+    }
+
+    func updateAccumulatorAddress(
+        for eoaAddress: String,
+        accumulatorFactoryAddress: String,
+    ) async throws -> String {
+        do {
+            return try await service.updateAccumulatorAddress(
+                eoaAddress: eoaAddress.lowercased(),
+                accumulatorFactoryAddress: accumulatorFactoryAddress,
+            )
         } catch {
             throw AccountSetupServiceError.restoreSessionFailed(error)
         }
@@ -128,9 +146,11 @@ final class AccountSetupService {
         }
     }
 
-    func jitSignedAuthorization(account: AccountSession, chainId: UInt64) async throws
-        -> EIP7702AuthorizationSignedModel
-    {
+    func jitSignedAuthorization(
+        account: AccountSession,
+        chainId: UInt64,
+        delegateAddress: String,
+    ) async throws -> EIP7702AuthorizationSignedModel {
         do {
             let nonceHex = try await rpcClient.makeRpcCall(
                 chainId: chainId,
@@ -153,7 +173,7 @@ final class AccountSetupService {
             return try await service.signedAuthorizationForChain(
                 account: account,
                 chainId: chainId,
-                delegateAddress: defaultDelegateAddress,
+                delegateAddress: delegateAddress,
                 nonce: nonce,
             )
         } catch {

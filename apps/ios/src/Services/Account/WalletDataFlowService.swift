@@ -6,30 +6,24 @@ import Transactions
 final class WalletDataFlowService {
     func refresh(
         walletAddress: String,
-        fallbackAccumulatorAddress: String?,
-        appSessionFlowService: AppSessionFlowService,
+        accumulatorAddress: String?,
         balanceStore: BalanceStore,
         transactionStore: TransactionStore,
         useSilentRefresh: Bool = false,
-    ) async -> String? {
-        guard let accumulatorAddress = await appSessionFlowService.resolveAccumulatorAddress(
-            eoaAddress: walletAddress,
-            fallbackAccumulatorAddress: fallbackAccumulatorAddress,
-        ) else {
-            return nil
-        }
-
+    ) async {
         if useSilentRefresh {
             _ = await balanceStore.silentRefresh()
             _ = await transactionStore.silentRefresh()
-        } else {
-            await balanceStore.refresh(walletAddress: walletAddress)
+            return
+        }
+
+        await balanceStore.refresh(walletAddress: walletAddress)
+
+        if let accumulatorAddress {
             await transactionStore.refresh(
                 walletAddress: walletAddress,
                 accumulatorAddress: accumulatorAddress,
             )
         }
-
-        return accumulatorAddress
     }
 }

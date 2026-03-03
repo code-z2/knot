@@ -6,13 +6,19 @@ import Transactions
 struct ExecuteXLeafResolver {
     private let smartAccountClient: SmartAccountClient
     private let initializationPolicy: ExecuteXInitializationPolicy
+    private let delegateAddress: String
+    private let accumulatorFactoryAddress: String
 
     init(
         smartAccountClient: SmartAccountClient,
         initializationPolicy: ExecuteXInitializationPolicy = ExecuteXInitializationPolicy(),
+        delegateAddress: String,
+        accumulatorFactoryAddress: String,
     ) {
         self.smartAccountClient = smartAccountClient
         self.initializationPolicy = initializationPolicy
+        self.delegateAddress = delegateAddress
+        self.accumulatorFactoryAddress = accumulatorFactoryAddress
     }
 
     func resolveLeaves(
@@ -70,11 +76,12 @@ struct ExecuteXLeafResolver {
         }
 
         for chainId in accumulatorOnlyChainOrder {
-            let isDeployed = try await smartAccountClient.isDeployed(
+            let needsSetup = try await smartAccountClient.needsSetup(
                 account: request.account,
                 chainId: chainId,
+                expectedDelegate: delegateAddress,
             )
-            guard !isDeployed else { continue }
+            guard needsSetup else { continue }
 
             let initializeLeaf = try await buildInitializeOnlyExecuteLeaf(
                 account: request.account,
@@ -100,13 +107,17 @@ struct ExecuteXLeafResolver {
         authorizationsByChainId: [UInt64: RelayAuthorizationModel],
         signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXResolvedExecuteLeaf {
-        let isDeployed = try await smartAccountClient.isDeployed(account: account, chainId: chainId)
+        let needsSetup = try await smartAccountClient.needsSetup(
+            account: account,
+            chainId: chainId,
+            expectedDelegate: delegateAddress,
+        )
         var calls = rawCalls
         var didAppendInitializeCall = false
         var authorization: RelayAuthorizationModel? = nil
         var initSignature: Data? = nil
 
-        if !isDeployed {
+        if needsSetup {
             let initializeCall = try makeInitializeCall(
                 account: account,
                 passkeyPublicKey: passkeyPublicKey,
@@ -140,7 +151,7 @@ struct ExecuteXLeafResolver {
             mode: mode,
             calls: calls,
             didAppendInitializeCall: didAppendInitializeCall,
-            authorizationRequired: !isDeployed,
+            authorizationRequired: needsSetup,
             authorization: authorization,
             initSignature: initSignature,
             structHash: structHash,
@@ -200,8 +211,8 @@ struct ExecuteXLeafResolver {
         chainId: UInt64,
     ) throws -> Call {
         let initConfig = try InitializationConfig(
-            accumulatorFactory: AAConstants.accumulatorFactoryAddress,
-            spokePool: AAConstants.spokePoolAddress(chainId: chainId),
+            accumulatorFactory: accumulatorFactoryAddress,
+            spokePool: AAUtils.spokePoolAddress(chainId: chainId),
         )
         return try SmartAccount.Initialize.asCall(
             account: account,

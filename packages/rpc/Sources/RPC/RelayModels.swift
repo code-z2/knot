@@ -378,3 +378,29 @@ struct RelayFaucetFundRequestPayload: Encodable {
     let eoaAddress: String
     let supportMode: String
 }
+
+public struct SingletonVersionModel: Sendable, Codable, Equatable {
+    public let ok: Bool
+
+    public let currentSingleton: String
+
+    public let accumulatorFactory: String
+
+    public let version: String
+
+    public let releaseNotes: String?
+
+    public init(
+        ok: Bool,
+        currentSingleton: String,
+        accumulatorFactory: String,
+        version: String,
+        releaseNotes: String? = nil,
+    ) {
+        self.ok = ok
+        self.currentSingleton = currentSingleton
+        self.accumulatorFactory = accumulatorFactory
+        self.version = version
+        self.releaseNotes = releaseNotes
+    }
+}

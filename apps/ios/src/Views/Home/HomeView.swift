@@ -13,6 +13,8 @@ struct HomeView: View {
     let onWalletBackupTap: () -> Void
     let onAddressBookTap: () -> Void
     let onRefreshWallet: () async -> Void
+    let onCheckForUpdates: () async -> StoredSingletonConfig?
+    let onPerformUpdate: (StoredSingletonConfig) async -> Bool
     let showWalletBackup: Bool
 
     init(
@@ -27,6 +29,8 @@ struct HomeView: View {
         onWalletBackupTap: @escaping () -> Void = {},
         onAddressBookTap: @escaping () -> Void = {},
         onRefreshWallet: @escaping () async -> Void = {},
+        onCheckForUpdates: @escaping () async -> StoredSingletonConfig? = { nil },
+        onPerformUpdate: @escaping (StoredSingletonConfig) async -> Bool = { _ in false },
         showWalletBackup: Bool = true,
     ) {
         self.balanceStore = balanceStore
@@ -40,6 +44,8 @@ struct HomeView: View {
         self.onWalletBackupTap = onWalletBackupTap
         self.onAddressBookTap = onAddressBookTap
         self.onRefreshWallet = onRefreshWallet
+        self.onCheckForUpdates = onCheckForUpdates
+        self.onPerformUpdate = onPerformUpdate
         self.showWalletBackup = showWalletBackup
     }
 
@@ -64,6 +70,16 @@ struct HomeView: View {
                     .foregroundColor(.clear)
                     .frame(height: 4)
                     .background(AppThemeColor.separatorOpaque)
+
+                if updateBannerPhase != .hidden, let pendingSingletonConfig {
+                    AccountUpdateBannerView(
+                        phase: $updateBannerPhase,
+                        version: pendingSingletonConfig.version,
+                        releaseNotes: nil,
+                        onUpdateTap: { performUpdate() },
+                    )
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: updateBannerPhase)
+                }
 
                 settingsList
             }
@@ -96,6 +112,9 @@ struct HomeView: View {
     @State private var assetSearchText = ""
     @State var isLoggingOut = false
     @State var logoutTask: Task<Void, Never>?
+    @State var updateBannerPhase: UpdateBannerPhase = .hidden
+    @State private var pendingSingletonConfig: StoredSingletonConfig?
+    @State var isCheckingForUpdates = false
     // Haptic triggers
     @State var lightImpactTrigger = 0
     @State var selectionTrigger = 0
@@ -144,14 +163,66 @@ struct HomeView: View {
             assetsSummaryLabel: assetsSummaryLabel,
             showWalletBackup: showWalletBackup,
             isLoggingOut: isLoggingOut,
+            isCheckingForUpdates: isCheckingForUpdates,
             onPresentAssets: { presentAssetsModal() },
             onProfileTap: { handleProfileTap() },
             onPreferencesTap: { handlePreferencesTap() },
             onWalletBackupTap: { handleWalletBackupTap() },
             onAddressBookTap: { handleAddressBookTap() },
+            onCheckForUpdates: { checkForUpdates() },
             onBeginLogout: { beginLogout() },
             onRefresh: { await refreshBalances() },
         )
+    }
+
+    private func performUpdate() {
+        guard updateBannerPhase == .available else { return }
+
+        Task { @MainActor in
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                updateBannerPhase = .inProgress
+            }
+
+            // Slight artificial delay for perceived weight.
+            try? await Task.sleep(for: .milliseconds(900))
+
+            guard let pendingConfig = pendingSingletonConfig else {
+                updateBannerPhase = .hidden
+                return
+            }
+
+            let success = await onPerformUpdate(pendingConfig)
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                updateBannerPhase = success ? .complete : .hidden
+            }
+
+            if success {
+                pendingSingletonConfig = nil
+                try? await Task.sleep(for: .seconds(3))
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    updateBannerPhase = .hidden
+                }
+            }
+        }
+    }
+
+    private func checkForUpdates() {
+        guard !isCheckingForUpdates else { return }
+
+        Task { @MainActor in
+            isCheckingForUpdates = true
+            defer { isCheckingForUpdates = false }
+
+            if let result = await onCheckForUpdates() {
+                pendingSingletonConfig = result
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    updateBannerPhase = .available
+                }
+            } else {
+                pendingSingletonConfig = nil
+            }
+        }
     }
 
     @ViewBuilder

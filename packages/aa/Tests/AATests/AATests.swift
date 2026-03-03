@@ -7,6 +7,12 @@ import web3swift
 import XCTest
 
 final class AATests: XCTestCase {
+    /// Test-only fixture addresses (AAConstants was removed)
+    private enum TestFixtures {
+        static let delegateAddress = "0x0000000000000000000000000000000000000def"
+        static let accumulatorFactoryAddress = "0x00000000000000000000000000000000000000f1"
+    }
+
     func testInit() {
         _ = SmartAccountClient()
     }
@@ -95,7 +101,10 @@ final class AATests: XCTestCase {
         let salt = Data(repeating: 0x11, count: 32)
 
         let structHash = try SmartAccount.ExecuteX.structHash(calls: calls, salt: salt)
-        guard let expected = Data.fromHex("653ab4444c19b36569df75db905c14ed334717f89f43de2fb69e2b547e56d82c")
+        guard
+            let expected = Data.fromHex(
+                "653ab4444c19b36569df75db905c14ed334717f89f43de2fb69e2b547e56d82c",
+            )
         else {
             XCTFail("Expected hash fixture must decode from hex")
             return
@@ -124,7 +133,9 @@ final class AATests: XCTestCase {
         let callsLength = BigUInt(encoded.subdata(in: callsArrayStart ..< (callsArrayStart + 32)))
         XCTAssertEqual(callsLength, 2)
 
-        let firstCallOffset = BigUInt(encoded.subdata(in: (callsArrayStart + 32) ..< (callsArrayStart + 64)))
+        let firstCallOffset = BigUInt(
+            encoded.subdata(in: (callsArrayStart + 32) ..< (callsArrayStart + 64)),
+        )
         XCTAssertEqual(
             firstCallOffset,
             BigUInt(0x40),
@@ -263,6 +274,7 @@ final class AATests: XCTestCase {
         let address = try await client.computeAccumulatorAddress(
             account: "0x0000000000000000000000000000000000000abc",
             chainId: 8453,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
         )
 
         XCTAssertEqual(address, expected)
@@ -276,7 +288,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -344,7 +360,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -411,7 +431,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -462,7 +486,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -517,7 +545,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -574,7 +606,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -655,7 +691,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -716,7 +756,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -783,7 +827,9 @@ final class AATests: XCTestCase {
         XCTAssertEqual(plan.accumulatorExecutions.first?.mode, .deferred)
     }
 
-    func testExecuteXPlannerDestinationInitOnlyIsImmediateBeforeBackgroundWhenUndeployed() async throws {
+    func testExecuteXPlannerDestinationInitOnlyIsImmediateBeforeBackgroundWhenUndeployed()
+        async throws
+    {
         let transport = StubTransport(codeByChain: [8453: "0x01", 10: "0x"])
         let rpcClient = RPCClient(
             resolver: StaticRPCEndpointResolverService(
@@ -794,7 +840,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -880,7 +930,11 @@ final class AATests: XCTestCase {
             ),
             transport: transport,
         )
-        let planner = ExecuteXPlanner(smartAccountClient: SmartAccountClient(rpcClient: rpcClient))
+        let planner = ExecuteXPlanner(
+            smartAccountClient: SmartAccountClient(rpcClient: rpcClient),
+            delegateAddress: TestFixtures.delegateAddress,
+            accumulatorFactoryAddress: TestFixtures.accumulatorFactoryAddress,
+        )
 
         let account = "0x0000000000000000000000000000000000000abc"
         let passkey = PasskeyPublicKeyModel(
@@ -955,9 +1009,10 @@ final class AATests: XCTestCase {
 
         let initSelector = Data("initialize(bytes32,bytes32,address,address)".utf8).sha3(.keccak256)
             .prefix(4)
-        let destinationFirstCall = Data.fromHex(
-            String((destinationExecuteLeaf?.calls.first?.dataHex ?? "0x").dropFirst(2)),
-        ) ?? Data()
+        let destinationFirstCall =
+            Data.fromHex(
+                String((destinationExecuteLeaf?.calls.first?.dataHex ?? "0x").dropFirst(2)),
+            ) ?? Data()
         XCTAssertEqual(destinationFirstCall.prefix(4), initSelector)
     }
 

@@ -26,6 +26,7 @@
 "home_wallet_backup" = "ウォレットのバックアップ";
 "home_address_book" = "アドレス帳";
 "home_ai_agent" = "AIエージェント";
+"home_check_for_updates" = "アップデートを確認";
 "home_logout" = "ログアウト";
 "address_book_title" = "アドレス帳";
 "search_placeholder" = "検索";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENSプロフィールを更新しました。";
 
 "biometric_reason_wallet_backup" = "リカバリーフレーズを表示するには認証してください";
+
+"account_update_available_format" = "アカウントアップグレード利用可能 — v%@";
+"account_update_tap_to_update" = "タップして更新";
+"account_update_in_progress" = "アカウントアップグレード中";
+"account_update_complete_format" = "アカウントをv%@にアップグレードしました";

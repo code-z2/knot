@@ -10,13 +10,13 @@ final class SendFlowService {
     private let accountService: AccountSetupService
 
     init(
-        routeComposer: RouteComposer? = nil,
-        aaExecutionService: AAExecutionService? = nil,
-        accountService: AccountSetupService? = nil,
+        routeComposer: RouteComposer = RouteComposer(),
+        aaExecutionService: AAExecutionService,
+        accountService: AccountSetupService,
     ) {
-        self.routeComposer = routeComposer ?? RouteComposer()
-        self.aaExecutionService = aaExecutionService ?? AAExecutionService()
-        self.accountService = accountService ?? AccountSetupService()
+        self.routeComposer = routeComposer
+        self.aaExecutionService = aaExecutionService
+        self.accountService = accountService
     }
 
     func resolveRoute(

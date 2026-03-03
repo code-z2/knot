@@ -55,8 +55,7 @@ struct AppRootView: View {
     private let sendFlowService: SendFlowService
 
     init() {
-        let biometricAuth = BiometricAuthService()
-        let sessionFlowService = AppSessionFlowService(biometricAuth: biometricAuth)
+        let sessionFlowService = AppSessionFlowService()
         let executionService = AAExecutionService()
         appSessionFlowService = sessionFlowService
         walletDataFlowService = WalletDataFlowService()
@@ -181,32 +180,16 @@ struct AppRootView: View {
                 address: currentEOA ?? "0x0000000000000000000000000000000000000000",
             )
         case .sendMoney:
-            if let accumulatorAddress = currentAccumulatorAddress {
-                SendMoneyView(
-                    eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
-                    accumulatorAddress: accumulatorAddress,
-                    store: beneficiaryStore,
-                    balanceStore: balanceStore,
-                    preferencesStore: preferencesStore,
-                    currencyRateStore: currencyRateStore,
-                    sendFlowService: sendFlowService,
-                    ensService: ensService,
-                )
-            } else {
-                Color.clear
-                    .task {
-                        let accumulatorAddress = await appSessionFlowService.resolveAccumulatorAddress(
-                            eoaAddress: currentEOA,
-                            fallbackAccumulatorAddress: currentAccumulatorAddress,
-                        )
-
-                        if let accumulatorAddress {
-                            currentAccumulatorAddress = accumulatorAddress
-                        } else {
-                            returnToMain()
-                        }
-                    }
-            }
+            SendMoneyView(
+                eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+                accumulatorAddress: currentAccumulatorAddress ?? "0x0000000000000000000000000000000000000000",
+                store: beneficiaryStore,
+                balanceStore: balanceStore,
+                preferencesStore: preferencesStore,
+                currencyRateStore: currencyRateStore,
+                sendFlowService: sendFlowService,
+                ensService: ensService,
+            )
         case .walletBackup:
             WalletBackupView(
                 mnemonic: walletBackupMnemonic,
@@ -231,6 +214,25 @@ struct AppRootView: View {
                         onAddressBookTap: openAddressBook,
                         onRefreshWallet: {
                             await requestWalletRefresh(useSilentRefresh: true)
+                        },
+                        onCheckForUpdates: {
+                            guard let eoa = currentEOA else { return nil }
+                            return await appSessionFlowService.checkForSingletonUpdate(
+                                eoaAddress: eoa,
+                            )
+                        },
+                        onPerformUpdate: { config in
+                            guard let eoa = currentEOA else { return false }
+                            guard let accumulatorAddress = await appSessionFlowService
+                                .performSingletonUpdate(
+                                    eoaAddress: eoa,
+                                    config: config,
+                                )
+                            else {
+                                return false
+                            }
+                            currentAccumulatorAddress = accumulatorAddress
+                            return true
                         },
                         showWalletBackup: hasLocalWalletMaterial,
                     )
@@ -372,20 +374,14 @@ struct AppRootView: View {
     private func refreshCurrentWalletData(useSilentRefresh: Bool) async {
         guard let walletAddress = currentEOA else { return }
 
-        guard
-            let accumulatorAddress = await walletDataFlowService.refresh(
-                walletAddress: walletAddress,
-                fallbackAccumulatorAddress: currentAccumulatorAddress,
-                appSessionFlowService: appSessionFlowService,
-                balanceStore: balanceStore,
-                transactionStore: transactionStore,
-                useSilentRefresh: useSilentRefresh,
-            )
-        else {
-            return
-        }
+        await walletDataFlowService.refresh(
+            walletAddress: walletAddress,
+            accumulatorAddress: currentAccumulatorAddress,
+            balanceStore: balanceStore,
+            transactionStore: transactionStore,
+            useSilentRefresh: useSilentRefresh,
+        )
 
-        currentAccumulatorAddress = accumulatorAddress
         persistCachedWalletState(walletAddress: walletAddress)
     }
 
@@ -548,6 +544,7 @@ struct AppRootView: View {
     }
 
     private func openSendMoneyIfReady() {
+        guard currentAccumulatorAddress != nil else { return }
         selectedMainTab = .home
         navigateToMainIfNeeded()
         navigationPath.append(AppRootDestination.sendMoney)
