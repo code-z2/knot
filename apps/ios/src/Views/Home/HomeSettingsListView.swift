@@ -26,6 +26,7 @@ struct HomeSettingsListView: View {
             assetsSection
             primaryActionsSection
             secondaryActionsSection
+            logoutActionButton
         }
         .listStyle(.insetGrouped)
         .listSectionSpacing(groupedSectionGap)
@@ -46,12 +47,6 @@ struct HomeSettingsListView: View {
                     style: .solid(background: Color(UIColor(.indigo)), icon: AppThemeColor.grayWhite),
                 )
             }
-            .listRowBackground(
-                RoundedRectangle(cornerRadius: AppCornerRadius.xxl, style: .continuous)
-                    .fill(AppThemeColor.backgroundSecondary)
-                    .padding(.vertical, 2),
-            )
-            .listRowSeparator(.hidden)
         } header: {
             sectionHeader("home_assets_title")
                 .padding(.top, groupedSectionGap)
@@ -64,7 +59,7 @@ struct HomeSettingsListView: View {
             HomeSettingsRow(title: Text("home_profile"), action: onProfileTap) {
                 iconBadge(
                     systemName: "person",
-                    style: .solid(background: Color(UIColor(.red)), icon: AppThemeColor.grayWhite),
+                    style: .solid(background: Color(UIColor(.orange)), icon: AppThemeColor.grayWhite),
                 )
             }
 
@@ -113,8 +108,8 @@ struct HomeSettingsListView: View {
                 showsChevron: false,
             ) {
                 iconBadge(
-                    systemName: "arrow.clockwise",
-                    style: .solid(background: Color(UIColor(.mint)), icon: AppThemeColor.grayWhite),
+                    systemName: "gearshape.arrow.trianglehead.2.clockwise.rotate.90",
+                    style: .solid(background: Color(UIColor(.gray)), icon: AppThemeColor.grayWhite),
                 )
             } trailing: {
                 if isCheckingForUpdates {
@@ -124,31 +119,24 @@ struct HomeSettingsListView: View {
                 }
             }
             .disabled(isCheckingForUpdates)
+        }
+    }
 
-            HomeSettingsRow(
-                title: Text("home_logout"),
-                action: onBeginLogout,
-                showsChevron: false,
-                isDestructive: true,
-            ) {
-                Image(systemName: "circle")
-                    .opacity(0)
-                    .frame(width: 0)
-            } trailing: {
+    private var logoutActionButton: some View {
+        Button(action: onBeginLogout) {
+            HStack {
+                Text("home_logout")
+                    .foregroundColor(.red)
+                Spacer()
+
                 if isLoggingOut {
                     ProgressView()
                         .tint(AppThemeColor.accentRed)
                         .transition(.opacity)
                 }
             }
-            .disabled(isLoggingOut)
-            .listRowBackground(
-                RoundedRectangle(cornerRadius: AppCornerRadius.xxl, style: .continuous)
-                    .fill(AppThemeColor.backgroundSecondary),
-            )
-            .listRowSeparator(.hidden)
         }
-        .textCase(nil)
+        .disabled(isLoggingOut)
     }
 
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
