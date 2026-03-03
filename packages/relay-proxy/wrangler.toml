@@ -40,3 +40,8 @@ class_name = "FaucetTracker"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["FaucetTracker"]
+
+[[secrets_store_secrets]]
+binding = "SERVER_KEY_STORE"
+store_id = "187dd64443cc47a79eba24431a9610da"
+secret_name = "SERVER_KEY"

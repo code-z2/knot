@@ -26,6 +26,7 @@
 "home_wallet_backup" = "वॉलेट बॅकअप";
 "home_address_book" = "पत्ता पुस्तिका";
 "home_ai_agent" = "AI एजंट";
+"home_check_for_updates" = "अपडेट तपासा";
 "home_logout" = "बाहेर पडा";
 "address_book_title" = "पत्ता पुस्तिका";
 "search_placeholder" = "शोधा";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS प्रोफाइल अपडेट झाले.";
 
 "biometric_reason_wallet_backup" = "तुमची पुनर्प्राप्ती वाक्यांश पाहण्यासाठी प्रमाणीकरण करा";
+
+"account_update_available_format" = "खाते अपग्रेड उपलब्ध — v%@";
+"account_update_tap_to_update" = "अपडेटसाठी टॅप करा";
+"account_update_in_progress" = "खाते अपग्रेड सुरू आहे";
+"account_update_complete_format" = "खाते v%@ वर अपग्रेड झाले";

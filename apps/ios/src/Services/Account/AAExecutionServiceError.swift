@@ -13,6 +13,8 @@ enum AAExecutionServiceError: Error {
     case relayStatusFailed(chainId: UInt64, id: String, status: String, reason: String?)
 
     case missingRelaySubmission(chainId: UInt64)
+
+    case missingConfiguration
 }
 
 extension AAExecutionServiceError: LocalizedError {
@@ -31,6 +33,8 @@ extension AAExecutionServiceError: LocalizedError {
             return "Relay task \(id) failed on chain \(chainId) with status \(status)"
         case let .missingRelaySubmission(chainId):
             return "Relay submission missing for chain \(chainId)"
+        case .missingConfiguration:
+            return "Missing singleton configuration for execution"
         }
     }
 }

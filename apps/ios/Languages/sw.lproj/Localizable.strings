@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Hifadhi Nakala ya Mkoba";
 "home_address_book" = "Kitabu cha Anwani";
 "home_ai_agent" = "Wakala wa AI";
+"home_check_for_updates" = "Angalia masasisho";
 "home_logout" = "Ondoka";
 "address_book_title" = "Kitabu cha Anwani";
 "search_placeholder" = "Tafuta";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "Wasifu wa ENS umesasishwa.";
 
 "biometric_reason_wallet_backup" = "Thibitisha ili kuonyesha kifungu chako cha urejeshaji";
+
+"account_update_available_format" = "Uboreshaji wa akaunti unapatikana — v%@";
+"account_update_tap_to_update" = "Gusa kusasisha";
+"account_update_in_progress" = "Uboreshaji wa akaunti unaendelea";
+"account_update_complete_format" = "Akaunti imeboreshwa hadi v%@";

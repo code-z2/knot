@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Wallet-Backup";
 "home_address_book" = "Adressbuch";
 "home_ai_agent" = "KI-Agent";
+"home_check_for_updates" = "Nach Updates suchen";
 "home_logout" = "Abmelden";
 "address_book_title" = "Adressbuch";
 "search_placeholder" = "Suchen";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS-Profil wurde aktualisiert.";
 
 "biometric_reason_wallet_backup" = "Authentifizieren Sie sich, um Ihre Wiederherstellungsphrase anzuzeigen";
+
+"account_update_available_format" = "Account-Upgrade verfügbar — v%@";
+"account_update_tap_to_update" = "Zum Aktualisieren tippen";
+"account_update_in_progress" = "Account-Upgrade läuft";
+"account_update_complete_format" = "Account auf v%@ aktualisiert";

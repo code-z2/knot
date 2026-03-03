@@ -26,6 +26,7 @@
 "home_wallet_backup" = "نسخ احتياطي للمحفظة";
 "home_address_book" = "دفتر العناوين";
 "home_ai_agent" = "وكيل الذكاء الاصطناعي";
+"home_check_for_updates" = "تحقق من التحديثات";
 "home_logout" = "تسجيل الخروج";
 "address_book_title" = "دفتر العناوين";
 "search_placeholder" = "بحث";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "تم تحديث ملف ENS الشخصي.";
 
 "biometric_reason_wallet_backup" = "قم بالمصادقة لإظهار عبارة الاسترداد الخاصة بك";
+
+"account_update_available_format" = "ترقية الحساب متاحة — الإصدار %@";
+"account_update_tap_to_update" = "انقر للتحديث";
+"account_update_in_progress" = "ترقية الحساب قيد التقدم";
+"account_update_complete_format" = "تمت ترقية الحساب إلى الإصدار %@";

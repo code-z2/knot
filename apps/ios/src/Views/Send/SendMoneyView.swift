@@ -272,7 +272,10 @@ struct SendMoneyView: View {
             balanceStore: BalanceStore(),
             preferencesStore: PreferencesStore(),
             currencyRateStore: CurrencyRateStore(),
-            sendFlowService: SendFlowService(),
+            sendFlowService: SendFlowService(
+                aaExecutionService: AAExecutionService(),
+                accountService: AccountSetupService(),
+            ),
             ensService: ENSService(),
         )
     }

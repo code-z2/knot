@@ -11,8 +11,6 @@ public enum SmartAccountError: Error {
 
     case malformedRPCResponse(String)
 
-    case missingConfiguration(key: String, chainId: UInt64)
-
     case emptyCalls
 
     case emptyLeaves

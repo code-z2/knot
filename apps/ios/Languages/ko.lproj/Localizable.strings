@@ -26,6 +26,7 @@
 "home_wallet_backup" = "지갑 백업";
 "home_address_book" = "주소록";
 "home_ai_agent" = "AI 에이전트";
+"home_check_for_updates" = "업데이트 확인";
 "home_logout" = "로그아웃";
 "address_book_title" = "주소록";
 "search_placeholder" = "검색";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS 프로필이 업데이트되었습니다.";
 
 "biometric_reason_wallet_backup" = "복구 문구를 표시하려면 인증하세요";
+
+"account_update_available_format" = "계정 업그레이드 사용 가능 — v%@";
+"account_update_tap_to_update" = "탭하여 업데이트";
+"account_update_in_progress" = "계정 업그레이드 진행 중";
+"account_update_complete_format" = "계정이 v%@로 업그레이드됨";

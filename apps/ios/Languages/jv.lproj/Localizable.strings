@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Serep Dompet";
 "home_address_book" = "Buku Alamat";
 "home_ai_agent" = "Agen AI";
+"home_check_for_updates" = "Priksa nganyari";
 "home_logout" = "Knot";
 "address_book_title" = "Buku Alamat";
 "search_placeholder" = "Golek";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "Profil ENS wis dianyari.";
 
 "biometric_reason_wallet_backup" = "Autentikasi kanggo nampilake frasa pemulihanmu";
+
+"account_update_available_format" = "Upgrade akun kasedhiya — v%@";
+"account_update_tap_to_update" = "Tutul kanggo nganyari";
+"account_update_in_progress" = "Upgrade akun lagi proses";
+"account_update_complete_format" = "Akun wis diupgrade menyang v%@";

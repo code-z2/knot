@@ -204,12 +204,16 @@ public actor ExecuteXPlanner {
     private let merkleSigner = ExecuteXMerkleSigner()
     private let relayEnvelopeBuilder = ExecuteXRelayEnvelopeBuilder()
 
-    public init(smartAccountClient: SmartAccountClient = SmartAccountClient()) {
+    public init(
+        smartAccountClient: SmartAccountClient = SmartAccountClient(),
+    ) {
         self.smartAccountClient = smartAccountClient
     }
 
     public func buildPlan(
         request: ExecuteXPlanRequest,
+        delegateAddress: String,
+        accumulatorFactoryAddress: String,
         signRoot: @Sendable (Data) async throws -> Data,
         signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXPlan {
@@ -221,6 +225,8 @@ public actor ExecuteXPlanner {
         let leafResolver = ExecuteXLeafResolver(
             smartAccountClient: smartAccountClient,
             initializationPolicy: initializationPolicy,
+            delegateAddress: delegateAddress,
+            accumulatorFactoryAddress: accumulatorFactoryAddress,
         )
         let resolvedLeaves = try await leafResolver.resolveLeaves(
             request: request,
@@ -241,6 +247,8 @@ public actor ExecuteXPlanner {
 
     public func buildFlowPlan(
         request: ExecuteXFlowPlanRequest,
+        delegateAddress: String,
+        accumulatorFactoryAddress: String,
         signRoot: @Sendable (Data) async throws -> Data,
         signInitialize: (@Sendable (Data) async throws -> Data)? = nil,
     ) async throws -> ExecuteXPlan {
@@ -253,6 +261,8 @@ public actor ExecuteXPlanner {
                 leaves: leaves,
                 authorizationsByChainId: request.authorizationsByChainId,
             ),
+            delegateAddress: delegateAddress,
+            accumulatorFactoryAddress: accumulatorFactoryAddress,
             signRoot: signRoot,
             signInitialize: signInitialize,
         )

@@ -262,9 +262,12 @@ struct ProfileView: View {
         }
         .sensoryFeedback(AppHaptic.success.sensoryFeedback, trigger: successTrigger) { _, _ in true }
         .sensoryFeedback(AppHaptic.error.sensoryFeedback, trigger: errorTrigger) { _, _ in true }
-        .sheet(item: $pendingConfirmation, onDismiss: {
-            discardPendingCommitRevealState()
-        }) { model in
+        .sheet(
+            item: $pendingConfirmation,
+            onDismiss: {
+                discardPendingCommitRevealState()
+            },
+        ) { model in
             TransactionConfirmationSheet(model: model)
         }
         .navigationDestination(isPresented: $showProfileSuccessStep) {

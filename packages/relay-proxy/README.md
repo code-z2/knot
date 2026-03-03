@@ -20,13 +20,24 @@ Request:
     }
   ],
   "backgroundTxs": [
-    { "chainId": 42161, "request": { "from": "0x...", "to": "0x...", "data": "0x..." } }
+    {
+      "chainId": 42161,
+      "request": { "from": "0x...", "to": "0x...", "data": "0x..." }
+    }
   ],
   "deferredTxs": [
-    { "chainId": 42161, "request": { "from": "0x...", "to": "0x...", "data": "0x..." } }
+    {
+      "chainId": 42161,
+      "request": { "from": "0x...", "to": "0x...", "data": "0x..." }
+    }
   ],
   "paymentOptions": [
-    { "chainId": 8453, "tokenAddress": "0x...", "symbol": "USDC", "amount": "10" }
+    {
+      "chainId": 8453,
+      "tokenAddress": "0x...",
+      "symbol": "USDC",
+      "amount": "10"
+    }
   ]
 }
 ```
@@ -34,6 +45,7 @@ Request:
 Per-transaction `supportMode` is optional. If omitted, the top-level `supportMode` is used.
 
 Behavior:
+
 - Estimates gas per tx via viem public-client simulation (`eth_estimateGas`)
 - Quotes all txs via `relayer_getFeeQuote` using only `{ chainId, gas, token }`
 - Fee quote token policy:
@@ -93,6 +105,7 @@ Request:
 ```
 
 Response statuses:
+
 - `202 Accepted` with `{ "ok": true, "status": "funding_initiated" }`
 - `202 Accepted` with `{ "ok": true, "status": "funding_pending" }`
 - `200 OK` with `{ "ok": true, "status": "already_funded" }`
@@ -101,6 +114,7 @@ Response statuses:
 ## Auth
 
 Headers:
+
 - `Authorization: Bearer <token>`
 - `X-Relay-Timestamp: <unix-seconds>`
 - `X-Relay-Signature: <hex(hmac_sha256(secret, timestamp + "." + rawBody))>`
@@ -110,14 +124,17 @@ If `RELAY_AUTH_HMAC_SECRET` is empty, only Bearer auth is enforced.
 ## KV Accounting Model
 
 Balance key format:
+
 - `gas-tank:<SUPPORT_MODE>:<lowercased_account>`
 
 Each support mode has separate accounting bucket:
+
 - `LIMITED_TESTNET`
 - `LIMITED_MAINNET`
 - `FULL_MAINNET`
 
 Defaults:
+
 - Initial credit: `2 USDC`
 - Floors:
   - limited testnet: `-10`
@@ -127,6 +144,7 @@ Defaults:
 ## Env Vars
 
 Required:
+
 - `RELAY_AUTH_TOKEN`
 - `GELATO_MAINNET_API_KEY`
 - `GELATO_TESTNET_API_KEY`
@@ -136,13 +154,14 @@ Required:
 - `PINATA_GROUP_ID`
 
 Optional:
+
 - `RELAY_AUTH_HMAC_SECRET`
 - `GELATO_SYNC_TIMEOUT_MS` (wait timeout for `immediateTxs`)
 - `FAUCET_FUNDING_KV` (Wrangler KV binding; falls back to `GAS_TANK_KV` if omitted)
 - `PINATA_SIGN_EXPIRES_SECONDS`
 - `PINATA_MAX_FILE_SIZE_BYTES`
 - `PINATA_GROUP_FIELD` (`group_id` or `group`, default: `group_id`)
-- `FAUCET_PRIVATE_KEY`
+- `SERVER_KEY_STORE`
 - `INITIAL_CREDIT_USDC`
 - `FLOOR_LIMITED_TESTNET_USDC`
 - `FLOOR_LIMITED_MAINNET_USDC`
@@ -152,23 +171,29 @@ Optional:
 ## Deploy (Cloudflare Workers)
 
 1. Create KV namespace:
+
 ```bash
 wrangler kv namespace create GAS_TANK_KV
 ```
+
 2. Set the returned namespace id in `wrangler.toml` under `[[kv_namespaces]]`.
 3. Set required secrets:
+
 ```bash
 wrangler secret put RELAY_AUTH_TOKEN
 wrangler secret put GELATO_MAINNET_API_KEY
 wrangler secret put GELATO_TESTNET_API_KEY
 wrangler secret put PINATA_JWT
-wrangler secret put FAUCET_PRIVATE_KEY
 ```
+
 4. Optional hardening secrets:
+
 ```bash
 wrangler secret put RELAY_AUTH_HMAC_SECRET
 ```
+
 5. Deploy:
+
 ```bash
 wrangler deploy
 ```
@@ -176,6 +201,7 @@ wrangler deploy
 ## Request Flow
 
 `POST /v1/relay/submit` processing order:
+
 1. Verify bearer token (+ optional HMAC header).
 2. Validate payload shape (`account`, `supportMode`, `immediateTxs`, `backgroundTxs`, `deferredTxs`).
 3. Validate each transaction `request.from` and any EIP-7702 `authorizationList` signer against `account`.
@@ -189,12 +215,14 @@ wrangler deploy
 11. Persist all `deferredTxs` in KV and return IDs + accounting summary.
 
 `POST /v1/images/direct-upload` processing order:
+
 1. Verify bearer token (+ optional HMAC header).
 2. Validate upload request (`eoaAddress`, `fileName`, `contentType`).
 3. Request signed upload URL from Pinata (`/v3/files/sign`).
 4. Return signed URL + gateway base URL to the iOS client.
 
 `POST /v1/faucet/fund` processing order:
+
 1. Verify bearer token (+ optional HMAC header).
 2. Validate faucet payload (`eoaAddress`, `supportMode`).
 3. For `LIMITED_TESTNET`, check KV key `faucet-funded:<mode>:<account>`.

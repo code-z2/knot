@@ -26,6 +26,7 @@
 "home_wallet_backup" = "والیٹ بیک اپ";
 "home_address_book" = "ایڈریس بک";
 "home_ai_agent" = "AI ایجنٹ";
+"home_check_for_updates" = "اپ ڈیٹس کے لیے جانچیں";
 "home_logout" = "لاگ آؤٹ";
 "address_book_title" = "ایڈریس بک";
 "search_placeholder" = "تلاش";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS پروفائل اپ ڈیٹ ہو گئی۔";
 
 "biometric_reason_wallet_backup" = "اپنا ریکوری فریز دکھانے کے لیے تصدیق کریں";
+
+"account_update_available_format" = "اکاؤنٹ اپ گریڈ دستیاب ہے — v%@";
+"account_update_tap_to_update" = "اپ ڈیٹ کرنے کے لیے ٹیپ کریں";
+"account_update_in_progress" = "اکاؤنٹ اپ گریڈ جاری ہے";
+"account_update_complete_format" = "اکاؤنٹ v%@ پر اپ گریڈ ہو گیا";

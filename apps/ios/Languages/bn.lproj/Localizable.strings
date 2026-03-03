@@ -26,6 +26,7 @@
 "home_wallet_backup" = "ওয়ালেট ব্যাকআপ";
 "home_address_book" = "ঠিকানা বই";
 "home_ai_agent" = "AI এজেন্ট";
+"home_check_for_updates" = "আপডেটের জন্য পরীক্ষা করুন";
 "home_logout" = "লগআউট";
 "address_book_title" = "ঠিকানা বই";
 "search_placeholder" = "অনুসন্ধান";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS প্রোফাইল আপডেট হয়েছে।";
 
 "biometric_reason_wallet_backup" = "আপনার রিকভারি ফ্রেজ দেখাতে প্রমাণীকরণ করুন";
+
+"account_update_available_format" = "অ্যাকাউন্ট আপগ্রেড উপলব্ধ — v%@";
+"account_update_tap_to_update" = "আপডেট করতে ট্যাপ করুন";
+"account_update_in_progress" = "অ্যাকাউন্ট আপগ্রেড চলছে";
+"account_update_complete_format" = "অ্যাকাউন্ট v%@ এ আপগ্রেড হয়েছে";

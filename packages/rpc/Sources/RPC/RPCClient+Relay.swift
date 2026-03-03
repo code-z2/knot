@@ -85,6 +85,16 @@ public extension RPCClient {
         )
     }
 
+    func relaySingletonVersion() async throws -> SingletonVersionModel {
+        try await relayCall(
+            path: "/v1/account/singleton-version",
+            method: "GET",
+            queryItems: [],
+            bodyData: Data(),
+            responseType: SingletonVersionModel.self,
+        )
+    }
+
     func relayCreateImageUploadSession(
         eoaAddress: String,
         fileName: String,

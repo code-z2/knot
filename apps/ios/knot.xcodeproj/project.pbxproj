@@ -16,9 +16,9 @@
 		D0EAD14D2F33D7FD003B1EE1 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */; };
 		D0EEE9C32F3145FD001771BB /* AccountSetup in Frameworks */ = {isa = PBXBuildFile; productRef = D0EEE9C22F3145FD001771BB /* AccountSetup */; };
 		D0F0B0022F35C1A7001A2B3C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0F0B0012F35C1A7001A2B3C /* Localizable.strings */; };
-		D0QRC0022F6A2002001771BB /* QRCode in Frameworks */ = {isa = PBXBuildFile; productRef = D0QRC0012F6A2001001771BB /* QRCode */; };
 		D0NUK0032F8A0003001771BB /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = D0NUK0012F8A0001001771BB /* Nuke */; };
 		D0NUK0042F8A0004001771BB /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = D0NUK0022F8A0002001771BB /* NukeUI */; };
+		D0QRC0022F6A2002001771BB /* QRCode in Frameworks */ = {isa = PBXBuildFile; productRef = D0QRC0012F6A2001001771BB /* QRCode */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +40,8 @@
 
 /* Begin PBXFileReference section */
 		D03AA2D82F32698C00122EF8 /* knot-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "knot-Info.plist"; sourceTree = "<group>"; };
+		D05D723A2F56F00B000CCC6C /* todo.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = todo.md; sourceTree = "<group>"; };
+		D05D723B2F56F00B000CCC6C /* lessons.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = lessons.md; sourceTree = "<group>"; };
 		D0EAD14A2F33D734003B1EE1 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		D0EAD14C2F33D7FD003B1EE1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D0EEE96A2F312A96001771BB /* knot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = knot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -133,6 +135,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D05D72392F56F00B000CCC6C /* tasks */ = {
+			isa = PBXGroup;
+			children = (
+				D05D723A2F56F00B000CCC6C /* todo.md */,
+				D05D723B2F56F00B000CCC6C /* lessons.md */,
+			);
+			path = tasks;
+			sourceTree = "<group>";
+		};
 		D0EEE9612F312A96001771BB = {
 			isa = PBXGroup;
 			children = (
@@ -145,6 +156,7 @@
 				D0EEE97C2F312A97001771BB /* Tests */,
 				D0EEE9862F312A97001771BB /* UITests */,
 				D0EEE96B2F312A96001771BB /* Products */,
+				D05D72392F56F00B000CCC6C /* tasks */,
 			);
 			sourceTree = "<group>";
 		};

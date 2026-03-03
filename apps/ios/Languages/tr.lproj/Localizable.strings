@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Cüzdan Yedeği";
 "home_address_book" = "Adres Defteri";
 "home_ai_agent" = "Yapay Zeka Ajanı";
+"home_check_for_updates" = "Güncellemeleri denetle";
 "home_logout" = "Çıkış Yap";
 "address_book_title" = "Adres Defteri";
 "search_placeholder" = "Ara";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "ENS profili güncellendi.";
 
 "biometric_reason_wallet_backup" = "Kurtarma ifadenizi göstermek için kimliğinizi doğrulayın";
+
+"account_update_available_format" = "Hesap yükseltmesi mevcut — v%@";
+"account_update_tap_to_update" = "Güncellemek için dokunun";
+"account_update_in_progress" = "Hesap yükseltmesi sürüyor";
+"account_update_complete_format" = "Hesap v%@ sürümüne yükseltildi";

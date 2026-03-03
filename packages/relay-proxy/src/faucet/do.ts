@@ -43,9 +43,14 @@ export class FaucetTracker extends DurableObject<Env> {
       return jsonResponse({ ok: false, error: "missing_recipient" }, 400);
     }
 
-    const faucetPrivateKey = this.normalizePrivateKey(this.env.FAUCET_PRIVATE_KEY ?? "");
+    const SERVER_KEY = await this.env.SERVER_KEY_STORE?.get()
+    if (!SERVER_KEY) {
+      return jsonResponse({ ok: false, error: "server_key_not_configured" }, 503);
+    }
+
+    const faucetPrivateKey = this.normalizePrivateKey(SERVER_KEY);
     const faucetAccount = privateKeyToAccount(faucetPrivateKey);
-    
+
     // Process all chains sequentially to avoid nonce collisions
     await this.fundAccount(payload.recipientAddress, faucetAccount);
 

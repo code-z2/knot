@@ -56,7 +56,6 @@ public actor AccountSetupService {
     private let smartAccountClient: SmartAccountClient
     private let keychainService: String
     private let relyingParty: PasskeyRelyingPartyModel
-
     public init(
         walletFactory: WalletMaterialFactory = .init(),
         passkeyService: PasskeyServiceProviding,
@@ -77,6 +76,7 @@ public actor AccountSetupService {
 
     public func provisionAccount(
         delegateAddress: String,
+        accumulatorFactoryAddress: String,
         chainId: UInt64 = 1,
         nonce: UInt64 = 0,
     ) async throws -> AccountProvisioningResult {
@@ -89,6 +89,7 @@ public actor AccountSetupService {
         return try await provisionAccount(
             wallet: wallet,
             delegateAddress: delegateAddress,
+            accumulatorFactoryAddress: accumulatorFactoryAddress,
             chainId: chainId,
             nonce: nonce,
         )
@@ -97,6 +98,7 @@ public actor AccountSetupService {
     private func provisionAccount(
         wallet: WalletMaterialModel,
         delegateAddress: String,
+        accumulatorFactoryAddress: String,
         chainId: UInt64,
         nonce: UInt64,
     ) async throws -> AccountProvisioningResult {
@@ -121,6 +123,7 @@ public actor AccountSetupService {
         do {
             accumulatorAddress = try await deriveAccumulatorAddress(
                 eoaAddress: wallet.eoaAddress,
+                accumulatorFactoryAddress: accumulatorFactoryAddress,
                 chainId: chainId,
             )
         } catch {
@@ -255,6 +258,46 @@ public actor AccountSetupService {
         }
 
         throw AccountSetupError.missingStoredAccount(eoaAddress)
+    }
+
+    public func updateAccumulatorAddress(
+        eoaAddress: String,
+        accumulatorFactoryAddress: String,
+        chainId: UInt64 = 1,
+    ) async throws -> String {
+        let normalized = normalizedAddressKey(eoaAddress)
+        guard !normalized.isEmpty else {
+            throw AccountSetupError.missingStoredAccount(eoaAddress)
+        }
+
+        let newAccumulatorAddress: String
+        do {
+            newAccumulatorAddress = try await deriveAccumulatorAddress(
+                eoaAddress: normalized,
+                accumulatorFactoryAddress: accumulatorFactoryAddress,
+                chainId: chainId,
+            )
+        } catch {
+            throw AccountSetupError.accumulatorDerivationFailed(error)
+        }
+
+        var records = try loadStoredAccountRecords()
+        guard let index = records.firstIndex(where: {
+            normalizedAddressKey($0.eoaAddress) == normalized
+        }) else {
+            throw AccountSetupError.missingStoredAccount(normalized)
+        }
+
+        let record = records[index]
+        records[index] = StoredAccountRecord(
+            eoaAddress: record.eoaAddress,
+            passkey: record.passkey,
+            accumulatorAddress: newAccumulatorAddress
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased(),
+        )
+        try persistStoredAccountRecords(records)
+        return newAccumulatorAddress
     }
 
     public func signWithStoredPasskey(
@@ -406,7 +449,15 @@ public actor AccountSetupService {
         eoaAddress.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    private func deriveAccumulatorAddress(eoaAddress: String, chainId: UInt64) async throws -> String {
-        try await smartAccountClient.computeAccumulatorAddress(account: eoaAddress, chainId: chainId)
+    private func deriveAccumulatorAddress(
+        eoaAddress: String,
+        accumulatorFactoryAddress: String,
+        chainId: UInt64,
+    ) async throws -> String {
+        try await smartAccountClient.computeAccumulatorAddress(
+            account: eoaAddress,
+            chainId: chainId,
+            accumulatorFactoryAddress: accumulatorFactoryAddress,
+        )
     }
 }

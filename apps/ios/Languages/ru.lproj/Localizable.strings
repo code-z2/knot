@@ -26,6 +26,7 @@
 "home_wallet_backup" = "Резервная копия";
 "home_address_book" = "Адресная книга";
 "home_ai_agent" = "AI Агент";
+"home_check_for_updates" = "Проверить обновления";
 "home_logout" = "Выйти";
 "address_book_title" = "Адресная книга";
 "search_placeholder" = "Поиск";
@@ -202,3 +203,8 @@
 "profile_success_updated_profile" = "Профиль ENS обновлён.";
 
 "biometric_reason_wallet_backup" = "Пройдите аутентификацию, чтобы показать фразу восстановления";
+
+"account_update_available_format" = "Доступно обновление аккаунта — v%@";
+"account_update_tap_to_update" = "Нажмите, чтобы обновить";
+"account_update_in_progress" = "Обновление аккаунта выполняется";
+"account_update_complete_format" = "Аккаунт обновлен до v%@";

@@ -12,14 +12,14 @@ import web3swift
 @MainActor
 final class AAExecutionService {
     private let rpcClient: RPCClient
-    private let executeXPlanner: ExecuteXPlanner
+    private let singletonConfigStore: SingletonConfigStore
 
     init(
         rpcClient: RPCClient = RPCClient(),
-        executeXPlanner: ExecuteXPlanner = ExecuteXPlanner(),
+        singletonConfigStore: SingletonConfigStore? = nil,
     ) {
         self.rpcClient = rpcClient
-        self.executeXPlanner = executeXPlanner
+        self.singletonConfigStore = singletonConfigStore ?? SingletonConfigStore()
     }
 
     func executeCalls(
@@ -63,7 +63,12 @@ final class AAExecutionService {
         do {
             let context = try await makeContext(accountService: accountService, account: account)
 
+            let config = try loadSingletonConfig(eoaAddress: account.eoaAddress)
+            let executeXPlanner = ExecuteXPlanner()
             let plan = try await buildFlowPlan(
+                executeXPlanner: executeXPlanner,
+                delegateAddress: config.delegateAddress,
+                accumulatorFactoryAddress: config.accumulatorFactory,
                 accountService: accountService,
                 context: context,
                 destinationChainId: destinationChainId,
@@ -165,7 +170,18 @@ final class AAExecutionService {
         return ExecutionContext(account: account, passkey: passkey)
     }
 
+    private func loadSingletonConfig(eoaAddress: String) throws -> StoredSingletonConfig {
+        guard let config = singletonConfigStore.read(for: eoaAddress) else {
+            throw AAExecutionServiceError.missingConfiguration
+        }
+
+        return config
+    }
+
     private func buildFlowPlan(
+        executeXPlanner: ExecuteXPlanner,
+        delegateAddress: String,
+        accumulatorFactoryAddress: String,
         accountService: AccountSetupService,
         context: ExecutionContext,
         destinationChainId: UInt64,
@@ -190,6 +206,8 @@ final class AAExecutionService {
             do {
                 return try await executeXPlanner.buildFlowPlan(
                     request: flowRequest,
+                    delegateAddress: delegateAddress,
+                    accumulatorFactoryAddress: accumulatorFactoryAddress,
                     signRoot: { digest in
                         do {
                             return try await accountService.signWithStoredPasskey(
@@ -223,6 +241,7 @@ final class AAExecutionService {
                     accountService: accountService,
                     account: context.account,
                     chainId: chainID,
+                    delegateAddress: delegateAddress,
                 )
                 authorizationsByChainID[chainID] = auth
             }
@@ -233,9 +252,12 @@ final class AAExecutionService {
         accountService: AccountSetupService,
         account: AccountSession,
         chainId: UInt64,
+        delegateAddress: String,
     ) async throws -> RelayAuthorizationModel {
         let auth = try await accountService.jitSignedAuthorization(
-            account: account, chainId: chainId,
+            account: account,
+            chainId: chainId,
+            delegateAddress: delegateAddress,
         )
         return RelayAuthorizationModel(
             address: auth.delegateAddress,
