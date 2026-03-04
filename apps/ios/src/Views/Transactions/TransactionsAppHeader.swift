@@ -16,8 +16,7 @@ struct TransactionsAppHeader: View {
 
             Rectangle()
                 .fill(AppThemeColor.separatorNonOpaque)
-                .frame(height: 1)
+                .frame(height: 4)
         }
-        .background(AppThemeColor.backgroundPrimary)
     }
 }
