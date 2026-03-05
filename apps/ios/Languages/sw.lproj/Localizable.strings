@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Gusa kusasisha";
 "account_update_in_progress" = "Uboreshaji wa akaunti unaendelea";
 "account_update_complete_format" = "Akaunti imeboreshwa hadi v%@";
+
+"beneficiary_self_name" = "Mimi";

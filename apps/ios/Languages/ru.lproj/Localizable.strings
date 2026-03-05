@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Нажмите, чтобы обновить";
 "account_update_in_progress" = "Обновление аккаунта выполняется";
 "account_update_complete_format" = "Аккаунт обновлен до v%@";
+
+"beneficiary_self_name" = "Я";

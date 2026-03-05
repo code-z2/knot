@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "轻点更新";
 "account_update_in_progress" = "账户升级进行中";
 "account_update_complete_format" = "账户已升级到 v%@";
+
+"beneficiary_self_name" = "我";

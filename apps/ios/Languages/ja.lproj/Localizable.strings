@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "タップして更新";
 "account_update_in_progress" = "アカウントアップグレード中";
 "account_update_complete_format" = "アカウントをv%@にアップグレードしました";
+
+"beneficiary_self_name" = "自分";

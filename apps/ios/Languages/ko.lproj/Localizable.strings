@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "탭하여 업데이트";
 "account_update_in_progress" = "계정 업그레이드 진행 중";
 "account_update_complete_format" = "계정이 v%@로 업그레이드됨";
+
+"beneficiary_self_name" = "나";

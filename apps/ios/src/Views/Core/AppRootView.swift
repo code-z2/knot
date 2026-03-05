@@ -307,6 +307,11 @@ struct AppRootView: View {
         route = .main
         navigationPath = NavigationPath()
 
+        try? beneficiaryStore.ensureSelfBeneficiary(
+            eoaAddress: sessionState.eoaAddress,
+            name: String(localized: "beneficiary_self_name"),
+        )
+
         await appSessionFlowService.triggerFaucetIfNeeded(
             walletAddress: sessionState.eoaAddress,
             mode: preferencesStore.chainSupportMode,

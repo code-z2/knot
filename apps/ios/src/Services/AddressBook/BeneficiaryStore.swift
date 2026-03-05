@@ -70,6 +70,15 @@ final class BeneficiaryStore {
         try save(filtered, eoaAddress: eoaAddress)
     }
 
+    func ensureSelfBeneficiary(eoaAddress: String, name: String) throws {
+        var all = try list(eoaAddress: eoaAddress)
+        let normalized = eoaAddress.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !all.contains(where: { $0.address.lowercased() == normalized }) else { return }
+        let selfEntry = Beneficiary(name: name, address: eoaAddress)
+        all.insert(selfEntry, at: 0)
+        try save(all, eoaAddress: eoaAddress)
+    }
+
     private func save(_ beneficiaries: [Beneficiary], eoaAddress: String) throws {
         let payload = try JSONEncoder().encode(beneficiaries)
         let account = accountName(for: eoaAddress)

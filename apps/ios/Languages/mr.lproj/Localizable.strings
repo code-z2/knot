@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "अपडेटसाठी टॅप करा";
 "account_update_in_progress" = "खाते अपग्रेड सुरू आहे";
 "account_update_complete_format" = "खाते v%@ वर अपग्रेड झाले";
+
+"beneficiary_self_name" = "मी";

@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Güncellemek için dokunun";
 "account_update_in_progress" = "Hesap yükseltmesi sürüyor";
 "account_update_complete_format" = "Hesap v%@ sürümüne yükseltildi";
+
+"beneficiary_self_name" = "Ben";

@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "अपडेट करने के लिए टैप करें";
 "account_update_in_progress" = "खाता अपग्रेड जारी है";
 "account_update_complete_format" = "खाता v%@ में अपग्रेड हो गया";
+
+"beneficiary_self_name" = "मैं";

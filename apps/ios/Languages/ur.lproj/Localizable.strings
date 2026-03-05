@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "اپ ڈیٹ کرنے کے لیے ٹیپ کریں";
 "account_update_in_progress" = "اکاؤنٹ اپ گریڈ جاری ہے";
 "account_update_complete_format" = "اکاؤنٹ v%@ پر اپ گریڈ ہو گیا";
+
+"beneficiary_self_name" = "میں";

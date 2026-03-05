@@ -24,7 +24,8 @@ extension SendMoneyView {
     }
 
     var filteredBeneficiaries: [Beneficiary] {
-        SearchSystem.filter(
+        let normalizedEOA = eoaAddress.lowercased()
+        return SearchSystem.filter(
             query: addressQuery,
             items: beneficiaries,
             toDocument: {
@@ -36,6 +37,7 @@ extension SendMoneyView {
             },
             itemID: { $0.id.uuidString },
         )
+        .sorted { a, _ in a.address.lowercased() == normalizedEOA }
     }
 
     var addressBadge: DropdownBadgeValue? {

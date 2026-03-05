@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "புதுப்பிக்கத் தட்டவும்";
 "account_update_in_progress" = "கணக்கு மேம்பாடு நடைபெறுகிறது";
 "account_update_complete_format" = "கணக்கு v%@ ஆக மேம்படுத்தப்பட்டது";
+
+"beneficiary_self_name" = "நான்";

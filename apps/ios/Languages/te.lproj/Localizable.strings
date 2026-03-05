@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "అప్‌డేట్ చేయడానికి ట్యాప్ చేయండి";
 "account_update_in_progress" = "ఖాతా అప్‌గ్రేడ్ జరుగుతోంది";
 "account_update_complete_format" = "ఖాతా v%@ కు అప్‌గ్రేడ్ అయింది";
+
+"beneficiary_self_name" = "నేను";

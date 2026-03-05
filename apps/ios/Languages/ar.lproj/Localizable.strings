@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "انقر للتحديث";
 "account_update_in_progress" = "ترقية الحساب قيد التقدم";
 "account_update_complete_format" = "تمت ترقية الحساب إلى الإصدار %@";
+
+"beneficiary_self_name" = "أنا";

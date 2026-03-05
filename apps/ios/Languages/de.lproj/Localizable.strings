@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Zum Aktualisieren tippen";
 "account_update_in_progress" = "Account-Upgrade läuft";
 "account_update_complete_format" = "Account auf v%@ aktualisiert";
+
+"beneficiary_self_name" = "Ich";

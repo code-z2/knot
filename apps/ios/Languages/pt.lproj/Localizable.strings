@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Toque para atualizar";
 "account_update_in_progress" = "Atualização de conta em andamento";
 "account_update_complete_format" = "Conta atualizada para v%@";
+
+"beneficiary_self_name" = "Eu";

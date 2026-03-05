@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Tap to Update";
 "account_update_in_progress" = "Account upgrade in progress";
 "account_update_complete_format" = "Account upgraded to v%@";
+
+"beneficiary_self_name" = "Me";

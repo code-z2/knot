@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "আপডেট করতে ট্যাপ করুন";
 "account_update_in_progress" = "অ্যাকাউন্ট আপগ্রেড চলছে";
 "account_update_complete_format" = "অ্যাকাউন্ট v%@ এ আপগ্রেড হয়েছে";
+
+"beneficiary_self_name" = "আমি";

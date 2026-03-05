@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Tutul kanggo nganyari";
 "account_update_in_progress" = "Upgrade akun lagi proses";
 "account_update_complete_format" = "Akun wis diupgrade menyang v%@";
+
+"beneficiary_self_name" = "Aku";

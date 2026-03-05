@@ -106,7 +106,8 @@ struct AddressBookView: View {
     }
 
     private var visibleBeneficiaries: [Beneficiary] {
-        SearchSystem.filter(
+        let normalizedEOA = eoaAddress.lowercased()
+        return SearchSystem.filter(
             query: searchText,
             items: beneficiaries,
             toDocument: {
@@ -118,6 +119,7 @@ struct AddressBookView: View {
             },
             itemID: { $0.id },
         )
+        .sorted { a, _ in a.address.lowercased() == normalizedEOA }
     }
 
     @MainActor

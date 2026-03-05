@@ -208,3 +208,5 @@
 "account_update_tap_to_update" = "Touchez pour mettre à jour";
 "account_update_in_progress" = "Mise à niveau du compte en cours";
 "account_update_complete_format" = "Compte mis à niveau vers v%@";
+
+"beneficiary_self_name" = "Moi";
