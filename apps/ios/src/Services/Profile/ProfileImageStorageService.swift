@@ -85,12 +85,14 @@ final class ProfileImageStorageService {
         eoaAddress: String,
         fileName: String,
         mimeType: String,
+        supportMode: String,
     ) async throws -> URL {
         let uploadSession = try await withRetry {
             try await self.createDirectUploadSession(
                 eoaAddress: eoaAddress,
                 fileName: fileName,
                 mimeType: mimeType,
+                supportMode: supportMode,
             )
         }
         let cid = try await withRetry {
@@ -112,11 +114,13 @@ final class ProfileImageStorageService {
         eoaAddress: String,
         fileName: String,
         mimeType: String,
+        supportMode: String,
     ) async throws -> RelayImageUploadSessionModel {
         try await rpcClient.relayCreateImageUploadSession(
             eoaAddress: eoaAddress,
             fileName: fileName,
             contentType: mimeType,
+            supportMode: supportMode,
         )
     }
 
@@ -178,7 +182,9 @@ final class ProfileImageStorageService {
 
         body.append(Data("--\(boundary)\(lineBreak)".utf8))
         body.append(
-            Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\(lineBreak)".utf8),
+            Data(
+                "Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\(lineBreak)".utf8,
+            ),
         )
         body.append(Data("Content-Type: \(mimeType)\(lineBreak)\(lineBreak)".utf8))
         body.append(data)

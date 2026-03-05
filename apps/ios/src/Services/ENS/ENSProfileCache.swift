@@ -9,9 +9,12 @@ struct CachedENSProfileModel: Codable {
 
 final class ENSProfileCache {
     private let defaults: UserDefaults
-    private let storageKey = "ens.profile.cache.v1"
+    private let mode: ChainSupportMode
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        mode: ChainSupportMode = ChainSupportRuntime.resolveMode(), defaults: UserDefaults = .standard,
+    ) {
+        self.mode = mode
         self.defaults = defaults
     }
 
@@ -33,6 +36,10 @@ final class ENSProfileCache {
         guard var all = loadAll() else { return }
         all.removeValue(forKey: eoaAddress.lowercased())
         persist(all)
+    }
+
+    private var storageKey: String {
+        "ens.profile.cache.v2.\(mode.rawValue.lowercased())"
     }
 
     private func loadAll() -> [String: CachedENSProfileModel]? {

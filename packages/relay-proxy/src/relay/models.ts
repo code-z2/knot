@@ -10,7 +10,7 @@ export interface Env {
   GELATO_TESTNET_API_KEY?: string;
   PINATA_JWT: string;
   PINATA_GATEWAY_BASE_URL: string;
-  PINATA_GROUP_ID: string;
+  PINATA_GROUP_CONFIG: string;
   PINATA_SIGN_EXPIRES_SECONDS?: string;
   PINATA_MAX_FILE_SIZE_BYTES?: string;
   GELATO_SYNC_TIMEOUT_MS?: string;
@@ -98,12 +98,14 @@ export interface DirectUploadRequestModel {
   eoaAddress: string;
   fileName: string;
   contentType: string;
+  supportMode: string;
 }
 
 export interface NormalizedDirectUploadRequestModel {
   eoaAddress: string;
   fileName: string;
   contentType: string;
+  supportMode: SupportMode;
   imageID: string;
 }
 
