@@ -56,7 +56,7 @@ export default {
       }
 
       if (request.method === "GET" && path === "/v1/account/singleton-version") {
-        return handleSingletonVersion(env);
+        return handleSingletonVersion(url, env);
       }
 
       if (request.method === "POST" && path === "/v1/faucet/fund") {

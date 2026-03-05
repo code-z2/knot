@@ -1,21 +1,35 @@
-import type { Env } from "./relay/models";
+import type { Env, SingletonConfig, SupportMode } from "./relay/models";
+import { SUPPORT_MODES } from "./constants";
+import { BadRequestError } from "./errors";
 import { jsonResponse } from "./utils";
 
-export function handleSingletonVersion(env: Env): Response {
-    const address = (env.SINGLETON_ADDRESS ?? "").trim();
-    const accumulatorFactory = (env.SINGLETON_ACCUMULATOR_FACTORY ?? "").trim();
-    const version = (env.SINGLETON_VERSION ?? "").trim();
-    const releaseNotes = (env.SINGLETON_RELEASE_NOTES ?? "").trim();
+export function handleSingletonVersion(url: URL, env: Env): Response {
+    const modeRaw = (url.searchParams.get("supportMode") ?? "").trim();
+    if (!SUPPORT_MODES.has(modeRaw)) {
+        throw new BadRequestError("Missing or invalid supportMode.");
+    }
 
-    if (!address || !accumulatorFactory || !version) {
+    const supportMode = modeRaw as SupportMode;
+    const config = parseSingletonConfig(env);
+    const entry = config?.[supportMode];
+
+    if (!entry?.address || !entry.accumulatorFactory || !entry.version) {
         return jsonResponse({ ok: false, error: "singleton_not_configured" }, 503);
     }
 
     return jsonResponse({
         ok: true,
-        currentSingleton: address.toLowerCase(),
-        accumulatorFactory: accumulatorFactory.toLowerCase(),
-        version,
-        releaseNotes: releaseNotes || undefined,
+        ...entry,
     });
+}
+
+function parseSingletonConfig(env: Env): SingletonConfig | undefined {
+    const raw = (env.SINGLETON_CONFIG ?? "").trim();
+    if (!raw) return undefined;
+
+    try {
+        return JSON.parse(raw) as SingletonConfig;
+    } catch {
+        return undefined;
+    }
 }

@@ -185,7 +185,8 @@ struct AppRootView: View {
         case .sendMoney:
             SendMoneyView(
                 eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
-                accumulatorAddress: currentAccumulatorAddress ?? "0x0000000000000000000000000000000000000000",
+                accumulatorAddress: currentAccumulatorAddress
+                    ?? "0x0000000000000000000000000000000000000000",
                 store: beneficiaryStore,
                 balanceStore: balanceStore,
                 preferencesStore: preferencesStore,
@@ -222,17 +223,21 @@ struct AppRootView: View {
                             guard let eoa = currentEOA else { return nil }
                             return await appSessionFlowService.checkForSingletonUpdate(
                                 eoaAddress: eoa,
+                                mode: preferencesStore.chainSupportMode,
                             )
                         },
                         onPerformUpdate: { config in
                             guard let eoa = currentEOA else {
                                 return false
                             }
-                            guard let accumulatorAddress = await appSessionFlowService
-                                .performSingletonUpdate(
-                                    eoaAddress: eoa,
-                                    config: config,
-                                )
+                            guard
+                                let accumulatorAddress =
+                                await appSessionFlowService
+                                    .performSingletonUpdate(
+                                        eoaAddress: eoa,
+                                        config: config,
+                                        mode: preferencesStore.chainSupportMode,
+                                    )
                             else {
                                 return false
                             }

@@ -77,12 +77,15 @@ public extension RPCClient {
         )
     }
 
-    func relaySingletonVersion() async throws -> SingletonVersionModel {
+    func relaySingletonVersion(
+        supportMode: ChainSupportMode = ChainSupportRuntime.resolveMode(),
+    ) async throws -> SingletonVersionModel {
         try await relayCall(
             path: "/v1/account/singleton-version",
             method: "GET",
-            queryItems: [],
-            bodyData: Data(),
+            queryItems: [
+                URLQueryItem(name: "supportMode", value: supportMode.rawValue),
+            ],
             responseType: SingletonVersionModel.self,
         )
     }

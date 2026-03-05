@@ -54,7 +54,8 @@ final class AppSessionFlowService {
     }
 
     func createWallet() async -> AppSessionStateModel? {
-        guard let latestConfig = await singletonVersionService.fetchLatest() else {
+        let mode = ChainSupportRuntime.resolveMode()
+        guard let latestConfig = await singletonVersionService.fetchLatest(mode: mode) else {
             print("❌ [AppSessionFlowService] createWallet failed: missing singleton config")
             return nil
         }
@@ -68,9 +69,11 @@ final class AppSessionFlowService {
             let hasWallet = await accountService.hasLocalWalletMaterial(for: created.eoaAddress)
 
             do {
-                try singletonConfigStore.save(latestConfig, for: created.eoaAddress)
+                try singletonConfigStore.save(latestConfig, for: created.eoaAddress, mode: mode)
             } catch {
-                print("❌ [AppSessionFlowService] createWallet failed: keychain save error: \(error.localizedDescription)")
+                print(
+                    "❌ [AppSessionFlowService] createWallet failed: keychain save error: \(error.localizedDescription)",
+                )
                 return nil
             }
 
@@ -85,22 +88,29 @@ final class AppSessionFlowService {
         }
     }
 
-    func checkForSingletonUpdate(eoaAddress: String) async -> StoredSingletonConfig? {
-        guard let latestConfig = await singletonVersionService.fetchLatest() else { return nil }
-        guard let currentConfig = singletonConfigStore.read(for: eoaAddress) else { return latestConfig }
+    func checkForSingletonUpdate(eoaAddress: String, mode: ChainSupportMode) async
+        -> StoredSingletonConfig?
+    {
+        guard let latestConfig = await singletonVersionService.fetchLatest(mode: mode) else {
+            return nil
+        }
+        guard let currentConfig = singletonConfigStore.read(for: eoaAddress, mode: mode) else {
+            return latestConfig
+        }
         return currentConfig.version == latestConfig.version ? nil : latestConfig
     }
 
     func performSingletonUpdate(
         eoaAddress: String,
         config: StoredSingletonConfig,
+        mode: ChainSupportMode,
     ) async -> String? {
         do {
             let accumulatorAddress = try await accountService.updateAccumulatorAddress(
                 for: eoaAddress,
                 accumulatorFactoryAddress: config.accumulatorFactory,
             )
-            try singletonConfigStore.save(config, for: eoaAddress)
+            try singletonConfigStore.save(config, for: eoaAddress, mode: mode)
             return accumulatorAddress
         } catch {
             print("❌ [AppSessionFlowService] update failed: \(error.localizedDescription)")

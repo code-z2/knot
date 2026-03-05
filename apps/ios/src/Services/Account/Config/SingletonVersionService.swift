@@ -11,9 +11,9 @@ final class SingletonVersionService: Sendable {
         self.rpcClient = rpcClient
     }
 
-    func fetchLatest() async -> StoredSingletonConfig? {
+    func fetchLatest(mode: ChainSupportMode) async -> StoredSingletonConfig? {
         do {
-            let response = try await rpcClient.relaySingletonVersion()
+            let response = try await rpcClient.relaySingletonVersion(supportMode: mode)
             guard response.ok else { return nil }
             return StoredSingletonConfig(
                 delegateAddress: response.currentSingleton,

@@ -174,7 +174,7 @@ final class AAExecutionService {
     }
 
     private func loadSingletonConfig(eoaAddress: String) throws -> StoredSingletonConfig {
-        guard let config = singletonConfigStore.read(for: eoaAddress) else {
+        guard let config = singletonConfigStore.read(for: eoaAddress, mode: currentSupportMode()) else {
             throw AAExecutionServiceError.missingConfiguration
         }
 
