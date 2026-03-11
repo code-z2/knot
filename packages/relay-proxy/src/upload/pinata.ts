@@ -68,18 +68,7 @@ export function resolvePinataGatewayBaseURL(env: Env): string {
 }
 
 function resolvePinataGroupID(supportMode: SupportMode, env: Env): string {
-    const raw = (env.PINATA_GROUP_CONFIG ?? '').trim();
-    if (!raw) {
-        throw new BadRequestError('PINATA_GROUP_CONFIG is not configured.');
-    }
-
-    let config: Record<string, string>;
-    try {
-        config = JSON.parse(raw) as Record<string, string>;
-    } catch {
-        throw new BadRequestError('PINATA_GROUP_CONFIG is not valid JSON.');
-    }
-
+    const config = env.PINATA_GROUP_CONFIG;
     const groupID = (config[supportMode] ?? '').trim();
     if (!groupID) {
         throw new BadRequestError(`No Pinata group configured for mode: ${supportMode}`);

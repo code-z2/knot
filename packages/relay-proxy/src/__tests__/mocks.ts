@@ -129,7 +129,7 @@ export function createMockEnv(overrides: Partial<Env> = {}): Env {
         RELAY_AUTH_TOKEN: 'test-token',
         PINATA_JWT: 'test-jwt',
         PINATA_GATEWAY_BASE_URL: 'https://gateway.pinata.cloud',
-        PINATA_GROUP_CONFIG: '{}',
+        PINATA_GROUP_CONFIG: {},
         ...overrides,
     } as Env;
 }

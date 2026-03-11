@@ -36,6 +36,8 @@ contracts/broadcast/*/31337/
 # Env
 .env
 .env.*
+.dev.vars
+.dev.vars.*
 Secrets.xcconfig
 
 build/

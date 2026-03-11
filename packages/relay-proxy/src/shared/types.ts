@@ -31,7 +31,7 @@ export interface Env {
     // Pinata
     PINATA_JWT: string;
     PINATA_GATEWAY_BASE_URL: string;
-    PINATA_GROUP_CONFIG: string;
+    PINATA_GROUP_CONFIG: Record<string, string>;
     PINATA_SIGN_EXPIRES_SECONDS?: string;
     PINATA_MAX_FILE_SIZE_BYTES?: string;
 
@@ -47,7 +47,7 @@ export interface Env {
     SERVER_KEY_STORE?: SecretsStoreSecret;
 
     // Config
-    SINGLETON_CONFIG?: string;
+    SINGLETON_CONFIG?: SingletonConfig;
 
     // Credit & Accounting
     INITIAL_CREDIT_NATIVE?: string;

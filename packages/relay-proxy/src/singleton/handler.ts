@@ -1,7 +1,7 @@
 import { SUPPORT_MODES } from '../shared/constants';
 import { BadRequestError } from '../shared/errors';
 import { jsonResponse } from '../shared/http';
-import type { Env, SingletonConfig, SupportMode } from '../shared/types';
+import type { Env, SupportMode } from '../shared/types';
 
 export function handleSingletonVersion(url: URL, env: Env): Response {
     const modeRaw = (url.searchParams.get('supportMode') ?? '').trim();
@@ -10,7 +10,7 @@ export function handleSingletonVersion(url: URL, env: Env): Response {
     }
 
     const supportMode = modeRaw as SupportMode;
-    const config = parseSingletonConfig(env);
+    const config = env.SINGLETON_CONFIG;
     const entry = config?.[supportMode];
 
     if (!entry?.address || !entry.accumulatorFactory || !entry.version) {
@@ -18,15 +18,4 @@ export function handleSingletonVersion(url: URL, env: Env): Response {
     }
 
     return jsonResponse({ ok: true, ...entry });
-}
-
-function parseSingletonConfig(env: Env): SingletonConfig | undefined {
-    const raw = (env.SINGLETON_CONFIG ?? '').trim();
-    if (!raw) return undefined;
-
-    try {
-        return JSON.parse(raw) as SingletonConfig;
-    } catch {
-        return undefined;
-    }
 }
