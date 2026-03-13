@@ -36,9 +36,9 @@ public enum ChainSupportRuntime {
             resolveSetting(
                 key: "CHAIN_SUPPORT_MODE",
                 bundle: bundle,
-            ) ?? ChainSupportMode.limitedTestnet.rawValue
+            ) ?? ChainSupportMode.testnet.rawValue
 
-        return ChainSupportMode(rawValue: rawMode) ?? .limitedTestnet
+        return ChainSupportMode(rawValue: rawMode) ?? .testnet
     }
 
     public static func resolveSupportedChainIDs(

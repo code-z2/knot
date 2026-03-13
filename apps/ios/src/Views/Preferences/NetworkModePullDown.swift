@@ -7,9 +7,9 @@ struct NetworkModePullDown: View {
     var body: some View {
         Picker(selection: $mode) {
             Text("preferences_network_mode_mainnet")
-                .tag(ChainSupportMode.limitedMainnet)
+                .tag(ChainSupportMode.mainnet)
             Text("preferences_network_mode_testnet")
-                .tag(ChainSupportMode.limitedTestnet)
+                .tag(ChainSupportMode.testnet)
         } label: {}
             .pickerStyle(.menu)
             .tint(AppThemeColor.labelSecondary)

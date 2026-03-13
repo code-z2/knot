@@ -65,9 +65,9 @@ final class ENSService {
         for mode: ChainSupportMode,
     ) -> ENSConfiguration {
         switch mode {
-        case .limitedTestnet:
+        case .testnet:
             .sepolia
-        case .limitedMainnet, .fullMainnet:
+        case .mainnet:
             .mainnet
         }
     }

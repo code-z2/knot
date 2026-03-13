@@ -106,15 +106,8 @@ async function verifyAlchemySignature(
 /** Extracts supportMode from the last segment of `/v1/webhook/fill-ready/{testnet|mainnet}`. */
 function parseSupportMode(requestURL: string): SupportMode {
     const scope = new URL(requestURL).pathname.split('/').pop()?.trim().toLowerCase();
-
-    switch (scope) {
-        case 'testnet':
-            return 'LIMITED_TESTNET';
-        case 'mainnet':
-            return 'LIMITED_MAINNET';
-        default:
-            throw new BadRequestError('Invalid webhook scope.');
-    }
+    if (scope === 'testnet' || scope === 'mainnet') return scope;
+    throw new BadRequestError('Invalid webhook scope.');
 }
 
 function resolveWebhookSigningKey(webhookId: string, env: Env): string {

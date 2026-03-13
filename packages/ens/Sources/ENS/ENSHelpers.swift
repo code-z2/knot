@@ -215,7 +215,7 @@ extension ENSClient {
 
     /// Obtain a Web3 client for the ENS configuration chain, with automatic
     /// fallback to a direct Alchemy RPC URL when the RPCClient doesn't support
-    /// the chain (e.g. Sepolia 11155111 or mainnet 1 not in LIMITED_MAINNET mode).
+    /// the chain (e.g. Sepolia 11155111 or mainnet 1 not in the current mode).
     func getWeb3ForENSChain() async throws -> Web3 {
         do {
             return try await rpcClient.getWeb3Client(chainId: configuration.chainID)

@@ -48,12 +48,10 @@ export async function writeTankState(
 /** Resolves the minimum required gas tank balance before a transaction is rejected. */
 export function resolveFloorWei(mode: SupportMode, env: Env): bigint {
     switch (mode) {
-        case 'LIMITED_TESTNET':
-            return parseUsdToWei(env.FLOOR_LIMITED_TESTNET_NATIVE ?? '-0.01');
-        case 'LIMITED_MAINNET':
-            return parseUsdToWei(env.FLOOR_LIMITED_MAINNET_NATIVE ?? '-0.01');
-        case 'FULL_MAINNET':
-            return parseUsdToWei(env.FLOOR_FULL_MAINNET_NATIVE ?? '0');
+        case 'testnet':
+            return parseUsdToWei(env.FLOOR_TESTNET_NATIVE ?? '-0.01');
+        case 'mainnet':
+            return parseUsdToWei(env.FLOOR_MAINNET_NATIVE ?? '-0.01');
     }
 }
 

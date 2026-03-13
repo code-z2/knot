@@ -7,9 +7,8 @@ import type { Address } from 'viem';
 import type { SupportMode } from './types';
 
 export const SUPPORT_MODES: ReadonlySet<SupportMode> = new Set<SupportMode>([
-    'LIMITED_TESTNET',
-    'LIMITED_MAINNET',
-    'FULL_MAINNET',
+    'testnet',
+    'mainnet',
 ]);
 
 // ---------------------------------------------------------------------------

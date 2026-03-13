@@ -51,12 +51,11 @@ export interface Env {
 
     // Credit & Accounting
     INITIAL_CREDIT_NATIVE?: string;
-    FLOOR_LIMITED_TESTNET_NATIVE?: string;
-    FLOOR_LIMITED_MAINNET_NATIVE?: string;
-    FLOOR_FULL_MAINNET_NATIVE?: string;
+    FLOOR_TESTNET_NATIVE?: string;
+    FLOOR_MAINNET_NATIVE?: string;
 }
 
-export type SupportMode = 'LIMITED_TESTNET' | 'LIMITED_MAINNET' | 'FULL_MAINNET';
+export type SupportMode = 'mainnet' | 'testnet';
 
 export interface SingletonModeConfig {
     address: string;

@@ -81,7 +81,7 @@ public actor ZerionChainResolver {
             return cached
         }
 
-        let includeTestnets = mode == .limitedTestnet
+        let includeTestnets = mode == .testnet
         let remote = try await fetchChains(
             apiBaseURL: apiBaseURL,
             apiKey: apiKey,

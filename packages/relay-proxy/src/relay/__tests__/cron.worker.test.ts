@@ -48,7 +48,7 @@ function makePayload(overrides: Partial<DeferredRelayKVPayload> = {}): DeferredR
     return {
         account: '0x9999999999999999999999999999999999999999',
         fillId: MOCK_FILL_ID_A,
-        supportMode: 'LIMITED_TESTNET',
+        supportMode: 'testnet',
         chainId: 11155111,
         request: {
             from: '0x9999999999999999999999999999999999999999' as `0x${string}`,
@@ -92,7 +92,7 @@ describe('sweepDeferredIntents', () => {
     });
 
     it('skips intents that already have a gelatoId', async () => {
-        const key = kvKey('LIMITED_TESTNET', MOCK_FILL_ID_A);
+        const key = kvKey('testnet', MOCK_FILL_ID_A);
         const payload = makePayload({
             gelatoId: 'gelato-123',
             createdAt: new Date(Date.now() - STUCK_THRESHOLD_MS - 1000).toISOString(),
@@ -106,7 +106,7 @@ describe('sweepDeferredIntents', () => {
     });
 
     it('skips intents younger than the stuck threshold', async () => {
-        const key = kvKey('LIMITED_TESTNET', MOCK_FILL_ID_A);
+        const key = kvKey('testnet', MOCK_FILL_ID_A);
         const payload = makePayload({ createdAt: new Date().toISOString() });
 
         await env.DEFERRED_RELAY_KV.put(key, JSON.stringify(payload));
@@ -119,7 +119,7 @@ describe('sweepDeferredIntents', () => {
     it('recovers stuck intents when on-chain check passes', async () => {
         const accumulator = '0x1111111111111111111111111111111111111111';
         const fillId = MOCK_FILL_ID_A;
-        const key = kvKey('LIMITED_TESTNET', fillId);
+        const key = kvKey('testnet', fillId);
         const payload = makePayload({
             fillId,
             createdAt: new Date(Date.now() - STUCK_THRESHOLD_MS - 60_000).toISOString(),
@@ -151,9 +151,9 @@ describe('sweepDeferredIntents', () => {
     it('uses payload.request.to as accumulator address', async () => {
         const accumulator = '0xabcdef1234567890abcdef1234567890abcdef12';
         const fillId = MOCK_FILL_ID_B;
-        const key = kvKey('LIMITED_MAINNET', fillId);
+        const key = kvKey('mainnet', fillId);
         const payload = makePayload({
-            supportMode: 'LIMITED_MAINNET',
+            supportMode: 'mainnet',
             fillId,
             request: {
                 from: '0x9999999999999999999999999999999999999999' as `0x${string}`,
@@ -181,7 +181,7 @@ describe('sweepDeferredIntents', () => {
 
     it('sends TTL warning for old undispatched intents', async () => {
         // No fetch mock needed — TTL check happens before on-chain verification
-        const key = kvKey('LIMITED_TESTNET', MOCK_FILL_ID_A);
+        const key = kvKey('testnet', MOCK_FILL_ID_A);
         const daysOld = DEFERRED_TTL_WARNING_DAYS + 1;
         const payload = makePayload({
             createdAt: new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000).toISOString(),
@@ -206,7 +206,7 @@ describe('sweepDeferredIntents', () => {
     });
 
     it('does not send TTL warning for dispatched intents', async () => {
-        const key = kvKey('LIMITED_TESTNET', MOCK_FILL_ID_A);
+        const key = kvKey('testnet', MOCK_FILL_ID_A);
         const daysOld = DEFERRED_TTL_WARNING_DAYS + 1;
         const payload = makePayload({
             gelatoId: 'already-dispatched',

@@ -4,12 +4,10 @@ import SwiftUI
 extension ChainSupportMode {
     var localizedDisplayName: LocalizedStringKey {
         switch self {
-        case .limitedMainnet:
+        case .mainnet:
             "preferences_network_mode_mainnet"
-        case .limitedTestnet:
+        case .testnet:
             "preferences_network_mode_testnet"
-        case .fullMainnet:
-            "preferences_network_mode_mainnet_plus"
         }
     }
 }

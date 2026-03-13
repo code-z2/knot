@@ -15,7 +15,7 @@ export async function handleFaucetFund(
 ): Promise<Response> {
     const request = parseFaucetFundRequest(rawBody);
 
-    if (request.supportMode !== 'LIMITED_TESTNET') {
+    if (request.supportMode !== 'testnet') {
         return jsonResponse(
             {
                 ok: true,

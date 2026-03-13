@@ -29,7 +29,7 @@ enum ChainCatalog {
         let source = configured
         guard !source.isEmpty else { return [] }
         let popularIDs =
-            ChainSupportRuntime.resolveMode() == .limitedTestnet ? testnetPopularIDs : mainnetPopularIDs
+            ChainSupportRuntime.resolveMode() == .testnet ? testnetPopularIDs : mainnetPopularIDs
         let result = source.filter { popularIDs.contains($0.id) }
         if !result.isEmpty { return result }
         return Array(source.prefix(3))

@@ -33,24 +33,20 @@ final class RPCTests: XCTestCase {
         XCTAssertEqual(chains, [1])
     }
 
-    func testResolveModeDefaultsToLimitedTestnetWhenSettingMissing() {
+    func testResolveModeDefaultsToTestnetWhenSettingMissing() {
         let mode = ChainSupportRuntime.resolveMode(bundle: Bundle(for: Self.self))
-        XCTAssertEqual(mode, .limitedTestnet)
+        XCTAssertEqual(mode, .testnet)
     }
 
     func testResolveSupportedChainIDsFallbackToModeDefaultsWhenSettingMissing() {
         let bundle = Bundle(for: Self.self)
 
         XCTAssertEqual(
-            ChainSupportRuntime.resolveSupportedChainIDs(mode: .limitedTestnet, bundle: bundle),
+            ChainSupportRuntime.resolveSupportedChainIDs(mode: .testnet, bundle: bundle),
             [11_155_111, 84532, 421_614],
         )
         XCTAssertEqual(
-            ChainSupportRuntime.resolveSupportedChainIDs(mode: .limitedMainnet, bundle: bundle),
-            [1, 42161, 8453, 137, 143],
-        )
-        XCTAssertEqual(
-            ChainSupportRuntime.resolveSupportedChainIDs(mode: .fullMainnet, bundle: bundle),
+            ChainSupportRuntime.resolveSupportedChainIDs(mode: .mainnet, bundle: bundle),
             [1, 10, 137, 8453, 42161, 143],
         )
     }

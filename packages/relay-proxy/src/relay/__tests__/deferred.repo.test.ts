@@ -61,29 +61,29 @@ describe('storeDeferredTransaction', () => {
     });
 
     it('returns fillId as deferred ID', async () => {
-        const id = await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
+        const id = await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
 
         expect(id).toMatch(/^deferred-0x[a-f0-9]{64}$/);
     });
 
     it('stores payload in KV with correct TTL', async () => {
-        await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
+        await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
 
         expect(kv.put).toHaveBeenCalledWith(
-            expect.stringContaining('deferred-relay:LIMITED_TESTNET:'),
+            expect.stringContaining('deferred-relay:testnet:'),
             expect.any(String),
             { expirationTtl: DEFERRED_TX_TTL_SECONDS },
         );
     });
 
     it('stores correct payload shape', async () => {
-        await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
+        await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
 
         const putCall = (kv.put as Mock).mock.calls[0];
         const payload = JSON.parse(putCall[1]);
 
         expect(payload.account).toBe(ACCOUNT);
-        expect(payload.supportMode).toBe('LIMITED_TESTNET');
+        expect(payload.supportMode).toBe('testnet');
         expect(payload.chainId).toBe(11155111);
         expect(payload.fillId).toMatch(/^0x/);
         expect(payload.createdAt).toBeDefined();
@@ -91,7 +91,7 @@ describe('storeDeferredTransaction', () => {
     });
 
     it('increments the webhook tracker DO', async () => {
-        await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
+        await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
 
         expect(doStub.fetch).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -102,20 +102,20 @@ describe('storeDeferredTransaction', () => {
     });
 
     it('KV key contains supportMode and fillId', async () => {
-        await storeDeferredTransaction(ACCOUNT, 'LIMITED_MAINNET', tx, env);
+        await storeDeferredTransaction(ACCOUNT, 'mainnet', tx, env);
 
         const putCall = (kv.put as Mock).mock.calls[0];
         const key: string = putCall[0];
 
         const parts = key.split(':');
         expect(parts[0]).toBe('deferred-relay');
-        expect(parts[1]).toBe('LIMITED_MAINNET');
+        expect(parts[1]).toBe('mainnet');
         expect(parts[2]).toMatch(/^0x/); // fillId
     });
 
     it('generates deterministic IDs for same input', async () => {
-        const id1 = await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
-        const id2 = await storeDeferredTransaction(ACCOUNT, 'LIMITED_TESTNET', tx, env);
+        const id1 = await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
+        const id2 = await storeDeferredTransaction(ACCOUNT, 'testnet', tx, env);
 
         expect(id1).toBe(id2);
     });

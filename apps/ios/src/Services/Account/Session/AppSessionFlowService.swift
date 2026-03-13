@@ -155,7 +155,7 @@ final class AppSessionFlowService {
     }
 
     func triggerFaucetIfNeeded(walletAddress: String, mode: ChainSupportMode) async {
-        guard mode == .limitedTestnet else { return }
+        guard mode == .testnet else { return }
         await faucetService.fundAccount(eoaAddress: walletAddress, mode: mode)
     }
 }

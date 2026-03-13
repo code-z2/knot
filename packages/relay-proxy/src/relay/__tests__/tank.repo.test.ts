@@ -24,36 +24,36 @@ describe('tank.repo', () => {
 
     describe('readTankState', () => {
         it('returns initial credit for unknown account', async () => {
-            const state = await readTankState(env, ACCOUNT, 'LIMITED_TESTNET');
+            const state = await readTankState(env, ACCOUNT, 'testnet');
 
             expect(state.initialized).toBe(false);
             expect(state.balanceWei).toBe(10_000_000_000_000_000n); // 0.01 ETH
         });
 
         it('returns persisted balance for known account', async () => {
-            const key = `gas-tank:LIMITED_TESTNET:${ACCOUNT.toLowerCase()}`;
+            const key = `gas-tank:testnet:${ACCOUNT.toLowerCase()}`;
             await kv.put(key, JSON.stringify({ balanceWei: '5000000000000000000' }));
 
-            const state = await readTankState(env, ACCOUNT, 'LIMITED_TESTNET');
+            const state = await readTankState(env, ACCOUNT, 'testnet');
 
             expect(state.initialized).toBe(true);
             expect(state.balanceWei).toBe(5_000_000_000_000_000_000n);
         });
 
         it('returns initial credit for corrupted KV entry', async () => {
-            const key = `gas-tank:LIMITED_TESTNET:${ACCOUNT.toLowerCase()}`;
+            const key = `gas-tank:testnet:${ACCOUNT.toLowerCase()}`;
             await kv.put(key, 'not-json');
 
-            const state = await readTankState(env, ACCOUNT, 'LIMITED_TESTNET');
+            const state = await readTankState(env, ACCOUNT, 'testnet');
 
             expect(state.initialized).toBe(false);
         });
 
         it('returns initial credit when balanceWei field is missing', async () => {
-            const key = `gas-tank:LIMITED_TESTNET:${ACCOUNT.toLowerCase()}`;
+            const key = `gas-tank:testnet:${ACCOUNT.toLowerCase()}`;
             await kv.put(key, JSON.stringify({ something: 'else' }));
 
-            const state = await readTankState(env, ACCOUNT, 'LIMITED_TESTNET');
+            const state = await readTankState(env, ACCOUNT, 'testnet');
 
             expect(state.initialized).toBe(false);
         });
@@ -65,9 +65,9 @@ describe('tank.repo', () => {
 
     describe('writeTankState', () => {
         it('persists balance to KV', async () => {
-            await writeTankState(env, ACCOUNT, 'LIMITED_MAINNET', 2_000_000_000_000_000_000n);
+            await writeTankState(env, ACCOUNT, 'mainnet', 2_000_000_000_000_000_000n);
 
-            const key = `gas-tank:LIMITED_MAINNET:${ACCOUNT.toLowerCase()}`;
+            const key = `gas-tank:mainnet:${ACCOUNT.toLowerCase()}`;
             expect(kv.put).toHaveBeenCalledWith(
                 key,
                 expect.stringContaining('"balanceWei":"2000000000000000000"'),
@@ -75,7 +75,7 @@ describe('tank.repo', () => {
         });
 
         it('includes formatted native token balance', async () => {
-            await writeTankState(env, ACCOUNT, 'LIMITED_TESTNET', 500_000_000_000_000_000n);
+            await writeTankState(env, ACCOUNT, 'testnet', 500_000_000_000_000_000n);
 
             const putCall = (kv.put as Mock).mock.calls[0];
             const payload = JSON.parse(putCall[1]);
@@ -83,7 +83,7 @@ describe('tank.repo', () => {
         });
 
         it('includes updatedAt timestamp', async () => {
-            await writeTankState(env, ACCOUNT, 'LIMITED_TESTNET', 0n);
+            await writeTankState(env, ACCOUNT, 'testnet', 0n);
 
             const putCall = (kv.put as Mock).mock.calls[0];
             const payload = JSON.parse(putCall[1]);
@@ -97,31 +97,25 @@ describe('tank.repo', () => {
     // -----------------------------------------------------------------------
 
     describe('resolveFloorWei', () => {
-        it('returns configured floor for LIMITED_TESTNET', () => {
+        it('returns configured floor for testnet', () => {
             const envWithFloor = createMockEnv({
-                FLOOR_LIMITED_TESTNET_NATIVE: '-10',
+                FLOOR_TESTNET_NATIVE: '-10',
             });
-            const floor = resolveFloorWei('LIMITED_TESTNET', envWithFloor);
+            const floor = resolveFloorWei('testnet', envWithFloor);
             expect(floor).toBe(-10_000_000_000_000_000_000n);
         });
 
-        it('returns configured floor for LIMITED_MAINNET', () => {
+        it('returns configured floor for mainnet', () => {
             const envWithFloor = createMockEnv({
-                FLOOR_LIMITED_MAINNET_NATIVE: '-2',
+                FLOOR_MAINNET_NATIVE: '-2',
             });
-            const floor = resolveFloorWei('LIMITED_MAINNET', envWithFloor);
+            const floor = resolveFloorWei('mainnet', envWithFloor);
             expect(floor).toBe(-2_000_000_000_000_000_000n);
-        });
-
-        it('returns configured floor for FULL_MAINNET', () => {
-            const envWithFloor = createMockEnv({ FLOOR_FULL_MAINNET_NATIVE: '0' });
-            const floor = resolveFloorWei('FULL_MAINNET', envWithFloor);
-            expect(floor).toBe(0n);
         });
 
         it('returns default when env var not set', () => {
             const envNoFloor = createMockEnv();
-            const floor = resolveFloorWei('LIMITED_TESTNET', envNoFloor);
+            const floor = resolveFloorWei('testnet', envNoFloor);
             // Default is -0.01 ETH
             expect(floor).toBe(-10_000_000_000_000_000n);
         });

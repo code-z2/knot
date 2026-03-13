@@ -7,7 +7,7 @@ describe('parseSubmitRequest', () => {
     it('parses a valid raw JSON request successfully', () => {
         const validRaw = JSON.stringify({
             account: '0x1111111111111111111111111111111111111111',
-            supportMode: 'LIMITED_MAINNET',
+            supportMode: 'mainnet',
             immediateTxs: [],
             backgroundTxs: [],
             deferredTxs: [
@@ -25,7 +25,7 @@ describe('parseSubmitRequest', () => {
 
         const parsed = parseSubmitRequest(validRaw);
         expect(parsed.account).toBe('0x1111111111111111111111111111111111111111');
-        expect(parsed.supportMode).toBe('LIMITED_MAINNET');
+        expect(parsed.supportMode).toBe('mainnet');
         expect(parsed.deferredTxs.length).toBe(1);
         expect(parsed.deferredTxs[0].chainId).toBe(11155111);
         expect(parsed.deferredTxs[0].request.data).toBe('0xdeadbeef');
@@ -38,7 +38,7 @@ describe('parseSubmitRequest', () => {
     it('throws BadRequestError on missing fields', () => {
         const badRaw = JSON.stringify({
             // Missing 'account'
-            supportMode: 'LIMITED_MAINNET',
+            supportMode: 'mainnet',
             immediateTxs: [],
             backgroundTxs: [],
             deferredTxs: [],
@@ -50,7 +50,7 @@ describe('parseSubmitRequest', () => {
     it('throws BadRequestError on invalid chainId types', () => {
         const badRaw = JSON.stringify({
             account: '0x1111111111111111111111111111111111111111',
-            supportMode: 'LIMITED_MAINNET',
+            supportMode: 'mainnet',
             immediateTxs: [
                 {
                     chainId: 'not_a_number', // Invalid

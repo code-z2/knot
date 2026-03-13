@@ -154,7 +154,7 @@ function extractBlockNumberHex(status: Status): string | undefined {
 }
 
 function getClientForSupportMode(mode: SupportMode, env: Env): GelatoEvmRelayerClient {
-    const isTestnet = mode === 'LIMITED_TESTNET';
+    const isTestnet = mode === 'testnet';
     const apiKey = isTestnet ? env.GELATO_TESTNET_API_KEY : env.GELATO_MAINNET_API_KEY;
 
     if (!apiKey) {

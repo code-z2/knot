@@ -104,12 +104,12 @@ describe('assertObject', () => {
 // ---------------------------------------------------------------------------
 
 describe('assertSupportMode', () => {
-    it.each(['LIMITED_TESTNET', 'LIMITED_MAINNET', 'FULL_MAINNET'])('accepts %s', (mode) => {
+    it.each(['testnet', 'mainnet'])('accepts %s', (mode) => {
         expect(assertSupportMode(mode, 'mode')).toBe(mode);
     });
 
     it('trims whitespace', () => {
-        expect(assertSupportMode('  LIMITED_TESTNET  ', 'mode')).toBe('LIMITED_TESTNET');
+        expect(assertSupportMode('  testnet  ', 'mode')).toBe('testnet');
     });
 
     it('throws on invalid mode', () => {

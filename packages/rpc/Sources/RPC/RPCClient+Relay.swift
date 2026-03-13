@@ -94,13 +94,11 @@ public extension RPCClient {
         eoaAddress: String,
         fileName: String,
         contentType: String,
-        supportMode: String,
     ) async throws -> RelayImageUploadSessionModel {
         let payload = RelayImageUploadSessionRequestPayload(
             eoaAddress: eoaAddress,
             fileName: fileName,
             contentType: contentType,
-            supportMode: supportMode,
         )
 
         let bodyData: Data

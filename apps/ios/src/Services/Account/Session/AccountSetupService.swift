@@ -74,9 +74,9 @@ final class AccountSetupService {
     ) async throws -> String {
         do {
             let resolvedChainId: UInt64 = switch ChainSupportRuntime.resolveMode() {
-            case .limitedTestnet:
+            case .testnet:
                 11_155_111
-            case .limitedMainnet, .fullMainnet:
+            case .mainnet:
                 1
             }
 

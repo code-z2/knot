@@ -1,4 +1,5 @@
 import Foundation
+import RPC
 
 struct CachedENSProfileModel: Codable {
     let name: String
