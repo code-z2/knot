@@ -6,10 +6,7 @@ import type { Address } from 'viem';
 
 import type { SupportMode } from './types';
 
-export const SUPPORT_MODES: ReadonlySet<SupportMode> = new Set<SupportMode>([
-    'testnet',
-    'mainnet',
-]);
+export const SUPPORT_MODES: ReadonlySet<SupportMode> = new Set<SupportMode>(['testnet', 'mainnet']);
 
 // ---------------------------------------------------------------------------
 // Faucet
