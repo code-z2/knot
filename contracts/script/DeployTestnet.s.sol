@@ -18,8 +18,11 @@ interface ICreateX {
 ///     --rpc-url $SEPOLIA_RPC --broadcast --verify
 contract DeployTestnet is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
-    bytes32 constant ACCUMULATOR_SALT = keccak256("Accumulator_v2_rc1");
-    bytes32 constant ACCOUNT_SALT = keccak256("UnifiedAccount_v2_rc1");
+    string constant SINGLETON_VERSION = env("SINGLETON_VERSION");
+    string constant FACTORY_VERSION = env("FACTORY_VERSION");
+
+    bytes32 constant FACTORY_SALT = keccak256(abi.encodePacked("Accumulator", FACTORY_VERSION));
+    bytes32 constant SINGLETON_SALT = keccak256(abi.encodePacked("UnifiedAccount", SINGLETON_VERSION));
 
     // P256 Generator Point (for valid constructor generic initialization)
     bytes32 constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
@@ -31,14 +34,24 @@ contract DeployTestnet is Script {
         vm.startBroadcast();
 
         // 1. Accumulator Factory
-        bytes memory accInitCode = type(AccumulatorFactory).creationCode;
-        address accFactory = CREATEX.deployCreate2(ACCUMULATOR_SALT, accInitCode);
-        console.log("AccumulatorFactory deployed at:", accFactory);
+        bytes memory factoryInitCode = type(AccumulatorFactory).creationCode;
+        try CREATEX.deployCreate2(FACTORY_SALT, factoryInitCode) returns (address factory) {
+            console.log("AccumulatorFactory deployed at:", factory);
+        } catch Error(string memory reason) {
+            address factory = CREATEX.computeCreate2Address(FACTORY_SALT, keccak256(factoryInitCode));
+            assembly {
+                let code := extcodesize(factory)
+                if eq(code, 0) {
+                    revert(0, 0)
+                }
+            }
+            console.log("AccumulatorFactory already deployed at:", factory);
+        }
 
         // 2. Unified Account (Singleton/Implementation)
-        bytes memory accountInitCode = abi.encodePacked(type(UnifiedAccount).creationCode, abi.encode(GX, GY));
-        address accountImpl = CREATEX.deployCreate2(ACCOUNT_SALT, accountInitCode);
-        console.log("UnifiedAccount deployed at:", accountImpl);
+        bytes memory singletonInitCode = abi.encodePacked(type(UnifiedAccount).creationCode, abi.encode(GX, GY));
+        address singleton = CREATEX.deployCreate2(SINGLETON_SALT, singletonInitCode);
+        console.log("UnifiedAccount deployed at:", singleton);
 
         vm.stopBroadcast();
     }
