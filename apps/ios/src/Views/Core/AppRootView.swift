@@ -172,6 +172,14 @@ struct AppRootView: View {
             PreferencesView(
                 preferencesStore: preferencesStore,
             )
+        case .helpSupport:
+            let profile = currentEOA.flatMap { ensProfileCache.load(for: $0) }
+            HelpSupportView(
+                eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+                profileName: profile?.name,
+                profileAvatarURL: profile.flatMap { URL(string: $0.avatarURL) },
+                ensTLD: ensService.tld,
+            )
         case .addressBook:
             AddressBookView(
                 eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
@@ -214,6 +222,7 @@ struct AppRootView: View {
                         onSendMoney: openSendMoneyIfReady,
                         onProfileTap: openProfile,
                         onPreferencesTap: openPreferences,
+                        onHelpSupportTap: openHelpSupport,
                         onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
                         onAddressBookTap: openAddressBook,
                         onRefreshWallet: {
@@ -575,6 +584,12 @@ struct AppRootView: View {
         selectedMainTab = .home
         navigateToMainIfNeeded()
         navigationPath.append(AppRootDestination.preferences)
+    }
+
+    private func openHelpSupport() {
+        selectedMainTab = .home
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.helpSupport)
     }
 
     private func openAddressBook() {

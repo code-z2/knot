@@ -210,3 +210,20 @@
 "account_update_complete_format" = "アカウントをv%@にアップグレードしました";
 
 "beneficiary_self_name" = "自分";
+"home_help_support" = "ヘルプとサポート";
+"help_support_title" = "ヘルプとサポート";
+"help_support_support_title" = "サポート";
+"help_support_support_body" = "このアプリの利用に関して、どのようなサポートを提供できるかをご確認ください";
+"help_support_privacy_title" = "プライバシーポリシー";
+"help_support_privacy_body" = "当社があなたのプライバシーをどのように扱うかをご確認ください。";
+"help_support_terms_title" = "利用規約";
+"help_support_terms_body" = "より良いサービス提供にご協力ください。";
+"help_support_availability_title" = "対応状況";
+"help_support_availability_body" = "対応しているすべての地域を確認する";
+"help_support_community_title" = "コミュニティ";
+"help_support_community_body" = "Xでコミュニティとつながる";
+"help_support_contact_title" = "お問い合わせ";
+"help_support_contact_intro" = "メールは ";
+"help_support_contact_outro" = " まで、またはお電話は ";
+"help_support_open" = "開く";
+"help_support_feedback" = "フィードバックを送る";

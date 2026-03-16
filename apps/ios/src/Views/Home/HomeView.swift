@@ -13,6 +13,7 @@ struct HomeView: View {
     let onSendMoney: () -> Void
     let onProfileTap: () -> Void
     let onPreferencesTap: () -> Void
+    let onHelpSupportTap: () -> Void
     let onWalletBackupTap: () -> Void
     let onAddressBookTap: () -> Void
     let onRefreshWallet: @MainActor () async -> Void
@@ -29,6 +30,7 @@ struct HomeView: View {
         onSendMoney: @escaping () -> Void = {},
         onProfileTap: @escaping () -> Void = {},
         onPreferencesTap: @escaping () -> Void = {},
+        onHelpSupportTap: @escaping () -> Void = {},
         onWalletBackupTap: @escaping () -> Void = {},
         onAddressBookTap: @escaping () -> Void = {},
         onRefreshWallet: @escaping @MainActor () async -> Void = {},
@@ -44,6 +46,7 @@ struct HomeView: View {
         self.onSendMoney = onSendMoney
         self.onProfileTap = onProfileTap
         self.onPreferencesTap = onPreferencesTap
+        self.onHelpSupportTap = onHelpSupportTap
         self.onWalletBackupTap = onWalletBackupTap
         self.onAddressBookTap = onAddressBookTap
         self.onRefreshWallet = onRefreshWallet
@@ -100,6 +103,7 @@ struct HomeView: View {
                     onPresentAssets: { presentAssetsModal() },
                     onProfileTap: { handleProfileTap() },
                     onPreferencesTap: { handlePreferencesTap() },
+                    onHelpSupportTap: { handleHelpSupportTap() },
                     onWalletBackupTap: { handleWalletBackupTap() },
                     onAddressBookTap: { handleAddressBookTap() },
                     onCheckForUpdates: { checkForUpdates() },

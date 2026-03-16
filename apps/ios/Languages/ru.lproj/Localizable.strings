@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Аккаунт обновлен до v%@";
 
 "beneficiary_self_name" = "Я";
+"home_help_support" = "Помощь и поддержка";
+"help_support_title" = "Помощь и поддержка";
+"help_support_support_title" = "Поддержка";
+"help_support_support_body" = "Узнайте, какую поддержку мы можем предложить по использованию этого приложения";
+"help_support_privacy_title" = "Политика конфиденциальности";
+"help_support_privacy_body" = "Узнайте, как мы управляем вашей конфиденциальностью.";
+"help_support_terms_title" = "Условия использования";
+"help_support_terms_body" = "Помогите нам обслуживать вас лучше.";
+"help_support_availability_title" = "Доступность";
+"help_support_availability_body" = "Посмотреть все поддерживаемые регионы";
+"help_support_community_title" = "Сообщество";
+"help_support_community_body" = "Присоединяйтесь к сообществу в X";
+"help_support_contact_title" = "Контакты";
+"help_support_contact_intro" = "Напишите нам на ";
+"help_support_contact_outro" = " или позвоните по номеру ";
+"help_support_open" = "Открыть";
+"help_support_feedback" = "Оставить отзыв";

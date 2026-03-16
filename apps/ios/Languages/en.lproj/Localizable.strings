@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Account upgraded to v%@";
 
 "beneficiary_self_name" = "Me";
+"home_help_support" = "Help & Support";
+"help_support_title" = "Help & Support";
+"help_support_support_title" = "Support";
+"help_support_support_body" = "Learn how we can offer support related to your use of this app";
+"help_support_privacy_title" = "Privacy Policy";
+"help_support_privacy_body" = "Know how we manage your privacy.";
+"help_support_terms_title" = "Terms of Service";
+"help_support_terms_body" = "Help us serve you better.";
+"help_support_availability_title" = "Availability";
+"help_support_availability_body" = "Find all supported locations";
+"help_support_community_title" = "Community";
+"help_support_community_body" = "Connect with the community on X";
+"help_support_contact_title" = "Contact";
+"help_support_contact_intro" = "Send us an email at ";
+"help_support_contact_outro" = " or call us on phone at ";
+"help_support_open" = "Open";
+"help_support_feedback" = "Give us feedback";

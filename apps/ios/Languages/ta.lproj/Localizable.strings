@@ -210,3 +210,20 @@
 "account_update_complete_format" = "கணக்கு v%@ ஆக மேம்படுத்தப்பட்டது";
 
 "beneficiary_self_name" = "நான்";
+"home_help_support" = "உதவி மற்றும் ஆதரவு";
+"help_support_title" = "உதவி மற்றும் ஆதரவு";
+"help_support_support_title" = "ஆதரவு";
+"help_support_support_body" = "இந்த செயலியைப் பயன்படுத்துவதற்கான ஆதரவை எவ்வாறு வழங்க முடியும் என்பதை அறியுங்கள்";
+"help_support_privacy_title" = "தனியுரிமைக் கொள்கை";
+"help_support_privacy_body" = "உங்கள் தனியுரிமையை எவ்வாறு நிர்வகிக்கிறோம் என்பதை அறியுங்கள்.";
+"help_support_terms_title" = "சேவை விதிமுறைகள்";
+"help_support_terms_body" = "உங்களுக்கு இன்னும் சிறப்பாக சேவை செய்ய எங்களுக்கு உதவுங்கள்.";
+"help_support_availability_title" = "கிடைக்கும் நிலை";
+"help_support_availability_body" = "ஆதரிக்கப்படும் அனைத்து இடங்களையும் காணுங்கள்";
+"help_support_community_title" = "சமூகம்";
+"help_support_community_body" = "X இல் சமூகத்துடன் இணையுங்கள்";
+"help_support_contact_title" = "தொடர்பு";
+"help_support_contact_intro" = "எங்களுக்கு மின்னஞ்சல் அனுப்புங்கள் ";
+"help_support_contact_outro" = " அல்லது இந்த எண்ணிற்கு அழைக்கவும் ";
+"help_support_open" = "திற";
+"help_support_feedback" = "உங்கள் கருத்தை பகிருங்கள்";

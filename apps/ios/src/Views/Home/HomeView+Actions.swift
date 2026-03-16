@@ -22,6 +22,11 @@ extension HomeView {
         onPreferencesTap()
     }
 
+    func handleHelpSupportTap() {
+        selectionTrigger += 1
+        onHelpSupportTap()
+    }
+
     func handleWalletBackupTap() {
         selectionTrigger += 1
         onWalletBackupTap()

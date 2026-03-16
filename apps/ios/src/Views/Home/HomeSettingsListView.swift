@@ -11,6 +11,7 @@ struct HomeSettingsListView: View {
     let onPresentAssets: () -> Void
     let onProfileTap: () -> Void
     let onPreferencesTap: () -> Void
+    let onHelpSupportTap: () -> Void
     let onWalletBackupTap: () -> Void
     let onAddressBookTap: () -> Void
     let onCheckForUpdates: () -> Void
@@ -119,6 +120,13 @@ struct HomeSettingsListView: View {
                 }
             }
             .disabled(isCheckingForUpdates)
+
+            HomeSettingsRow(title: Text("home_help_support"), action: onHelpSupportTap) {
+                iconBadge(
+                    systemName: "questionmark.circle",
+                    style: .solid(background: Color(hex: "#30D158"), icon: AppThemeColor.grayWhite),
+                )
+            }
         }
     }
 

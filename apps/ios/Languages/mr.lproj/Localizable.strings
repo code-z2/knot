@@ -210,3 +210,20 @@
 "account_update_complete_format" = "खाते v%@ वर अपग्रेड झाले";
 
 "beneficiary_self_name" = "मी";
+"home_help_support" = "मदत आणि समर्थन";
+"help_support_title" = "मदत आणि समर्थन";
+"help_support_support_title" = "समर्थन";
+"help_support_support_body" = "या अॅपच्या वापराबाबत आम्ही तुम्हाला कशी मदत करू शकतो ते जाणून घ्या";
+"help_support_privacy_title" = "गोपनीयता धोरण";
+"help_support_privacy_body" = "आम्ही तुमची गोपनीयता कशी सांभाळतो ते जाणून घ्या.";
+"help_support_terms_title" = "सेवेच्या अटी";
+"help_support_terms_body" = "आम्हाला तुम्हाला अधिक चांगली सेवा देण्यास मदत करा.";
+"help_support_availability_title" = "उपलब्धता";
+"help_support_availability_body" = "समर्थित सर्व ठिकाणे पहा";
+"help_support_community_title" = "समुदाय";
+"help_support_community_body" = "X वर समुदायाशी जोडलेले रहा";
+"help_support_contact_title" = "संपर्क";
+"help_support_contact_intro" = "आम्हाला ईमेल करा ";
+"help_support_contact_outro" = " किंवा या क्रमांकावर कॉल करा ";
+"help_support_open" = "उघडा";
+"help_support_feedback" = "आम्हाला अभिप्राय द्या";

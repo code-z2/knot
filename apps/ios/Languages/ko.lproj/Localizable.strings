@@ -210,3 +210,20 @@
 "account_update_complete_format" = "계정이 v%@로 업그레이드됨";
 
 "beneficiary_self_name" = "나";
+"home_help_support" = "도움말 및 지원";
+"help_support_title" = "도움말 및 지원";
+"help_support_support_title" = "지원";
+"help_support_support_body" = "이 앱 사용과 관련해 어떤 지원을 받을 수 있는지 확인하세요";
+"help_support_privacy_title" = "개인정보 처리방침";
+"help_support_privacy_body" = "당사가 귀하의 개인정보를 어떻게 관리하는지 확인하세요.";
+"help_support_terms_title" = "서비스 약관";
+"help_support_terms_body" = "더 나은 서비스를 제공할 수 있도록 도와주세요.";
+"help_support_availability_title" = "이용 가능 지역";
+"help_support_availability_body" = "지원되는 모든 지역 보기";
+"help_support_community_title" = "커뮤니티";
+"help_support_community_body" = "X에서 커뮤니티와 연결하세요";
+"help_support_contact_title" = "문의";
+"help_support_contact_intro" = "이메일: ";
+"help_support_contact_outro" = " 또는 전화: ";
+"help_support_open" = "열기";
+"help_support_feedback" = "의견 보내기";

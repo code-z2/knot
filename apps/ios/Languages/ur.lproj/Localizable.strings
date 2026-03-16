@@ -210,3 +210,20 @@
 "account_update_complete_format" = "اکاؤنٹ v%@ پر اپ گریڈ ہو گیا";
 
 "beneficiary_self_name" = "میں";
+"home_help_support" = "مدد اور معاونت";
+"help_support_title" = "مدد اور معاونت";
+"help_support_support_title" = "معاونت";
+"help_support_support_body" = "جانیں کہ ہم اس ایپ کے استعمال کے حوالے سے آپ کی کیسے مدد کر سکتے ہیں";
+"help_support_privacy_title" = "رازداری کی پالیسی";
+"help_support_privacy_body" = "جانیں کہ ہم آپ کی رازداری کو کیسے سنبھالتے ہیں۔";
+"help_support_terms_title" = "سروس کی شرائط";
+"help_support_terms_body" = "ہمیں آپ کی بہتر خدمت کرنے میں مدد دیں۔";
+"help_support_availability_title" = "دستیابی";
+"help_support_availability_body" = "تمام معاون جگہیں دیکھیں";
+"help_support_community_title" = "کمیونٹی";
+"help_support_community_body" = "X پر کمیونٹی سے جڑیں";
+"help_support_contact_title" = "رابطہ";
+"help_support_contact_intro" = "ہمیں ای میل کریں ";
+"help_support_contact_outro" = " یا ہمیں اس نمبر پر کال کریں ";
+"help_support_open" = "کھولیں";
+"help_support_feedback" = "ہمیں اپنی رائے دیں";

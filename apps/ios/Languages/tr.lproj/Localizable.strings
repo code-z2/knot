@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Hesap v%@ sürümüne yükseltildi";
 
 "beneficiary_self_name" = "Ben";
+"home_help_support" = "Yardım ve destek";
+"help_support_title" = "Yardım ve destek";
+"help_support_support_title" = "Destek";
+"help_support_support_body" = "Bu uygulamayı kullanımınızla ilgili size nasıl destek sunabileceğimizi öğrenin";
+"help_support_privacy_title" = "Gizlilik politikası";
+"help_support_privacy_body" = "Gizliliğinizi nasıl yönettiğimizi öğrenin.";
+"help_support_terms_title" = "Hizmet şartları";
+"help_support_terms_body" = "Size daha iyi hizmet vermemize yardımcı olun.";
+"help_support_availability_title" = "Kullanılabilirlik";
+"help_support_availability_body" = "Desteklenen tüm konumları görüntüleyin";
+"help_support_community_title" = "Topluluk";
+"help_support_community_body" = "X üzerinde toplulukla bağlantı kurun";
+"help_support_contact_title" = "İletişim";
+"help_support_contact_intro" = "Bize şu adresten e-posta gönderin: ";
+"help_support_contact_outro" = " veya şu numaradan arayın: ";
+"help_support_open" = "Aç";
+"help_support_feedback" = "Bize geri bildirim gönderin";

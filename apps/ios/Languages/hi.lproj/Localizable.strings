@@ -210,3 +210,20 @@
 "account_update_complete_format" = "खाता v%@ में अपग्रेड हो गया";
 
 "beneficiary_self_name" = "मैं";
+"home_help_support" = "सहायता और सपोर्ट";
+"help_support_title" = "सहायता और सपोर्ट";
+"help_support_support_title" = "सपोर्ट";
+"help_support_support_body" = "जानें कि इस ऐप के उपयोग से संबंधित हम आपकी कैसे सहायता कर सकते हैं";
+"help_support_privacy_title" = "गोपनीयता नीति";
+"help_support_privacy_body" = "जानें कि हम आपकी गोपनीयता को कैसे संभालते हैं।";
+"help_support_terms_title" = "सेवा की शर्तें";
+"help_support_terms_body" = "हमें आपको बेहतर सेवा देने में मदद करें।";
+"help_support_availability_title" = "उपलब्धता";
+"help_support_availability_body" = "सभी समर्थित स्थान देखें";
+"help_support_community_title" = "समुदाय";
+"help_support_community_body" = "X पर समुदाय से जुड़ें";
+"help_support_contact_title" = "संपर्क";
+"help_support_contact_intro" = "हमें ईमेल करें ";
+"help_support_contact_outro" = " या हमें इस नंबर पर कॉल करें ";
+"help_support_open" = "खोलें";
+"help_support_feedback" = "हमें अपनी प्रतिक्रिया दें";

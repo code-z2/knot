@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Akaunti imeboreshwa hadi v%@";
 
 "beneficiary_self_name" = "Mimi";
+"home_help_support" = "Msaada na usaidizi";
+"help_support_title" = "Msaada na usaidizi";
+"help_support_support_title" = "Usaidizi";
+"help_support_support_body" = "Jifunze jinsi tunavyoweza kukusaidia kuhusu matumizi yako ya app hii";
+"help_support_privacy_title" = "Sera ya faragha";
+"help_support_privacy_body" = "Jua jinsi tunavyosimamia faragha yako.";
+"help_support_terms_title" = "Masharti ya huduma";
+"help_support_terms_body" = "Tusaidie kukuhudumia vizuri zaidi.";
+"help_support_availability_title" = "Upatikanaji";
+"help_support_availability_body" = "Angalia maeneo yote yanayoungwa mkono";
+"help_support_community_title" = "Jamii";
+"help_support_community_body" = "Ungana na jamii kwenye X";
+"help_support_contact_title" = "Wasiliana nasi";
+"help_support_contact_intro" = "Tutumie barua pepe kwa ";
+"help_support_contact_outro" = " au tupigie simu kwa ";
+"help_support_open" = "Fungua";
+"help_support_feedback" = "Tupatie maoni yako";

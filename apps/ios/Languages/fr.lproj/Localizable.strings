@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Compte mis à niveau vers v%@";
 
 "beneficiary_self_name" = "Moi";
+"home_help_support" = "Aide et support";
+"help_support_title" = "Aide et support";
+"help_support_support_title" = "Assistance";
+"help_support_support_body" = "Découvrez comment nous pouvons vous aider dans l'utilisation de cette app";
+"help_support_privacy_title" = "Politique de confidentialité";
+"help_support_privacy_body" = "Découvrez comment nous gérons votre vie privée.";
+"help_support_terms_title" = "Conditions d'utilisation";
+"help_support_terms_body" = "Aidez-nous à mieux vous servir.";
+"help_support_availability_title" = "Disponibilité";
+"help_support_availability_body" = "Consultez toutes les régions prises en charge";
+"help_support_community_title" = "Communauté";
+"help_support_community_body" = "Rejoignez la communauté sur X";
+"help_support_contact_title" = "Nous contacter";
+"help_support_contact_intro" = "Envoyez-nous un e-mail à ";
+"help_support_contact_outro" = " ou appelez-nous au ";
+"help_support_open" = "Ouvrir";
+"help_support_feedback" = "Donnez-nous votre avis";

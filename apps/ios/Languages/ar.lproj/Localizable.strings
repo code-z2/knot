@@ -210,3 +210,20 @@
 "account_update_complete_format" = "تمت ترقية الحساب إلى الإصدار %@";
 
 "beneficiary_self_name" = "أنا";
+"home_help_support" = "المساعدة والدعم";
+"help_support_title" = "المساعدة والدعم";
+"help_support_support_title" = "الدعم";
+"help_support_support_body" = "تعرّف على كيفية تقديمنا للدعم المتعلق باستخدامك لهذا التطبيق";
+"help_support_privacy_title" = "سياسة الخصوصية";
+"help_support_privacy_body" = "تعرّف على كيفية إدارتنا لخصوصيتك.";
+"help_support_terms_title" = "شروط الخدمة";
+"help_support_terms_body" = "ساعدنا على خدمتك بشكل أفضل.";
+"help_support_availability_title" = "التوفر";
+"help_support_availability_body" = "اعرف جميع المواقع المدعومة";
+"help_support_community_title" = "المجتمع";
+"help_support_community_body" = "تواصل مع المجتمع على X";
+"help_support_contact_title" = "اتصل بنا";
+"help_support_contact_intro" = "راسلنا عبر البريد الإلكتروني على ";
+"help_support_contact_outro" = " أو اتصل بنا هاتفياً على ";
+"help_support_open" = "فتح";
+"help_support_feedback" = "أرسل لنا ملاحظاتك";

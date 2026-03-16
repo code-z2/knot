@@ -210,3 +210,20 @@
 "account_update_complete_format" = "অ্যাকাউন্ট v%@ এ আপগ্রেড হয়েছে";
 
 "beneficiary_self_name" = "আমি";
+"home_help_support" = "সহায়তা ও সাপোর্ট";
+"help_support_title" = "সহায়তা ও সাপোর্ট";
+"help_support_support_title" = "সাপোর্ট";
+"help_support_support_body" = "এই অ্যাপ ব্যবহার সংক্রান্ত কীভাবে আমরা সহায়তা দিতে পারি তা জানুন";
+"help_support_privacy_title" = "গোপনীয়তা নীতি";
+"help_support_privacy_body" = "আমরা কীভাবে আপনার গোপনীয়তা পরিচালনা করি তা জানুন।";
+"help_support_terms_title" = "সেবার শর্তাবলি";
+"help_support_terms_body" = "আমাদেরকে আপনাকে আরও ভালোভাবে সেবা দিতে সাহায্য করুন।";
+"help_support_availability_title" = "উপলভ্যতা";
+"help_support_availability_body" = "সমর্থিত সব অবস্থান খুঁজে দেখুন";
+"help_support_community_title" = "কমিউনিটি";
+"help_support_community_body" = "X-এ কমিউনিটির সঙ্গে যুক্ত হন";
+"help_support_contact_title" = "যোগাযোগ";
+"help_support_contact_intro" = "আমাদের ইমেইল করুন ";
+"help_support_contact_outro" = " অথবা ফোন করুন ";
+"help_support_open" = "খুলুন";
+"help_support_feedback" = "আমাদের প্রতিক্রিয়া দিন";

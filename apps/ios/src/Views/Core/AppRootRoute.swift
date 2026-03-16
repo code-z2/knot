@@ -14,6 +14,7 @@ enum AppRootRoute {
 enum AppRootDestination: Hashable {
     case profile
     case preferences
+    case helpSupport
     case addressBook
     case receive
     case sendMoney

@@ -210,3 +210,20 @@
 "account_update_complete_format" = "ఖాతా v%@ కు అప్‌గ్రేడ్ అయింది";
 
 "beneficiary_self_name" = "నేను";
+"home_help_support" = "సహాయం మరియు మద్దతు";
+"help_support_title" = "సహాయం మరియు మద్దతు";
+"help_support_support_title" = "మద్దతు";
+"help_support_support_body" = "ఈ యాప్ వినియోగానికి సంబంధించిన మద్దతును మేము ఎలా అందించగలమో తెలుసుకోండి";
+"help_support_privacy_title" = "గోప్యతా విధానం";
+"help_support_privacy_body" = "మీ గోప్యతను మేము ఎలా నిర్వహిస్తామో తెలుసుకోండి.";
+"help_support_terms_title" = "సేవా నిబంధనలు";
+"help_support_terms_body" = "మేము మీకు ఇంకా మెరుగ్గా సేవ చేయడానికి సహాయపడండి.";
+"help_support_availability_title" = "లభ్యత";
+"help_support_availability_body" = "మద్దతు ఉన్న అన్ని ప్రాంతాలను చూడండి";
+"help_support_community_title" = "సమాజం";
+"help_support_community_body" = "X లో సమాజంతో కలవండి";
+"help_support_contact_title" = "సంప్రదించండి";
+"help_support_contact_intro" = "మాకు ఈమెయిల్ పంపండి ";
+"help_support_contact_outro" = " లేదా ఈ నంబర్‌కు కాల్ చేయండి ";
+"help_support_open" = "తెరువు";
+"help_support_feedback" = "మీ అభిప్రాయాన్ని తెలియజేయండి";

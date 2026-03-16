@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Account auf v%@ aktualisiert";
 
 "beneficiary_self_name" = "Ich";
+"home_help_support" = "Hilfe & Support";
+"help_support_title" = "Hilfe & Support";
+"help_support_support_title" = "Kundendienst";
+"help_support_support_body" = "Erfahre, wie wir dich bei der Nutzung dieser App unterstützen können";
+"help_support_privacy_title" = "Datenschutzrichtlinie";
+"help_support_privacy_body" = "Erfahre, wie wir mit deiner Privatsphäre umgehen.";
+"help_support_terms_title" = "Nutzungsbedingungen";
+"help_support_terms_body" = "Hilf uns, dich besser zu unterstützen.";
+"help_support_availability_title" = "Verfügbarkeit";
+"help_support_availability_body" = "Alle unterstützten Standorte anzeigen";
+"help_support_community_title" = "Gemeinschaft";
+"help_support_community_body" = "Verbinde dich auf X mit der Community";
+"help_support_contact_title" = "Kontakt";
+"help_support_contact_intro" = "Schreib uns eine E-Mail an ";
+"help_support_contact_outro" = " oder ruf uns an unter ";
+"help_support_open" = "Öffnen";
+"help_support_feedback" = "Gib uns Feedback";

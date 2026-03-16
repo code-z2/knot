@@ -210,3 +210,20 @@
 "account_update_complete_format" = "账户已升级到 v%@";
 
 "beneficiary_self_name" = "我";
+"home_help_support" = "帮助与支持";
+"help_support_title" = "帮助与支持";
+"help_support_support_title" = "支持";
+"help_support_support_body" = "了解我们如何为你使用此应用提供相关支持";
+"help_support_privacy_title" = "隐私政策";
+"help_support_privacy_body" = "了解我们如何管理你的隐私。";
+"help_support_terms_title" = "服务条款";
+"help_support_terms_body" = "帮助我们更好地为你服务。";
+"help_support_availability_title" = "可用性";
+"help_support_availability_body" = "查看所有支持的地区";
+"help_support_community_title" = "社区";
+"help_support_community_body" = "在 X 上与社区互动";
+"help_support_contact_title" = "联系我们";
+"help_support_contact_intro" = "请发送邮件至 ";
+"help_support_contact_outro" = " 或致电 ";
+"help_support_open" = "打开";
+"help_support_feedback" = "给我们反馈";

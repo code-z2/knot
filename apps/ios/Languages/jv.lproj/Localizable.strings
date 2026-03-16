@@ -210,3 +210,20 @@
 "account_update_complete_format" = "Akun wis diupgrade menyang v%@";
 
 "beneficiary_self_name" = "Aku";
+"home_help_support" = "Bantuan lan dhukungan";
+"help_support_title" = "Bantuan lan dhukungan";
+"help_support_support_title" = "Dhukungan";
+"help_support_support_body" = "Sinau carane kita bisa menehi dhukungan babagan panggunaan app iki";
+"help_support_privacy_title" = "Kawicaksanan privasi";
+"help_support_privacy_body" = "Sinau carane kita ngatur privasimu.";
+"help_support_terms_title" = "Katentuan layanan";
+"help_support_terms_body" = "Tulungi supaya kita bisa nglayani sampeyan luwih apik.";
+"help_support_availability_title" = "Kasedhiyan";
+"help_support_availability_body" = "Delengen kabeh lokasi sing didhukung";
+"help_support_community_title" = "Komunitas";
+"help_support_community_body" = "Sambung karo komunitas ing X";
+"help_support_contact_title" = "Kontak";
+"help_support_contact_intro" = "Kirim email menyang ";
+"help_support_contact_outro" = " utawa telpon menyang ";
+"help_support_open" = "Bukak";
+"help_support_feedback" = "Wenehana tanggapan";
