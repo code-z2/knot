@@ -27,6 +27,7 @@
 "home_address_book" = "Carnet d'adresses";
 "home_ai_agent" = "Agent IA";
 "home_check_for_updates" = "Rechercher des mises à jour";
+"home_update_up_to_date" = "À jour";
 "home_logout" = "Se déconnecter";
 "address_book_title" = "Carnet d'adresses";
 "search_placeholder" = "Rechercher";

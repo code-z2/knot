@@ -27,6 +27,7 @@
 "home_address_book" = "アドレス帳";
 "home_ai_agent" = "AIエージェント";
 "home_check_for_updates" = "アップデートを確認";
+"home_update_up_to_date" = "最新です";
 "home_logout" = "ログアウト";
 "address_book_title" = "アドレス帳";
 "search_placeholder" = "検索";

@@ -100,6 +100,7 @@ struct HomeView: View {
                     showWalletBackup: showWalletBackup,
                     isLoggingOut: isLoggingOut,
                     isCheckingForUpdates: isCheckingForUpdates,
+                    showUpToDateStatus: showUpToDateStatus,
                     onPresentAssets: { presentAssetsModal() },
                     onProfileTap: { handleProfileTap() },
                     onPreferencesTap: { handlePreferencesTap() },
@@ -133,6 +134,8 @@ struct HomeView: View {
         .onDisappear {
             logoutTask?.cancel()
             logoutTask = nil
+            hideUpToDateTask?.cancel()
+            hideUpToDateTask = nil
         }
     }
 
@@ -143,11 +146,17 @@ struct HomeView: View {
     @State var updateBannerPhase: UpdateBannerPhase = .hidden
     @State private var pendingSingletonConfig: StoredSingletonConfig?
     @State var isCheckingForUpdates = false
+    @State private var showUpToDateStatus = false
+    @State private var lastNoUpdateCheckAt: Date?
+    @State private var hideUpToDateTask: Task<Void, Never>?
     // Haptic triggers
     @State var lightImpactTrigger = 0
     @State var selectionTrigger = 0
     @State var warningTrigger = 0
     @State var refreshTrigger = 0
+
+    private let noUpdateStatusDuration: Duration = .seconds(2)
+    private let noUpdateCacheWindow: TimeInterval = 30
 
     private var assetListState: AssetListState {
         balanceStore.isLoading ? .loading : .loaded(balanceStore.balances)
@@ -213,17 +222,61 @@ struct HomeView: View {
     private func checkForUpdates() {
         guard !isCheckingForUpdates else { return }
 
+        if shouldUseCachedNoUpdateStatus {
+            showCachedUpToDateStatus()
+            return
+        }
+
         Task { @MainActor in
-            isCheckingForUpdates = true
-            defer { isCheckingForUpdates = false }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showUpToDateStatus = false
+                isCheckingForUpdates = true
+            }
 
             if let result = await onCheckForUpdates() {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCheckingForUpdates = false
+                }
+
+                lastNoUpdateCheckAt = nil
+                hideUpToDateTask?.cancel()
+                hideUpToDateTask = nil
                 pendingSingletonConfig = result
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     updateBannerPhase = .available
                 }
             } else {
                 pendingSingletonConfig = nil
+
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCheckingForUpdates = false
+                }
+
+                lastNoUpdateCheckAt = Date()
+                showCachedUpToDateStatus()
+            }
+        }
+    }
+
+    private var shouldUseCachedNoUpdateStatus: Bool {
+        guard let lastNoUpdateCheckAt else { return false }
+        return Date().timeIntervalSince(lastNoUpdateCheckAt) < noUpdateCacheWindow
+    }
+
+    private func showCachedUpToDateStatus() {
+        hideUpToDateTask?.cancel()
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showUpToDateStatus = true
+        }
+
+        hideUpToDateTask = Task { @MainActor in
+            try? await Task.sleep(for: noUpdateStatusDuration)
+
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showUpToDateStatus = false
             }
         }
     }

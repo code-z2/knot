@@ -8,6 +8,7 @@ struct HomeSettingsListView: View {
     let showWalletBackup: Bool
     let isLoggingOut: Bool
     let isCheckingForUpdates: Bool
+    let showUpToDateStatus: Bool
     let onPresentAssets: () -> Void
     let onProfileTap: () -> Void
     let onPreferencesTap: () -> Void
@@ -116,6 +117,11 @@ struct HomeSettingsListView: View {
                 if isCheckingForUpdates {
                     ProgressView()
                         .tint(AppThemeColor.labelSecondary)
+                        .transition(.opacity)
+                } else if showUpToDateStatus {
+                    Text("home_update_up_to_date")
+                        .font(.custom("RobotoMono-Medium", size: 12))
+                        .foregroundStyle(AppThemeColor.accentGreen)
                         .transition(.opacity)
                 }
             }

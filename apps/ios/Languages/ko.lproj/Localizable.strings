@@ -27,6 +27,7 @@
 "home_address_book" = "주소록";
 "home_ai_agent" = "AI 에이전트";
 "home_check_for_updates" = "업데이트 확인";
+"home_update_up_to_date" = "최신 상태";
 "home_logout" = "로그아웃";
 "address_book_title" = "주소록";
 "search_placeholder" = "검색";

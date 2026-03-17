@@ -27,6 +27,7 @@
 "home_address_book" = "地址簿";
 "home_ai_agent" = "AI 助手";
 "home_check_for_updates" = "检查更新";
+"home_update_up_to_date" = "已是最新";
 "home_logout" = "退出登录";
 "address_book_title" = "地址簿";
 "search_placeholder" = "搜索";
