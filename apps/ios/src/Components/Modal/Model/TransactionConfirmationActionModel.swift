@@ -10,6 +10,8 @@ struct TransactionConfirmationActionModel: Identifiable {
 
     let label: LocalizedStringKey
 
+    let kind: TransactionConfirmationActionKind
+
     let icon: String?
 
     let variant: AppButtonVariant
@@ -23,6 +25,7 @@ struct TransactionConfirmationActionModel: Identifiable {
     init(
         id: UUID = UUID(),
         label: LocalizedStringKey,
+        kind: TransactionConfirmationActionKind = .standard,
         icon: String? = nil,
         variant: AppButtonVariant = .default,
         visualState: AppButtonVisualState = .normal,
@@ -31,10 +34,27 @@ struct TransactionConfirmationActionModel: Identifiable {
     ) {
         self.id = id
         self.label = label
+        self.kind = kind
         self.icon = icon
         self.variant = variant
         self.visualState = visualState
         self.isEnabled = isEnabled
         self.handler = handler
+    }
+
+    func copying(
+        visualState: AppButtonVisualState? = nil,
+        isEnabled: Bool? = nil,
+    ) -> TransactionConfirmationActionModel {
+        TransactionConfirmationActionModel(
+            id: id,
+            label: label,
+            kind: kind,
+            icon: icon,
+            variant: variant,
+            visualState: visualState ?? self.visualState,
+            isEnabled: isEnabled ?? self.isEnabled,
+            handler: handler,
+        )
     }
 }

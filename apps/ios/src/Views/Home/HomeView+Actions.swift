@@ -17,6 +17,11 @@ extension HomeView {
         onProfileTap()
     }
 
+    func handleGasTankTap() {
+        selectionTrigger += 1
+        onGasTankTap()
+    }
+
     func handlePreferencesTap() {
         selectionTrigger += 1
         onPreferencesTap()

@@ -13,6 +13,9 @@ enum AppRootRoute {
 
 enum AppRootDestination: Hashable {
     case profile
+    case gasTank
+    case gasTankInformation
+    case gasTankTopUp(GasTankTopUpDraft)
     case preferences
     case helpSupport
     case addressBook

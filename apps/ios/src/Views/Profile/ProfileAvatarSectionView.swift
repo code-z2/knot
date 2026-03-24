@@ -56,13 +56,13 @@ struct ProfileAvatarSectionView: View {
     }
 
     private var avatarPlaceholder: some View {
-        Circle()
-            .fill(AppThemeColor.backgroundPrimary)
-            .overlay {
-                Image(systemName: "person")
-                    .font(.system(size: 24, weight: .medium))
-                    .frame(width: 24, height: 24)
-                    .foregroundStyle(AppThemeColor.separatorOpaque)
-            }
+        ZStack {
+            Circle()
+                .fill(AppThemeColor.fillPrimary)
+
+            Image(systemName: "person.fill")
+                .font(.system(size: 52, weight: .medium))
+                .foregroundStyle(AppThemeColor.labelPrimary)
+        }
     }
 }

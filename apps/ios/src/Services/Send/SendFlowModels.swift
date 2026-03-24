@@ -4,6 +4,7 @@ import Foundation
 enum SendFlowServiceError: LocalizedError {
     case routeResolutionFailed(RouteError)
     case submissionFailed(AAExecutionServiceError)
+    case insufficientGasBalance
     case invalidRoute(reason: String)
     case unknown(Error)
 
@@ -24,6 +25,8 @@ enum SendFlowServiceError: LocalizedError {
             }
         case let .submissionFailed(error):
             error.localizedDescription
+        case .insufficientGasBalance:
+            String(localized: "send_money_insufficient_gas_balance")
         case let .invalidRoute(reason):
             reason
         case let .unknown(error):

@@ -12,6 +12,7 @@ struct HomeView: View {
     let onAddMoney: () -> Void
     let onSendMoney: () -> Void
     let onProfileTap: () -> Void
+    let onGasTankTap: () -> Void
     let onPreferencesTap: () -> Void
     let onHelpSupportTap: () -> Void
     let onWalletBackupTap: () -> Void
@@ -29,6 +30,7 @@ struct HomeView: View {
         onAddMoney: @escaping () -> Void = {},
         onSendMoney: @escaping () -> Void = {},
         onProfileTap: @escaping () -> Void = {},
+        onGasTankTap: @escaping () -> Void = {},
         onPreferencesTap: @escaping () -> Void = {},
         onHelpSupportTap: @escaping () -> Void = {},
         onWalletBackupTap: @escaping () -> Void = {},
@@ -45,6 +47,7 @@ struct HomeView: View {
         self.onAddMoney = onAddMoney
         self.onSendMoney = onSendMoney
         self.onProfileTap = onProfileTap
+        self.onGasTankTap = onGasTankTap
         self.onPreferencesTap = onPreferencesTap
         self.onHelpSupportTap = onHelpSupportTap
         self.onWalletBackupTap = onWalletBackupTap
@@ -103,6 +106,7 @@ struct HomeView: View {
                     showUpToDateStatus: showUpToDateStatus,
                     onPresentAssets: { presentAssetsModal() },
                     onProfileTap: { handleProfileTap() },
+                    onGasTankTap: { handleGasTankTap() },
                     onPreferencesTap: { handlePreferencesTap() },
                     onHelpSupportTap: { handleHelpSupportTap() },
                     onWalletBackupTap: { handleWalletBackupTap() },

@@ -6,6 +6,36 @@ import RPC
 import SwiftUI
 
 extension SendMoneyView {
+    func applyInitialGasTankTopUpIfNeeded() {
+        guard !hasAppliedInitialGasTankTopUp else { return }
+        hasAppliedInitialGasTankTopUp = true
+
+        guard let draft = initialGasTankTopUpDraft else { return }
+
+        finalizedAddressValue = draft.destinationAddress
+        addressQuery = ""
+        selectedBeneficiary = nil
+        validateAddress(draft.destinationAddress)
+
+        if let chain = ChainCatalog.configured.first(where: { $0.rpcChainID == draft.destinationChainID }) {
+            selectedChain = chain
+            chainQuery = chain.name
+        }
+
+        if let fundingAsset = balanceStore.balances.first(where: { $0.id == draft.fundingAssetID }) {
+            selectedAsset = fundingAsset
+            selectedSpendAsset = fundingAsset
+            assetQuery = fundingAsset.symbol
+        }
+
+        amountInput = draft.amountInput
+        isAmountDisplayInverted = false
+
+        if canContinue {
+            showAmountStep = true
+        }
+    }
+
     func expandedBinding(for field: SendMoneyField) -> Binding<Bool> {
         Binding(
             get: { activeField == field },
@@ -352,8 +382,7 @@ extension SendMoneyView {
                 TransactionConfirmationActionModel(
                     id: confirmActionId,
                     label: "send_money_confirm_sign",
-                    icon: "person.badge.key.fill",
-                    variant: .default,
+                    kind: .passkeyConfirmation,
                 ) {
                     handleConfirmSend(actionId: confirmActionId)
                 },
@@ -378,31 +407,12 @@ extension SendMoneyView {
         disableOthers: Bool,
     ) {
         guard let model = pendingConfirmation else { return }
-
-        let updatedActions = model.actions.map { action in
-            if action.id == actionId {
-                return TransactionConfirmationActionModel(
-                    id: action.id,
-                    label: action.label,
-                    variant: action.variant,
-                    visualState: visualState,
-                    isEnabled: isEnabled,
-                    handler: action.handler,
-                )
-            }
-
-            let updatedIsEnabled = disableOthers ? false : action.isEnabled
-            return TransactionConfirmationActionModel(
-                id: action.id,
-                label: action.label,
-                variant: action.variant,
-                visualState: action.visualState,
-                isEnabled: updatedIsEnabled,
-                handler: action.handler,
-            )
-        }
-
-        pendingConfirmation = model.withActions(updatedActions)
+        pendingConfirmation = model.updatingAction(
+            id: actionId,
+            visualState: visualState,
+            isEnabled: isEnabled,
+            disableOthers: disableOthers,
+        )
     }
 
     private func showConfirmationErrorState(actionId: UUID) {
@@ -506,6 +516,10 @@ extension SendMoneyView {
         amountButtonState = .loading
         amountActionTask = Task { @MainActor in
             do {
+                guard !requiresGasBalanceForSubmission else {
+                    throw SendFlowServiceError.insufficientGasBalance
+                }
+
                 let submission = try await sendFlowService.submitRoute(
                     eoaAddress: eoaAddress,
                     route: route,
@@ -523,11 +537,18 @@ extension SendMoneyView {
                 amountButtonState = .error
                 errorHapticTrigger += 1
                 showConfirmationErrorState(actionId: actionId)
+                presentErrorMessage(error.localizedDescription)
                 print("[SendMoneyView] Transfer confirmation failed: \(error.localizedDescription)")
                 do {
                     try await Task.sleep(for: .milliseconds(2000))
                 } catch {
                     return
+                }
+                if let pendingConfirmation {
+                    self.pendingConfirmation = pendingConfirmation.resettingAction(
+                        id: actionId,
+                        isEnabled: true,
+                    )
                 }
                 amountButtonState = .normal
             }
@@ -581,7 +602,7 @@ extension SendMoneyView {
                     routeState = .failed(error)
                 case .invalidRoute:
                     routeState = .failed(.noRouteFound(reason: sendError.localizedDescription))
-                case .submissionFailed, .unknown:
+                case .submissionFailed, .insufficientGasBalance, .unknown:
                     routeState = .failed(.noRouteFound(reason: sendError.localizedDescription))
                 }
             } catch {
@@ -632,23 +653,26 @@ extension SendMoneyView {
     }
 
     func decimal(from input: String) -> Decimal? {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return 0 }
+        DecimalParser.parseUserInput(input)
+    }
 
-        var normalized =
-            trimmed
-                .replacingOccurrences(of: "\u{00A0}", with: "")
-                .replacingOccurrences(of: " ", with: "")
+    private var requiresGasBalanceForSubmission: Bool {
+        guard !isGasTankTopUpTransaction else { return false }
+        guard feeAbstractionStore.hasKnownBalance else { return false }
 
-        if normalized.contains(","), normalized.contains(".") {
-            // Treat commas as grouping separators when both are present.
-            normalized = normalized.replacingOccurrences(of: ",", with: "")
-        } else if normalized.contains(",") {
-            // Support decimal-comma input by normalizing to decimal-point.
-            normalized = normalized.replacingOccurrences(of: ",", with: ".")
+        return !feeAbstractionStore.payAsYouGoEnabled
+            && !feeAbstractionStore.overdraftEnabled
+            && !hasPositiveFeeAbstractionBalance
+    }
+
+    private var hasPositiveFeeAbstractionBalance: Bool {
+        guard let balanceNative = feeAbstractionStore.balanceNative,
+              let balance = DecimalParser.parse(balanceNative)
+        else {
+            return false
         }
 
-        return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
+        return balance > 0
     }
 
     func format(

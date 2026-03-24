@@ -63,17 +63,7 @@ struct TransactionConfirmationSheet: View {
                 if model.warning == nil, !model.actions.isEmpty {
                     HStack(spacing: AppSpacing.md) {
                         ForEach(Array(model.actions.enumerated()), id: \.element.id) { index, action in
-                            AppButton(
-                                fullWidth: true,
-                                label: action.label,
-                                variant: effectiveVariant(for: action),
-                                visualState: action.visualState,
-                                showIcon: true,
-                                iconName: action.icon,
-                                iconSize: 16,
-                                action: action.handler,
-                            )
-                            .disabled(action.visualState == .loading ? false : !action.isEnabled)
+                            actionView(for: action)
 
                             if index < model.actions.count - 1 {
                                 if let connectorText = model.actionConnectorText {
@@ -112,6 +102,31 @@ struct TransactionConfirmationSheet: View {
 
     private var sheetHeight: CGFloat {
         476
+    }
+
+    @ViewBuilder
+    private func actionView(for action: TransactionConfirmationActionModel) -> some View {
+        switch action.kind {
+        case .passkeyConfirmation:
+            ConfirmAndSignWithPasskeyButton(
+                label: action.label,
+                visualState: action.visualState,
+                isEnabled: action.visualState == .loading ? true : action.isEnabled,
+                action: action.handler,
+            )
+        case .standard:
+            AppButton(
+                fullWidth: true,
+                label: action.label,
+                variant: effectiveVariant(for: action),
+                visualState: action.visualState,
+                showIcon: true,
+                iconName: action.icon,
+                iconSize: 16,
+                action: action.handler,
+            )
+            .disabled(action.visualState == .loading ? false : !action.isEnabled)
+        }
     }
 
     private func effectiveVariant(

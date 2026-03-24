@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "02ef72b4906d295d03da15d52357babdef06a762f0374b85c89c73c9b22a7bad"
+    },
+    "code-documentation": {
+      "source": "skillcreatorai/ai-agent-skills",
+      "sourceType": "github",
+      "computedHash": "f4d8cce93b83688eae7e7c7a6adac03935487cf57253a4a39065d8d95e8ebea6"
+    },
+    "file-organization": {
+      "source": "supercent-io/skills-template",
+      "sourceType": "github",
+      "computedHash": "f533c6859ba8ab8bb1c91bfb2c0d82ee9e71b5b43dc5776dc9d42a2d3f9c6203"
+    },
+    "viem": {
+      "source": "0xsardius/onchain-typescript-skills",
+      "sourceType": "github",
+      "computedHash": "c87913a8f7b7fcafaa056fac32f62860cdd4bc6e7928f6888adbd23a6b2a3364"
+    },
+    "vitest": {
+      "source": "onmax/nuxt-skills",
+      "sourceType": "github",
+      "computedHash": "04ed1b09da8ac778d693ad12fab49b1c48aadfe1758fe13eb4d6de3fdcbb22f4"
+    }
+  }
+}

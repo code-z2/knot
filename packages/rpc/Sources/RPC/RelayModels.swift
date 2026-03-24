@@ -199,11 +199,20 @@ public struct RelayCreditResultModel: Sendable, Decodable, Equatable {
 
     public let balanceNative: String
 
-    public init(ok: Bool, account: String, supportMode: String, balanceNative: String) {
+    public let initialized: Bool
+
+    public init(
+        ok: Bool,
+        account: String,
+        supportMode: String,
+        balanceNative: String,
+        initialized: Bool,
+    ) {
         self.ok = ok
         self.account = account
         self.supportMode = supportMode
         self.balanceNative = balanceNative
+        self.initialized = initialized
     }
 }
 

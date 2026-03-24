@@ -43,6 +43,8 @@ struct AppRootView: View {
 
     @State private var currencyRateStore = CurrencyRateStore()
 
+    @State private var feeAbstractionStore = FeeAbstractionStore()
+
     @State private var balanceStore = BalanceStore()
 
     @State private var transactionStore = TransactionStore()
@@ -50,6 +52,7 @@ struct AppRootView: View {
     private let beneficiaryStore = BeneficiaryStore()
     private let appSessionFlowService: AppSessionFlowService
     private let walletDataFlowService: WalletDataFlowService
+    private let feeAbstractionService: FeeAbstractionService
 
     @State private var ensService = ENSService(mode: ChainSupportRuntime.resolveMode())
 
@@ -62,6 +65,7 @@ struct AppRootView: View {
         let executionService = AAExecutionService()
         appSessionFlowService = sessionFlowService
         walletDataFlowService = WalletDataFlowService()
+        feeAbstractionService = FeeAbstractionService()
         aaExecutionService = executionService
         sendFlowService = SendFlowService(
             aaExecutionService: executionService,
@@ -168,6 +172,40 @@ struct AppRootView: View {
                 currencyRateStore: currencyRateStore,
                 ethBalance: ethBalanceSnapshot,
             )
+        case .gasTank:
+            GasTankView(
+                eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+                depositAddress: currentAccumulatorAddress,
+                balanceStore: balanceStore,
+                preferencesStore: preferencesStore,
+                currencyRateStore: currencyRateStore,
+                feeAbstractionService: feeAbstractionService,
+                gasUsageProvider: GasUsageService(),
+                onInfoTap: openGasTankInformation,
+                onAddMoneyConfirm: openGasTankTopUp,
+                feeAbstractionStore: feeAbstractionStore,
+            )
+        case .gasTankInformation:
+            GasTankInformationView(
+                preferencesStore: preferencesStore,
+                feeAbstractionStore: feeAbstractionStore,
+                onWithdrawAllFunds: nil,
+            )
+        case let .gasTankTopUp(draft):
+            SendMoneyView(
+                eoaAddress: currentEOA ?? "0x0000000000000000000000000000000000000000",
+                accumulatorAddress: currentAccumulatorAddress
+                    ?? "0x0000000000000000000000000000000000000000",
+                store: beneficiaryStore,
+                balanceStore: balanceStore,
+                preferencesStore: preferencesStore,
+                currencyRateStore: currencyRateStore,
+                sendFlowService: sendFlowService,
+                ensService: ensService,
+                feeAbstractionStore: feeAbstractionStore,
+                transactionIntent: .gasTankTopUp,
+                initialGasTankTopUpDraft: draft,
+            )
         case .preferences:
             PreferencesView(
                 preferencesStore: preferencesStore,
@@ -201,6 +239,8 @@ struct AppRootView: View {
                 currencyRateStore: currencyRateStore,
                 sendFlowService: sendFlowService,
                 ensService: ensService,
+                feeAbstractionStore: feeAbstractionStore,
+                transactionIntent: .standard,
             )
         case .walletBackup:
             WalletBackupView(
@@ -221,6 +261,7 @@ struct AppRootView: View {
                         onAddMoney: openReceive,
                         onSendMoney: openSendMoneyIfReady,
                         onProfileTap: openProfile,
+                        onGasTankTap: openGasTank,
                         onPreferencesTap: openPreferences,
                         onHelpSupportTap: openHelpSupport,
                         onWalletBackupTap: { Task { await openWalletBackupIfAvailable() } },
@@ -578,6 +619,24 @@ struct AppRootView: View {
         selectedMainTab = .home
         navigateToMainIfNeeded()
         navigationPath.append(AppRootDestination.profile)
+    }
+
+    private func openGasTank() {
+        selectedMainTab = .home
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.gasTank)
+    }
+
+    private func openGasTankInformation() {
+        selectedMainTab = .home
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.gasTankInformation)
+    }
+
+    private func openGasTankTopUp(_ draft: GasTankTopUpDraft) {
+        selectedMainTab = .home
+        navigateToMainIfNeeded()
+        navigationPath.append(AppRootDestination.gasTankTopUp(draft))
     }
 
     private func openPreferences() {

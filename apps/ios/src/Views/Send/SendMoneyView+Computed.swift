@@ -23,6 +23,10 @@ extension SendMoneyView {
         return .recipient
     }
 
+    var isGasTankTopUpTransaction: Bool {
+        transactionIntent == .gasTankTopUp
+    }
+
     var filteredBeneficiaries: [Beneficiary] {
         let normalizedEOA = eoaAddress.lowercased()
         return SearchSystem.filter(
@@ -198,12 +202,8 @@ extension SendMoneyView {
         )
     }
 
-    var availableAssetBalance: Decimal {
-        currentSpendAsset?.totalBalance ?? 0
-    }
-
     var isInsufficientBalance: Bool {
-        assetAmount > availableAssetBalance && enteredMainAmount > 0
+        assetAmount > (currentSpendAsset?.totalBalance ?? 0) && enteredMainAmount > 0
     }
 
     var primaryAmountText: String {

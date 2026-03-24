@@ -300,8 +300,7 @@ extension ProfileView {
                 TransactionConfirmationActionModel(
                     id: signActionId,
                     label: "ens_confirm_sign",
-                    icon: "person.badge.key.fill",
-                    variant: .default,
+                    kind: .passkeyConfirmation,
                     isEnabled: isConfirmEnabled,
                 ) {
                     confirmSingleStepAction(actionId: signActionId)
@@ -473,31 +472,12 @@ extension ProfileView {
         disableOthers: Bool,
     ) {
         guard let model = pendingConfirmation else { return }
-
-        let updatedActions = model.actions.map { action in
-            if action.id == actionId {
-                return TransactionConfirmationActionModel(
-                    id: action.id,
-                    label: action.label,
-                    variant: action.variant,
-                    visualState: visualState,
-                    isEnabled: isEnabled,
-                    handler: action.handler,
-                )
-            }
-
-            let updatedIsEnabled = disableOthers ? false : action.isEnabled
-            return TransactionConfirmationActionModel(
-                id: action.id,
-                label: action.label,
-                variant: action.variant,
-                visualState: action.visualState,
-                isEnabled: updatedIsEnabled,
-                handler: action.handler,
-            )
-        }
-
-        pendingConfirmation = model.withActions(updatedActions)
+        pendingConfirmation = model.updatingAction(
+            id: actionId,
+            visualState: visualState,
+            isEnabled: isEnabled,
+            disableOthers: disableOthers,
+        )
     }
 
     private func showConfirmationErrorState(actionId: UUID) {

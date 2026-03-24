@@ -9,9 +9,11 @@ public enum AppTypography {
     public static let button = Font.custom("Roboto-Bold", size: 15, relativeTo: .headline)
 
     // Body & UI
+    public static let bodyLargeMedium = Font.custom("Roboto-Medium", size: 20, relativeTo: .title3)
     public static let bodyMedium = Font.custom("Roboto-Medium", size: 15, relativeTo: .body)
     public static let bodyRegular = Font.custom("Roboto-Regular", size: 15, relativeTo: .body)
     public static let bodySmall = Font.custom("Roboto-Regular", size: 12, relativeTo: .caption)
+    public static let bodyMediumSmall = Font.custom("Roboto-Medium", size: 14, relativeTo: .subheadline)
     public static let captionMedium = Font.custom("Roboto-Medium", size: 12, relativeTo: .caption)
     public static let captionBold = Font.custom("Roboto-Bold", size: 14, relativeTo: .caption)
 

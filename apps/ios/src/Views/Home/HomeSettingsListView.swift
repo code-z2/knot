@@ -11,6 +11,7 @@ struct HomeSettingsListView: View {
     let showUpToDateStatus: Bool
     let onPresentAssets: () -> Void
     let onProfileTap: () -> Void
+    let onGasTankTap: () -> Void
     let onPreferencesTap: () -> Void
     let onHelpSupportTap: () -> Void
     let onWalletBackupTap: () -> Void
@@ -85,6 +86,13 @@ struct HomeSettingsListView: View {
                 iconBadge(
                     systemName: "person.2",
                     style: .solid(background: Color(UIColor(.purple)), icon: AppThemeColor.grayWhite),
+                )
+            }
+
+            HomeSettingsRow(title: Text("home_gas_tank"), action: onGasTankTap) {
+                iconBadge(
+                    systemName: "fuelpump",
+                    style: .solid(background: AppThemeColor.accentBrown, icon: AppThemeColor.grayWhite),
                 )
             }
 

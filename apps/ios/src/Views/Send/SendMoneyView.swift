@@ -17,6 +17,9 @@ struct SendMoneyView: View {
     let currencyRateStore: CurrencyRateStore
     let sendFlowService: SendFlowService
     let ensService: ENSService
+    let feeAbstractionStore: FeeAbstractionStore
+    let transactionIntent: SendMoneyIntent
+    let initialGasTankTopUpDraft: GasTankTopUpDraft?
     var onContinue: (SendMoneyDraft) -> Void = { _ in }
 
     @Environment(\.dismiss)
@@ -34,6 +37,9 @@ struct SendMoneyView: View {
         currencyRateStore: CurrencyRateStore,
         sendFlowService: SendFlowService,
         ensService: ENSService,
+        feeAbstractionStore: FeeAbstractionStore,
+        transactionIntent: SendMoneyIntent = .standard,
+        initialGasTankTopUpDraft: GasTankTopUpDraft? = nil,
         onContinue: @escaping (SendMoneyDraft) -> Void = { _ in },
     ) {
         self.eoaAddress = eoaAddress
@@ -44,6 +50,9 @@ struct SendMoneyView: View {
         self.currencyRateStore = currencyRateStore
         self.sendFlowService = sendFlowService
         self.ensService = ensService
+        self.feeAbstractionStore = feeAbstractionStore
+        self.transactionIntent = transactionIntent
+        self.initialGasTankTopUpDraft = initialGasTankTopUpDraft
         self.onContinue = onContinue
     }
 
@@ -121,6 +130,8 @@ struct SendMoneyView: View {
 
     @State var showSuccessStep = false
 
+    @State var hasAppliedInitialGasTankTopUp = false
+
     var body: some View {
         contentWithInteractions
             .navigationDestination(isPresented: $showAmountStep) {
@@ -177,7 +188,8 @@ struct SendMoneyView: View {
         baseContent
             .task {
                 await reload()
-                selectedSpendAsset = selectedAsset
+                applyInitialGasTankTopUpIfNeeded()
+                selectedSpendAsset = selectedSpendAsset ?? selectedAsset
                 if currentStep == .recipient {
                     focusFirstIncompleteField()
                 }
@@ -280,6 +292,7 @@ struct SendMoneyView: View {
                 accountService: AccountSetupService(),
             ),
             ensService: ENSService(),
+            feeAbstractionStore: FeeAbstractionStore(),
         )
     }
 }
