@@ -30,7 +30,6 @@ Before migration:
 | `IAccumulator.sol` | Adapted for module interface | Replace |
 | `IAccumulatorFactory.sol` | *(eliminated)* | Remove |
 | — | `MerkleValidator.sol` | New |
-| — | `AccumulatorHook.sol` | New |
 
 ### Infrastructure Layer
 
@@ -49,7 +48,7 @@ Before migration:
 | Sign `toEthSignedMessageHash(root)` | Sign Merkle root (same P-256) | Same signing, different leaf type |
 | Send to relayer HTTP API | Send UserOps to bundler | New submission path |
 | Track via custom events | Track via UserOp receipt + fill events | Adapt tracking |
-| Balance display (simple) | Balance display (available/reserved) | Read from AccumulatorModule |
+| Balance display (simple) | Balance display + fill status | Read from AccumulatorModule |
 
 ## Migration Strategy
 
@@ -60,10 +59,9 @@ Deploy V2 modules to all target chains. Do not deactivate V1.
 1. Deploy `MerkleValidator` singleton
 2. Deploy `CrossChainExecutor` singleton
 3. Deploy `AccumulatorModule` singleton
-4. Deploy `AccumulatorHook` singleton
-5. Deploy `KnotAccount` implementation
-6. Deploy paymaster contract
-7. Verify all contracts on block explorers
+4. Deploy `KnotAccount` implementation
+5. Deploy paymaster contract
+6. Verify all contracts on block explorers
 
 ### Phase 2: New accounts use V2
 
@@ -105,7 +103,6 @@ Once all accounts have migrated and no V1 Accumulators hold funds:
    - Installs CrossChainExecutor with spokePool
    - Installs AccumulatorModule with spokePool
    - Installs AccumulatorModule as fallback handler
-   - Installs AccumulatorHook
 6. Submit init UserOp via bundler
 7. Account is V2 — all subsequent ops use MerkleValidator
 ```
@@ -129,7 +126,7 @@ EIP-7702's re-delegation capability is the safety net. The account address never
 | Paymaster issues | User can self-fund gas (no paymaster in UserOp) |
 | Migration interruption | V1 remains functional — user can continue using V1 |
 | Active fills during migration | App enforces: complete all fills before migration |
-| Gas cost increase (hook overhead) | Measured at ~5-15k gas per execution — acceptable |
+| Destination intent no longer solvent | `AccumulatorModule.executeIntent` drops the fill instead of locking the account |
 
 ## Timeline
 

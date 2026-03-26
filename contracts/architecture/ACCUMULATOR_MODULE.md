@@ -27,11 +27,6 @@ contract AccumulatorModule is IERC7579Module, ReentrancyGuard {
     // Per-account fill tracking
     mapping(address account => mapping(bytes32 fillId => FillState)) public fills;
 
-    // Per-account token reservation (read by AccumulatorHook)
-    mapping(address account => mapping(address token => uint256)) public reservedByToken;
-
-    // Enumerable reserved tokens per account (for hook iteration)
-    mapping(address account => address[]) public reservedTokenList;
 }
 ```
 
@@ -122,7 +117,6 @@ function handleV3AcrossMessage(
     }
 
     state.received += amount;
-    _addReservation(account, tokenSent, amount);
     _recordSourceChainId(state, fromChainId);
 
     emit FillAccumulated(fillId, tokenSent, amount, state.received, sumOutput);
@@ -157,7 +151,6 @@ function executeIntent(ExecutionParams calldata params) external nonReentrant {
     require(state.received >= state.sumOutput, "threshold not met");
 
     state.status = FillStatus.Executed;
-    _releaseReservation(account, state.inputToken, state.received);
 
     // Execute based on mode
     bool hasDestCalls = params.destCalls.length > 0;
@@ -213,30 +206,23 @@ function _executeCallsViaAccount(
 }
 ```
 
-## Reservation Tracking
+## Drop-On-Execution Semantics
 
-Used by AccumulatorHook to enforce the balance invariant.
+The accumulator no longer maintains token reservations and no longer tries to invalidate fills on unrelated account executions.
 
-```solidity
-function _addReservation(address account, address token, uint256 amount) internal {
-    if (reservedByToken[account][token] == 0) {
-        reservedTokenList[account].push(token);
-    }
-    reservedByToken[account][token] += amount;
-}
+Instead, the module owns a single bounded rule:
 
-function _releaseReservation(address account, address token, uint256 amount) internal {
-    reservedByToken[account][token] -= amount;
-    if (reservedByToken[account][token] == 0) {
-        _removeFromList(reservedTokenList[account], token);
-    }
-}
+- fills accumulate directly against assets that already sit in the account
+- the user can still repurpose those assets before deferred execution runs
+- when `executeIntent` is finally attempted, the module checks whether the account still holds enough of the tracked input token to satisfy the accumulated fill
+- if not, the module marks the fill `Dropped` and returns successfully
 
-/// @notice External view for AccumulatorHook to read reservation data.
-function getReservedTokens(address account) external view returns (address[] memory) {
-    return reservedTokenList[account];
-}
-```
+This gives the protocol the intended "fly or drop" behavior:
+
+- if the funds are still there, the intent executes
+- if the user already spent them, the later user action wins and the older fill is dropped
+
+No hook-mediated generation tracking is required for this model.
 
 ## Call Flow: Accumulate
 
@@ -245,7 +231,6 @@ SpokePool → account.handleV3AcrossMessage(tokenSent, amount, relayer, message)
   → fallback() routes to AccumulatorModule via call
   → module: msg.sender = account, _msgSender() = SpokePool
   → verify SpokePool, decode message, track fill
-  → increment reservedByToken[account][token]
   → tokens already at account — no movement
 ```
 
@@ -257,8 +242,8 @@ UserOp → EntryPoint → MerkleValidator ✓
   → account calls self → fallback() routes to AccumulatorModule via call
   → module: msg.sender = account, _msgSender() = account (self-call)
   → verify self-call, validate fill state
-  → decrement reservedByToken
-  → executeFromExecutor → transfer tokens to recipient
+  → if tracked input-token balance < accumulated fill amount: mark Dropped and return
+  → otherwise executeFromExecutor → transfer tokens to recipient
 ```
 
 ## What V2 Eliminates from V1 Accumulator
@@ -291,5 +276,5 @@ Tokens are already at the account. Nothing to refund.
 
 - **Owner-gated execution.** `executeIntent` checks `_msgSender() == account` (ERC-2771 self-call detection). Only the account can trigger execution, and only through a validated UserOp.
 - **No signature handling.** The module never touches proofs or signatures. All cryptographic verification happens in MerkleValidator.
-- **Reservation integrity.** `reservedByToken` is only modified by `handleV3AcrossMessage` (increment) and `executeIntent` (decrement). Both are access-controlled. AccumulatorHook reads it to enforce the invariant.
+- **Fly or drop.** Pending fills are soft expectations. If the user later repurposes the tracked funds, `executeIntent` marks the fill `Dropped` instead of locking the account or trying to preserve pseudo-escrow.
 - **Re-entrancy.** `executeIntent` is `nonReentrant`. The `executeFromExecutor` callbacks re-enter the account but not the module.

@@ -21,14 +21,14 @@ V2 separates concerns into independently deployable, auditable, and replaceable 
                               |
                         KnotAccount
                     (OZ AccountERC7579)
-                    /    |      |      \
-          MerkleValidator  CrossChainExecutor  AccumulatorModule  AccumulatorHook
-            (type 1)          (type 2)          (type 2+3)        (type 4)
+                    /    |      |
+          MerkleValidator  CrossChainExecutor  AccumulatorModule
+            (type 1)          (type 2)          (type 2+3)
 ```
 
 ### KnotAccount
 
-Pure OZ shell. Inherits `AccountERC7579` + `SignerEIP7702` + `ERC7739`. No custom logic. The `fallback()` stays as OZ's default (`call`, not `delegatecall`). Module install/uninstall gated by `onlyEntryPointOrSelf`.
+Pure OZ shell. Inherits `AccountERC7579Hooked` + `SignerEIP7702` + `ERC7739`. No custom domain logic. The account stays hook-capable for future protocol policies, but the current bootstrap does not install an active hook module. The `fallback()` stays as OZ's default (`call`, not `delegatecall`). Module install/uninstall gated by `onlyEntryPointOrSelf`.
 
 ### MerkleValidator (Type 1 — Validator)
 
@@ -51,18 +51,20 @@ Source-chain dispatch orchestrator. Handles Across SpokePool interaction.
 
 Destination-chain fill tracking and intent execution. Singleton module with per-account state.
 
-- **Fallback handler (type 3):** Routes `handleV3AcrossMessage` from the SpokePool through the account's fallback. Tracks fills per account in the module's own storage. Tokens stay at the account address (SpokePool sends to account as recipient). Increments `reservedByToken` on each fill.
-- **Executor (type 2):** `executeIntent` moves tokens from the account via `executeFromExecutor`. Owner-gated — no signature verification in the module (the UserOp was already validated by MerkleValidator upstream).
+- **Fallback handler (type 3):** Routes `handleV3AcrossMessage` from the SpokePool through the account's fallback. Tracks fills per account in the module's own storage. Tokens stay at the account address (SpokePool sends to account as recipient).
+- **Executor (type 2):** `executeIntent` moves tokens from the account via `executeFromExecutor`. Owner-gated — no signature verification in the module (the UserOp was already validated by MerkleValidator upstream). If the fill is ready but the account no longer holds enough of the required token, the module marks the fill `Dropped` and returns successfully instead of bricking the account.
 - Stale fills are just a status update — no token refunds needed since tokens are already at the account.
 
-### AccumulatorHook (Type 4 — Hook)
+### KnotConsumerHub + Goldsky (Global Orchestration)
 
-Enforces token reservation invariant on every account execution.
+Planned protocol-level coordination layer for cross-chain intents.
 
-- `postCheck`: For each token with active fill reservations, verifies `token.balanceOf(account) >= reservedByToken[account][token]`.
-- Reads reservation data from AccumulatorModule externally.
-- Prevents the user from accidentally spending tokens reserved for in-progress fills.
-- Also serves as the UX data source: client reads `reservedByToken` to compute available vs reserved balances.
+- `KnotConsumerHub` is the canonical global event surface for all `KnotAccount`s.
+- The canonical `CrossChainExecutor` and `AccumulatorModule` singletons notify the hub directly, and the hub authenticates those module addresses.
+- Goldsky watches the hub and orchestrates deferred destination execution.
+- Durable deferred `UserOperation` storage remains outside Goldsky.
+
+See [GOLDSKY_ORCHESTRATION.md](./GOLDSKY_ORCHESTRATION.md).
 
 ## Key Design Decisions
 
@@ -78,9 +80,21 @@ Every leaf is a `userOpHash`. No custom leaf types, no EIP-712 struct hashes in 
 
 The Across deposit `recipient` is the account address itself (not a separate accumulator contract). The SpokePool sends tokens to the account and calls `handleV3AcrossMessage` on the account. The fallback routes to AccumulatorModule, which tracks fills in its own storage. No token escrow, no factory, no per-account accumulator deployment.
 
-### Hook-enforced reservation
+### Direct-to-account fills with module-owned drop semantics
 
-`reservedByToken` is tracked in AccumulatorModule and enforced by AccumulatorHook's `postCheck`. This prevents the user from spending fill tokens via other UserOps while fills are in progress, providing the same isolation guarantee as V1's separate Accumulator contract — without a separate contract.
+V2 no longer simulates escrow with account-level reservations.
+
+- fills accumulate directly against assets that already sit in the account
+- users retain control of those assets while the fill is pending
+- `executeIntent` performs the final solvency check at execution time
+- if the user has already repurposed the required funds, the module marks the fill `Dropped` and the later user action wins
+
+This removes the two high-severity liveness hazards from the earlier hook-reservation design:
+
+- over-reservation against actual balance cannot brick the account
+- attacker-driven reserved-token pollution cannot turn execution into an unbounded gas loop
+
+Global deferred-intent orchestration is handled separately by `KnotConsumerHub` + Goldsky. See [GOLDSKY_ORCHESTRATION.md](./GOLDSKY_ORCHESTRATION.md).
 
 ### Nonce channels for cross-chain
 
@@ -108,7 +122,7 @@ First UserOp (before any validator is installed) uses `SignerEIP7702._rawSignatu
 | `AccumulatorFactory` | Eliminated — no per-account deployment |
 | `IMerkleVerifier` interface | Eliminated — not needed |
 | `Accumulator._hashExecutionParams` | Eliminated — no struct hash verification |
-| `Accumulator.reservedByToken` enforcement | AccumulatorHook postCheck |
+| `Accumulator.reservedByToken` enforcement | Eliminated — no reservation hook |
 | Fill refund token transfers | Eliminated — tokens already at account |
 | `Accumulator.sweep` | Eliminated — tokens already at account |
 | Custom `execute`/`executeBatch` | OZ `AccountERC7579.execute` (ERC-7579 modes) |
@@ -120,8 +134,9 @@ execute(BATCH_MODE, [
     self.installModule(1, merkleValidator, abi.encode(p256PubKeyX, p256PubKeyY)),
     self.installModule(2, crossChainExecutor, abi.encode(spokePool)),
     self.installModule(2, accumulatorModule, abi.encode(spokePool)),
-    self.installModule(3, accumulatorModule, abi.encode(handleV3AcrossMessageSelector, executeIntentSelector)),
-    self.installModule(4, accumulatorHook, abi.encode(accumulatorModule))
+    self.installModule(3, accumulatorModule, abi.encodePacked(handleV3AcrossMessageSelector)),
+    self.installModule(3, accumulatorModule, abi.encodePacked(executeIntentSelector)),
+    self.installModule(3, accumulatorModule, abi.encodePacked(markStaleSelector))
 ])
 ```
 
@@ -131,5 +146,5 @@ execute(BATCH_MODE, [
 - [MERKLE_VALIDATOR.md](./MERKLE_VALIDATOR.md) — MerkleValidator module design.
 - [CROSS_CHAIN_EXECUTOR.md](./CROSS_CHAIN_EXECUTOR.md) — CrossChainExecutor module design.
 - [ACCUMULATOR_MODULE.md](./ACCUMULATOR_MODULE.md) — AccumulatorModule design.
-- [ACCUMULATOR_HOOK.md](./ACCUMULATOR_HOOK.md) — AccumulatorHook design.
+- [GOLDSKY_ORCHESTRATION.md](./GOLDSKY_ORCHESTRATION.md) — Hub + Goldsky orchestration plan and rationale.
 - [MIGRATION.md](./MIGRATION.md) — V1 to V2 migration plan.
