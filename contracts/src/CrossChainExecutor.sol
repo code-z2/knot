@@ -19,8 +19,9 @@ import {
 } from "openzeppelin-contracts/account/utils/draft-ERC7579Utils.sol";
 
 import {ICrossChainExecutor} from "./interfaces/ICrossChainExecutor.sol";
+import {IKnotConsumerHub} from "./interfaces/IKnotConsumerHub.sol";
 import {ISpokePool} from "./interfaces/ISpokePool.sol";
-import {DispatchOrder, OnchainCrossChainOrder} from "./types/Structs.sol";
+import {DispatchOrder, ModuleConfig, OnchainCrossChainOrder} from "./types/Structs.sol";
 
 /// @title CrossChainExecutor
 /// @notice ERC-7579 executor module that dispatches cross-chain orders through Across.
@@ -55,10 +56,6 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     //                                 TYPES
     // ═══════════════════════════════════════════════════════════════════════════
 
-    struct ExecutorConfig {
-        address spokePool;
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
     //                                CONSTANTS
     // ═══════════════════════════════════════════════════════════════════════════
@@ -74,7 +71,7 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Per-account SpokePool config.
-    mapping(address account => ExecutorConfig) internal _configs;
+    mapping(address account => ModuleConfig) internal _configs;
 
     /// @notice Fill protection for dispatch salts, scoped per account.
     mapping(address account => mapping(bytes32 salt => bool used)) internal _usedSalts;
@@ -84,6 +81,7 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     // ═══════════════════════════════════════════════════════════════════════════
 
     error InvalidSpokePool();
+    error InvalidConsumerHub();
     error SaltAlreadyUsed(bytes32 salt);
     error FillDeadlineTooSoon(uint32 fillDeadline, uint256 minimumAllowed);
     error FillDeadlineTooFar(uint32 fillDeadline, uint256 maximumAllowed);
@@ -94,15 +92,20 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Installs the executor for the calling account.
-    /// @dev Data layout: `abi.encode(address spokePool)`.
+    /// @dev Data layout: `abi.encode(ModuleConfig)`.
     function onInstall(bytes calldata data) external {
-        address spokePool = abi.decode(data, (address));
+        ModuleConfig memory config = abi.decode(data, (ModuleConfig));
+        address spokePool = config.spokePool;
+        address consumerHub = config.consumerHub;
 
         if (spokePool == address(0)) {
             revert InvalidSpokePool();
         }
+        if (consumerHub == address(0)) {
+            revert InvalidConsumerHub();
+        }
 
-        _configs[msg.sender] = ExecutorConfig({spokePool: spokePool});
+        _configs[msg.sender] = config;
     }
 
     /// @notice Removes the executor config for the calling account.
@@ -124,7 +127,7 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     ///      attached to the SpokePool deposit. Across treats WETH + value as native.
     function dispatch(OnchainCrossChainOrder calldata envelope) external payable {
         address account = msg.sender;
-        ExecutorConfig memory config = _configs[account];
+        ModuleConfig memory config = _configs[account];
 
         if (config.spokePool == address(0)) {
             revert InvalidSpokePool();
@@ -147,8 +150,13 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
         }
 
         // Compose and execute through the account. msg.value is forwarded back via executeFromExecutor{value}.
-        _dispatchDeposit(config.spokePool, envelope.fillDeadline, order, message);
-        emit CrossChainOrderDispatched(account, order.destChainId);
+        _dispatchDeposit(config, envelope, order, message);
+        if (order.recipient == account) {
+            IKnotConsumerHub(config.consumerHub)
+                .registerIntent(
+                    account, _fillId(account, order, envelope.fillDeadline), order.destChainId, envelope.fillDeadline
+                );
+        }
     }
 
     /// @notice Returns the installed executor config for an account.
@@ -164,9 +172,12 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
     ///      For ERC-20: [approve(0), approve(amount), deposit]
     ///      For native: [deposit{value}]
     ///      msg.value is always forwarded back via the payable executeFromExecutor call.
-    function _dispatchDeposit(address spokePool, uint32 fillDeadline, DispatchOrder memory order, bytes memory message)
-        internal
-    {
+    function _dispatchDeposit(
+        ModuleConfig memory config,
+        OnchainCrossChainOrder calldata envelope,
+        DispatchOrder memory order,
+        bytes memory message
+    ) internal {
         bytes memory depositCalldata = abi.encodeCall(
             ISpokePool.deposit,
             (
@@ -179,7 +190,7 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
                 order.destChainId,
                 bytes32(0),
                 SafeCast.toUint32(block.timestamp),
-                fillDeadline,
+                envelope.fillDeadline,
                 uint32(0),
                 message
             )
@@ -191,16 +202,16 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
 
         if (value == 0) {
             executions[0] = Execution({
-                target: order.inputToken, value: 0, callData: abi.encodeCall(IERC20.approve, (spokePool, 0))
+                target: order.inputToken, value: 0, callData: abi.encodeCall(IERC20.approve, (config.spokePool, 0))
             });
             executions[1] = Execution({
                 target: order.inputToken,
                 value: 0,
-                callData: abi.encodeCall(IERC20.approve, (spokePool, order.inputAmount))
+                callData: abi.encodeCall(IERC20.approve, (config.spokePool, order.inputAmount))
             });
         }
 
-        executions[n - 1] = Execution({target: spokePool, value: value, callData: depositCalldata});
+        executions[n - 1] = Execution({target: config.spokePool, value: value, callData: depositCalldata});
 
         IERC7579Execution(msg.sender).executeFromExecutor{value: value}(
             Mode.unwrap(_encodeMode(ERC7579Utils.CALLTYPE_BATCH)), ERC7579Utils.encodeBatch(executions)
@@ -225,6 +236,11 @@ contract CrossChainExecutor is ICrossChainExecutor, IERC7579Module {
         returns (bytes memory message)
     {
         message = abi.encode(order.salt, block.chainid, fillDeadline, account, order.sumOutput, order.outputToken);
+    }
+
+    /// @dev Derives the canonical fill id shared with the destination accumulator and hub.
+    function _fillId(address account, DispatchOrder memory order, uint32 fillDeadline) internal pure returns (bytes32) {
+        return keccak256(abi.encode(order.salt, account, fillDeadline, order.sumOutput, order.outputToken));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

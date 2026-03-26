@@ -22,12 +22,14 @@ import {MerkleValidator} from "../src/MerkleValidator.sol";
 import {CrossChainExecutor} from "../src/CrossChainExecutor.sol";
 import {AccumulatorModule} from "../src/AccumulatorModule.sol";
 import {IAccumulatorModule} from "../src/interfaces/IAccumulatorModule.sol";
+import {KnotConsumerHub} from "../src/KnotConsumerHub.sol";
 
 contract KnotAccountTest is Test {
     KnotAccount internal account;
     MerkleValidator internal validator;
     CrossChainExecutor internal executor;
     AccumulatorModule internal accumulator;
+    KnotConsumerHub internal hub;
 
     address internal spokePool;
     uint256 internal signerPk;
@@ -45,6 +47,7 @@ contract KnotAccountTest is Test {
         validator = new MerkleValidator();
         executor = new CrossChainExecutor();
         accumulator = new AccumulatorModule();
+        hub = new KnotConsumerHub(address(executor), address(accumulator));
 
         account = new KnotAccount();
     }
@@ -59,9 +62,9 @@ contract KnotAccountTest is Test {
             address(validator),
             abi.encode(signerQx, signerQy),
             address(executor),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(accumulator),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 
@@ -128,9 +131,9 @@ contract KnotAccountTest is Test {
             address(0),
             abi.encode(signerQx, signerQy),
             address(executor),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(accumulator),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 
@@ -141,9 +144,9 @@ contract KnotAccountTest is Test {
             address(validator),
             abi.encode(signerQx, signerQy),
             address(0),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(accumulator),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 
@@ -154,9 +157,9 @@ contract KnotAccountTest is Test {
             address(validator),
             abi.encode(signerQx, signerQy),
             address(executor),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(0),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 
@@ -169,9 +172,9 @@ contract KnotAccountTest is Test {
             address(validator),
             abi.encode(signerQx, signerQy),
             address(executor),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(accumulator),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 
@@ -187,9 +190,9 @@ contract KnotAccountTest is Test {
             address(validator),
             abi.encode(signerQx, signerQy),
             address(executor),
-            abi.encode(spokePool),
+            abi.encode(spokePool, address(hub)),
             address(accumulator),
-            abi.encode(spokePool)
+            abi.encode(spokePool, address(hub))
         );
     }
 

@@ -19,7 +19,8 @@ import {
 } from "openzeppelin-contracts/account/utils/draft-ERC7579Utils.sol";
 
 import {IAccumulatorModule} from "./interfaces/IAccumulatorModule.sol";
-import {Call, ExecutionParams, FillState, FillStatus} from "./types/Structs.sol";
+import {IKnotConsumerHub} from "./interfaces/IKnotConsumerHub.sol";
+import {Call, ExecutionParams, FillState, FillStatus, ModuleConfig} from "./types/Structs.sol";
 
 /// @title AccumulatorModule
 /// @notice ERC-7579 executor + fallback handler module for destination-chain fill tracking
@@ -50,8 +51,8 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
     //                                 STATE
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Per-account SpokePool config.
-    mapping(address account => address spokePool) public spokePools;
+    /// @notice Per-account module config.
+    mapping(address account => ModuleConfig) internal _configs;
 
     /// @notice Per-account fill tracking.
     mapping(address account => mapping(bytes32 fillId => FillState)) public fills;
@@ -61,6 +62,7 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
     // ═══════════════════════════════════════════════════════════════════════════
 
     error InvalidSpokePool();
+    error InvalidConsumerHub();
     error NotSpokePool(address caller);
     error NotSelfCall(address caller);
     error InvalidDepositor(address depositor);
@@ -75,19 +77,28 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Installs the module for the calling account.
-    /// @dev Data layout: `abi.encode(address spokePool)`.
+    /// @dev Data layout: `abi.encode(ModuleConfig)`.
     ///      When installed as a fallback handler (type 3), OZ passes empty data after the
     ///      selector — skip config in that case (already set by the executor install).
     function onInstall(bytes calldata data) external {
-        if (data.length == 0) return;
-        address spokePool = abi.decode(data, (address));
-        if (spokePool == address(0)) revert InvalidSpokePool();
-        spokePools[msg.sender] = spokePool;
+        if (data.length == 0) {
+            return;
+        }
+        ModuleConfig memory config = abi.decode(data, (ModuleConfig));
+        address spokePool = config.spokePool;
+        address consumerHub = config.consumerHub;
+        if (spokePool == address(0)) {
+            revert InvalidSpokePool();
+        }
+        if (consumerHub == address(0)) {
+            revert InvalidConsumerHub();
+        }
+        _configs[msg.sender] = config;
     }
 
     /// @notice Removes the module config for the calling account.
     function onUninstall(bytes calldata) external {
-        delete spokePools[msg.sender];
+        delete _configs[msg.sender];
     }
 
     /// @notice Returns whether this module implements executor or fallback handler types.
@@ -114,7 +125,9 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         address account = msg.sender;
         address caller = _msgSender();
 
-        if (caller != spokePools[account]) revert NotSpokePool(caller);
+        if (caller != _configs[account].spokePool) {
+            revert NotSpokePool(caller);
+        }
 
         (
             bytes32 salt,
@@ -125,11 +138,15 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
             address outputToken
         ) = abi.decode(message, (bytes32, uint256, uint32, address, uint256, address));
 
-        if (depositor != account) revert InvalidDepositor(depositor);
+        if (depositor != account) {
+            revert InvalidDepositor(depositor);
+        }
 
         bytes32 fillId = keccak256(abi.encode(salt, depositor, fillDeadline, sumOutput, outputToken));
 
-        if (tokenSent != outputToken) revert TokenMismatch(fillId, tokenSent, outputToken);
+        if (tokenSent != outputToken) {
+            revert TokenMismatch(fillId, tokenSent, outputToken);
+        }
 
         FillState storage state = fills[account][fillId];
 
@@ -142,7 +159,7 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         // Expired — mark stale. Tokens stay at the account.
         if (block.timestamp > fillDeadline) {
             state.status = FillStatus.Stale;
-            emit FillStale(fillId, fillDeadline);
+            IKnotConsumerHub(_configs[account].consumerHub).reportIntentStale(account, fillId);
             return;
         }
 
@@ -160,7 +177,7 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         emit FillAccumulated(fillId, tokenSent, amount, state.received, sumOutput);
 
         if (state.received >= sumOutput) {
-            emit FillReady(fillId, state.received, sumOutput);
+            IKnotConsumerHub(_configs[account].consumerHub).reportFillReady(account, fillId);
         }
     }
 
@@ -174,7 +191,9 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
     ///      No signature verification — the UserOp was already validated by MerkleValidator.
     function executeIntent(ExecutionParams calldata params) external {
         address account = msg.sender;
-        if (_msgSender() != account) revert NotSelfCall(_msgSender());
+        if (_msgSender() != account) {
+            revert NotSelfCall(_msgSender());
+        }
 
         bytes32 fillId =
             keccak256(abi.encode(params.salt, account, params.fillDeadline, params.sumOutput, params.outputToken));
@@ -191,7 +210,7 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         uint256 availableBalance = _balanceOf(account, state.inputToken);
         if (availableBalance < state.received) {
             state.status = FillStatus.Dropped;
-            emit FillDropped(fillId, state.inputToken, availableBalance, state.received);
+            IKnotConsumerHub(_configs[account].consumerHub).reportIntentDropped(account, fillId);
             return;
         }
 
@@ -213,15 +232,16 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         }
 
         state.status = FillStatus.Executed;
-        emit FillExecuted(fillId, params.recipient, finalOut, params.finalMinOutput);
+        IKnotConsumerHub(_configs[account].consumerHub).reportIntentExecuted(account, fillId);
     }
 
     /// @notice Mark an expired fill as stale.
     /// @dev Called via self-call. Tokens stay at the account — no refund needed.
     function markStale(bytes32 fillId) external {
         address account = msg.sender;
-        if (_msgSender() != account) revert NotSelfCall(_msgSender());
-
+        if (_msgSender() != account) {
+            revert NotSelfCall(_msgSender());
+        }
         FillState storage state = fills[account][fillId];
 
         if (state.status != FillStatus.Accumulating) {
@@ -232,8 +252,7 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
         }
 
         state.status = FillStatus.Stale;
-
-        emit FillStale(fillId, state.fillDeadline);
+        IKnotConsumerHub(_configs[account].consumerHub).reportIntentStale(account, fillId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -277,18 +296,27 @@ contract AccumulatorModule is IAccumulatorModule, IERC7579Module {
     //                              UTILITIES
     // ═══════════════════════════════════════════════════════════════════════════
 
+    /// @notice Returns the installed SpokePool for an account.
+    function spokePools(address account) external view returns (address spokePool) {
+        return _configs[account].spokePool;
+    }
+
     /// @dev Appends source chain id once (deduplicated) for event/UI attribution.
     function _recordSourceChainId(FillState storage state, uint256 sourceChainId) internal {
         uint256 len = state.sourceChainIds.length;
         for (uint256 i; i < len; i++) {
-            if (state.sourceChainIds[i] == sourceChainId) return;
+            if (state.sourceChainIds[i] == sourceChainId) {
+                return;
+            }
         }
         state.sourceChainIds.push(sourceChainId);
     }
 
     /// @dev Returns the account balance for the tracked fill asset.
     function _balanceOf(address account, address token) internal view returns (uint256) {
-        if (token == NATIVE) return account.balance;
+        if (token == NATIVE) {
+            return account.balance;
+        }
         return IERC20(token).balanceOf(account);
     }
 

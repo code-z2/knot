@@ -120,12 +120,16 @@ contract MerkleValidator is IERC7579Validator, SignerWebAuthn {
         returns (bytes4)
     {
         PublicKey memory key = _keys[msg.sender];
-        if (!_hasPublicKey(key)) revert InvalidSignature();
+        if (!_hasPublicKey(key)) {
+            revert InvalidSignature();
+        }
 
         (bytes32[] calldata proof, bytes calldata innerSignature) = _decodeSignature(signature);
         bytes32 root = MerkleProof.processProofCalldata(proof, hash);
 
-        if (!_rawSignatureValidation(root, innerSignature)) revert InvalidSignature();
+        if (!_rawSignatureValidation(root, innerSignature)) {
+            revert InvalidSignature();
+        }
 
         return bytes4(0x1626ba7e);
     }

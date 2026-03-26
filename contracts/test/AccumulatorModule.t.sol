@@ -14,6 +14,8 @@ import {
 
 import {AccumulatorModule} from "../src/AccumulatorModule.sol";
 import {IAccumulatorModule} from "../src/interfaces/IAccumulatorModule.sol";
+import {IKnotConsumerHub} from "../src/interfaces/IKnotConsumerHub.sol";
+import {KnotConsumerHub} from "../src/KnotConsumerHub.sol";
 import {Call, ExecutionParams, FillStatus} from "../src/types/Structs.sol";
 
 contract MockERC20 {
@@ -84,6 +86,7 @@ contract AccumulatorModuleTest is Test {
     AccumulatorAccountMock account;
     MockERC20 token;
     MockTarget target;
+    KnotConsumerHub hub;
 
     address spokePool = makeAddr("spokePool");
     address relayer = address(0xBEEF);
@@ -98,8 +101,9 @@ contract AccumulatorModuleTest is Test {
         module = new AccumulatorModule();
         token = new MockERC20();
         target = new MockTarget();
+        hub = new KnotConsumerHub(makeAddr("executorModule"), address(module));
 
-        account = new AccumulatorAccountMock(address(module), abi.encode(spokePool));
+        account = new AccumulatorAccountMock(address(module), abi.encode(spokePool, address(hub)));
         token.mint(address(account), 10_000);
     }
 
@@ -110,7 +114,13 @@ contract AccumulatorModuleTest is Test {
     function test_onInstall_revertsForZeroAddress() public {
         vm.expectRevert(AccumulatorModule.InvalidSpokePool.selector);
         vm.prank(address(account));
-        module.onInstall(abi.encode(address(0)));
+        module.onInstall(abi.encode(address(0), address(hub)));
+    }
+
+    function test_onInstall_revertsForZeroConsumerHub() public {
+        vm.expectRevert(AccumulatorModule.InvalidConsumerHub.selector);
+        vm.prank(address(account));
+        module.onInstall(abi.encode(spokePool, address(0)));
     }
 
     function test_onUninstall_clearsConfig() public {
@@ -213,8 +223,8 @@ contract AccumulatorModuleTest is Test {
 
         vm.warp(deadline + 1);
 
-        vm.expectEmit(true, false, false, true);
-        emit IAccumulatorModule.FillStale(fillId, deadline);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentStale(fillId, address(account), block.chainid);
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), 400);
 
@@ -232,22 +242,32 @@ contract AccumulatorModuleTest is Test {
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), 400);
     }
 
-    function test_handleV3AcrossMessage_emitsFillReadyWhenThresholdMet() public {
+    function test_handleV3AcrossMessage_reportsFillReadyWhenThresholdMet() public {
         uint32 deadline = uint32(block.timestamp) + FILL_DEADLINE_OFFSET;
         bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
 
-        vm.expectEmit(true, false, false, true);
-        emit IAccumulatorModule.FillReady(fillId, SUM_OUTPUT, SUM_OUTPUT);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.FillReady(fillId, address(account), block.chainid);
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), SUM_OUTPUT);
     }
 
-    function test_handleV3AcrossMessage_emitsFillReadyWhenExceedingThreshold() public {
+    function test_handleV3AcrossMessage_reportsFillReadyToHub() public {
         uint32 deadline = uint32(block.timestamp) + FILL_DEADLINE_OFFSET;
         bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
 
-        vm.expectEmit(true, false, false, true);
-        emit IAccumulatorModule.FillReady(fillId, SUM_OUTPUT + 200, SUM_OUTPUT);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.FillReady(fillId, address(account), block.chainid);
+
+        _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), SUM_OUTPUT);
+    }
+
+    function test_handleV3AcrossMessage_reportsFillReadyWhenExceedingThreshold() public {
+        uint32 deadline = uint32(block.timestamp) + FILL_DEADLINE_OFFSET;
+        bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
+
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.FillReady(fillId, address(account), block.chainid);
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), SUM_OUTPUT + 200);
     }
@@ -270,6 +290,9 @@ contract AccumulatorModuleTest is Test {
         uint256 finalMinOutput = 900;
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), SUM_OUTPUT);
+
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentExecuted(fillId, address(account), block.chainid);
         _executeIntent(SALT, deadline, SUM_OUTPUT, address(token), finalMinOutput, address(token), recipient);
 
         (,,,, FillStatus status) = module.fills(address(account), fillId);
@@ -287,8 +310,8 @@ contract AccumulatorModuleTest is Test {
         vm.prank(address(account));
         token.transfer(address(0xBEEF), 9200);
 
-        vm.expectEmit(true, true, false, true);
-        emit IAccumulatorModule.FillDropped(fillId, address(token), 800, SUM_OUTPUT);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentDropped(fillId, address(account), block.chainid);
 
         _executeIntent(SALT, deadline, SUM_OUTPUT, address(token), 900, address(token), recipient);
 
@@ -394,15 +417,15 @@ contract AccumulatorModuleTest is Test {
         account.selfCall(abi.encodeCall(IAccumulatorModule.executeIntent, (params)));
     }
 
-    function test_executeIntent_emitsFillExecuted() public {
+    function test_executeIntent_reportsIntentExecutedToHub() public {
         uint32 deadline = uint32(block.timestamp) + FILL_DEADLINE_OFFSET;
-        bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
         uint256 finalMinOutput = 900;
+        bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), SUM_OUTPUT);
 
-        vm.expectEmit(true, true, false, true);
-        emit IAccumulatorModule.FillExecuted(fillId, recipient, address(token), finalMinOutput);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentExecuted(fillId, address(account), block.chainid);
 
         _executeIntent(SALT, deadline, SUM_OUTPUT, address(token), finalMinOutput, address(token), recipient);
     }
@@ -420,15 +443,15 @@ contract AccumulatorModuleTest is Test {
         assertEq(uint8(status), uint8(FillStatus.Stale));
     }
 
-    function test_markStale_emitsFillStale() public {
+    function test_markStale_reportsIntentStaleToHub() public {
         uint32 deadline = uint32(block.timestamp) + FILL_DEADLINE_OFFSET;
         bytes32 fillId = _fillId(SALT, address(account), deadline, SUM_OUTPUT, address(token));
 
         _simulateFill(SALT, FROM_CHAIN_ID, deadline, SUM_OUTPUT, address(token), 400);
         vm.warp(deadline + 1);
 
-        vm.expectEmit(true, false, false, true);
-        emit IAccumulatorModule.FillStale(fillId, deadline);
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentStale(fillId, address(account), block.chainid);
 
         account.selfCall(abi.encodeCall(IAccumulatorModule.markStale, (fillId)));
     }

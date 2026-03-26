@@ -7,6 +7,13 @@ struct Call {
     bytes data;
 }
 
+/// @dev Shared module install config for cross-chain modules.
+///      ABI layout: `abi.encode(address spokePool, address consumerHub)`.
+struct ModuleConfig {
+    address spokePool;
+    address consumerHub;
+}
+
 /// @dev Parameters for executing an accumulated intent on the destination chain.
 ///      Hashed with plain keccak256 (not EIP-712) by the Accumulator, then verified
 ///      via Merkle proof callback to the owner account.

@@ -6,7 +6,9 @@ import {AccountERC7579} from "openzeppelin-contracts/account/extensions/draft-Ac
 
 import {CrossChainExecutor} from "../src/CrossChainExecutor.sol";
 import {ICrossChainExecutor} from "../src/interfaces/ICrossChainExecutor.sol";
+import {IKnotConsumerHub} from "../src/interfaces/IKnotConsumerHub.sol";
 import {ISpokePool} from "../src/interfaces/ISpokePool.sol";
+import {KnotConsumerHub} from "../src/KnotConsumerHub.sol";
 import {DispatchOrder, OnchainCrossChainOrder} from "../src/types/Structs.sol";
 
 contract MockERC20ForExecutor {
@@ -103,13 +105,15 @@ contract CrossChainExecutorTest is Test {
     ExecutorAccountMock account;
     MockSpokePoolForExecutor spokePool;
     MockERC20ForExecutor token;
+    KnotConsumerHub hub;
 
     function setUp() public {
         executor = new CrossChainExecutor();
         spokePool = new MockSpokePoolForExecutor();
         token = new MockERC20ForExecutor();
+        hub = new KnotConsumerHub(address(executor), makeAddr("accumulatorModule"));
 
-        account = new ExecutorAccountMock(address(executor), abi.encode(address(spokePool)));
+        account = new ExecutorAccountMock(address(executor), abi.encode(address(spokePool), address(hub)));
 
         vm.deal(address(account), 20 ether);
         token.mint(address(account), 1_000 ether);
@@ -122,7 +126,13 @@ contract CrossChainExecutorTest is Test {
     function test_onInstall_revertsForZeroSpokePool() public {
         vm.expectRevert(CrossChainExecutor.InvalidSpokePool.selector);
         vm.prank(address(account));
-        executor.onInstall(abi.encode(address(0)));
+        executor.onInstall(abi.encode(address(0), address(hub)));
+    }
+
+    function test_onInstall_revertsForZeroConsumerHub() public {
+        vm.expectRevert(CrossChainExecutor.InvalidConsumerHub.selector);
+        vm.prank(address(account));
+        executor.onInstall(abi.encode(address(spokePool), address(0)));
     }
 
     function test_onUninstall_clearsConfig() public {
@@ -191,6 +201,33 @@ contract CrossChainExecutorTest is Test {
         assertEq(depositorAccount, address(account));
         assertEq(sumOutput, 100);
         assertEq(messageOutputToken, address(token));
+    }
+
+    function test_dispatch_registersIntentOnHub() public {
+        bytes32 salt = keccak256("hub-registration");
+        uint32 fillDeadline = uint32(block.timestamp + 10 minutes);
+        DispatchOrder memory dispatchOrder = DispatchOrder({
+            salt: salt,
+            destChainId: 42161,
+            outputToken: address(token),
+            sumOutput: 100,
+            inputAmount: 110,
+            inputToken: address(token),
+            minOutput: 100,
+            recipient: address(account)
+        });
+        OnchainCrossChainOrder memory order = _buildCrossChainOrder(fillDeadline, dispatchOrder);
+
+        bytes32 fillId = keccak256(
+            abi.encode(salt, address(account), fillDeadline, dispatchOrder.sumOutput, dispatchOrder.outputToken)
+        );
+
+        vm.expectEmit(true, true, true, true, address(hub));
+        emit IKnotConsumerHub.IntentRegistered(
+            fillId, address(account), dispatchOrder.destChainId, block.chainid, fillDeadline
+        );
+
+        account.dispatchOrder(executor, order);
     }
 
     function test_dispatch_directBridge_omitsMessage() public {

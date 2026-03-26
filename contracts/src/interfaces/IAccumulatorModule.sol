@@ -9,12 +9,6 @@ interface IAccumulatorModule {
     event FillAccumulated(
         bytes32 indexed fillId, address indexed inputToken, uint256 amount, uint256 totalReceived, uint256 sumOutput
     );
-    event FillReady(bytes32 indexed fillId, uint256 totalReceived, uint256 sumOutput);
-    event FillStale(bytes32 indexed fillId, uint32 fillDeadline);
-    event FillDropped(bytes32 indexed fillId, address indexed inputToken, uint256 availableBalance, uint256 required);
-    event FillExecuted(
-        bytes32 indexed fillId, address indexed recipient, address finalOutputToken, uint256 finalOutput
-    );
 
     /// @notice Across V3 callback — accumulates bridged tokens (no execution).
     function handleV3AcrossMessage(address tokenSent, uint256 amount, address relayer, bytes memory message)

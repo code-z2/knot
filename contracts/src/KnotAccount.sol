@@ -46,9 +46,9 @@ contract KnotAccount is AccountERC7579Hooked, Initializable, SignerEIP7702, ERC1
     /// @param validator       MerkleValidator module address.
     /// @param validatorData   abi.encode(bytes32 qx, bytes32 qy) — P-256 public key.
     /// @param executor        CrossChainExecutor module address.
-    /// @param executorData    abi.encode(address spokePool).
+    /// @param executorData    abi.encode(ModuleConfig({spokePool, consumerHub})).
     /// @param accumulator     AccumulatorModule address (installed as executor + fallback handler).
-    /// @param accumulatorData abi.encode(address spokePool).
+    /// @param accumulatorData abi.encode(ModuleConfig({spokePool, consumerHub})).
     function initialize(
         address validator,
         bytes calldata validatorData,
@@ -94,7 +94,9 @@ contract KnotAccount is AccountERC7579Hooked, Initializable, SignerEIP7702, ERC1
     /// @param executionCalldata ERC-7579 encoded execution calldata.
     /// @param memo Opaque bytes32 memo — emitted in event, never stored.
     function execute(bytes32 mode, bytes calldata executionCalldata, bytes32 memo) public payable onlyEntryPointOrSelf {
-        if (memo != bytes32(0)) emit Memo(memo);
+        if (memo != bytes32(0)) {
+            emit Memo(memo);
+        }
         execute(mode, executionCalldata);
     }
 

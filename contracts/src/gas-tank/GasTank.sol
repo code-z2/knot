@@ -93,8 +93,12 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function withdraw(uint256 amount, address to, uint256 deadline, bytes calldata cosignerSig) external {
-        if (msg.sender != OWNER) revert NotOwner();
-        if (block.timestamp > deadline) revert DeadlineExpired();
+        if (msg.sender != OWNER) {
+            revert NotOwner();
+        }
+        if (block.timestamp > deadline) {
+            revert DeadlineExpired();
+        }
 
         uint256 nonce = withdrawNonce++;
 
@@ -114,8 +118,12 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function initiateForced(uint256 amount) external {
-        if (msg.sender != OWNER) revert NotOwner();
-        if (pendingWithdrawal.amount != 0) revert ForcedAlreadyPending();
+        if (msg.sender != OWNER) {
+            revert NotOwner();
+        }
+        if (pendingWithdrawal.amount != 0) {
+            revert ForcedAlreadyPending();
+        }
 
         uint64 unlockTime = SafeCast.toUint64(block.timestamp + FORCED_DELAY);
         pendingWithdrawal = PendingWithdrawal({amount: SafeCast.toUint128(amount), unlockTime: unlockTime});
@@ -124,11 +132,17 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function claimForced(address to) external {
-        if (msg.sender != OWNER) revert NotOwner();
+        if (msg.sender != OWNER) {
+            revert NotOwner();
+        }
 
         PendingWithdrawal memory pw = pendingWithdrawal;
-        if (pw.amount == 0) revert NoForcedPending();
-        if (block.timestamp < pw.unlockTime) revert ForcedStillLocked();
+        if (pw.amount == 0) {
+            revert NoForcedPending();
+        }
+        if (block.timestamp < pw.unlockTime) {
+            revert ForcedStillLocked();
+        }
 
         delete pendingWithdrawal;
 
@@ -141,7 +155,9 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function cancelForced() external {
-        if (msg.sender != OWNER) revert NotOwner();
+        if (msg.sender != OWNER) {
+            revert NotOwner();
+        }
         delete pendingWithdrawal;
         emit ForcedCancelled();
     }
@@ -152,7 +168,9 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function debit(uint256 amount, address to) external {
-        if (msg.sender != COSIGNER) revert NotCosigner();
+        if (msg.sender != COSIGNER) {
+            revert NotCosigner();
+        }
         USDC.safeTransfer(to, amount);
         emit Debited(amount, to);
     }
@@ -163,8 +181,12 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function sweep(address token, address to) external {
-        if (msg.sender != OWNER) revert NotOwner();
-        if (token == address(USDC)) revert CannotSweepUSDC();
+        if (msg.sender != OWNER) {
+            revert NotOwner();
+        }
+        if (token == address(USDC)) {
+            revert CannotSweepUSDC();
+        }
 
         uint256 bal = IERC20(token).balanceOf(address(this));
         IERC20(token).safeTransfer(to, bal);
