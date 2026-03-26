@@ -3,11 +3,10 @@ pragma solidity 0.8.33;
 
 import {OnchainCrossChainOrder} from "../types/Structs.sol";
 
-/// @title IDispatcher
-/// @notice Dispatches cross-chain orders to the SpokePool.
-///         Called via self-call from executeX (no signature verification — auth is at the executeX layer).
-interface IDispatcher {
-    event CrossChainOrderDispatched(bytes32 indexed orderId);
+/// @title ICrossChainExecutor
+/// @notice Dispatches cross-chain orders through the source-chain executor module.
+interface ICrossChainExecutor {
+    event CrossChainOrderDispatched(address indexed account, uint256 indexed destinationChainId);
 
     /// @notice Dispatch a single cross-chain leg via the SpokePool.
     /// @param order ERC-7683 OnchainCrossChainOrder envelope containing a DispatchOrder in orderData.

@@ -38,7 +38,7 @@ struct OnchainCrossChainOrder {
 
 /// @dev Order data for dispatching a single cross-chain leg via the SpokePool.
 ///      Encoded inside OnchainCrossChainOrder.orderData.
-///      Each source chain gets its own dispatch call inside the executeX Call[] batch.
+///      Each source chain gets its own dispatch call.
 ///
 ///      `recipient` determines the routing mode:
 ///        - accumulator address → full accumulation message, `handleV3AcrossMessage` callback.
@@ -57,22 +57,8 @@ struct DispatchOrder {
 enum FillStatus {
     Accumulating,
     Executed,
-    Stale,
-    Refunded
-}
-
-/// @dev Used by the SpokePool.deposit call in Dispatcher (Across V3 bytes32 format).
-struct AcrossOrderData {
-    bytes32 depositor;
-    bytes32 recipient;
-    bytes32 inputToken;
-    bytes32 outputToken;
-    uint256 inputAmount;
-    uint256 outputAmount;
-    uint256 destinationChainId;
-    bytes32 exclusiveRelayer;
-    uint32 exclusivityParameter;
-    bytes message;
+    Dropped,
+    Stale
 }
 
 /// @dev Tracks the state of a fill being accumulated on the destination chain.

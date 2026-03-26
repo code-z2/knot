@@ -32,6 +32,9 @@ contract TestERC7579Account is AccountERC7579 {
 }
 
 contract MerkleValidatorTest is Test {
+    bytes4 private constant INVALID_PUBLIC_KEY_SELECTOR =
+        bytes4(keccak256("SignerP256InvalidPublicKey(bytes32,bytes32)"));
+
     MerkleValidator private validator;
     TestERC7579Account private account;
 
@@ -57,7 +60,7 @@ contract MerkleValidatorTest is Test {
     }
 
     function test_onInstallRevertsForInvalidKey() public {
-        vm.expectRevert(abi.encodeWithSelector(MerkleValidator.InvalidPublicKey.selector, bytes32(0), bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(INVALID_PUBLIC_KEY_SELECTOR, bytes32(0), bytes32(0)));
         vm.prank(address(account));
         validator.onInstall(abi.encode(bytes32(0), bytes32(0)));
     }

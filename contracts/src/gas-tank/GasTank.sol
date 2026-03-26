@@ -7,7 +7,7 @@ import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
 
-import {IGasTank} from "./IGasTank.sol";
+import {IGasTank} from "../interfaces/IGasTank.sol";
 
 /// @title GasTank
 /// @notice Per-user USDC escrow for gas sponsorship on Default chain.

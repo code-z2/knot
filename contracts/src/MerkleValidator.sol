@@ -12,7 +12,6 @@ import {MerkleProof} from "openzeppelin-contracts/utils/cryptography/MerkleProof
 import {P256} from "openzeppelin-contracts/utils/cryptography/P256.sol";
 import {SignerP256} from "openzeppelin-contracts/utils/cryptography/signers/SignerP256.sol";
 import {SignerWebAuthn} from "openzeppelin-contracts/utils/cryptography/signers/SignerWebAuthn.sol";
-import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 
 /// @title MerkleValidator
 /// @notice ERC-7579 validator module for Merkle-proof-bound P-256 and WebAuthn signatures.
@@ -57,6 +56,12 @@ contract MerkleValidator is IERC7579Validator, SignerWebAuthn {
     mapping(address account => PublicKey) internal _keys;
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //                                 ERRORS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    error InvalidSignature();
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //                              CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -95,23 +100,34 @@ contract MerkleValidator is IERC7579Validator, SignerWebAuthn {
     /// @notice Validates a UserOperation hash against the calling account's installed key.
     /// @dev `userOpHash` is already the EntryPoint-provided leaf hash.
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash) external view returns (uint256) {
-        (bytes32[] calldata proof, bytes calldata innerSignature) = _decodeSigCalldata(userOp.signature);
+        PublicKey memory key = _keys[msg.sender];
+
+        if (!_hasPublicKey(key)) {
+            return VALIDATION_FAILED;
+        }
+
+        (bytes32[] calldata proof, bytes calldata innerSignature) = _decodeSignature(userOp.signature);
         bytes32 root = MerkleProof.processProofCalldata(proof, userOpHash);
 
-        return
-            _rawSignatureValidationWithSender(msg.sender, root, innerSignature) ? VALIDATION_SUCCESS : VALIDATION_FAILED;
+        return _rawSignatureValidation(root, innerSignature) ? VALIDATION_SUCCESS : VALIDATION_FAILED;
     }
 
     /// @notice Validates an ERC-1271 signature using the same Merkle-proof envelope.
-    function isValidSignatureWithSender(address sender, bytes32 hash, bytes calldata signature)
+    /// @dev Reverts on invalid signatures so the account's try/catch returns `0xffffffff`.
+    function isValidSignatureWithSender(address, bytes32 hash, bytes calldata signature)
         external
         view
         returns (bytes4)
     {
-        (bytes32[] calldata proof, bytes calldata innerSignature) = _decodeSigCalldata(signature);
+        PublicKey memory key = _keys[msg.sender];
+        if (!_hasPublicKey(key)) revert InvalidSignature();
+
+        (bytes32[] calldata proof, bytes calldata innerSignature) = _decodeSignature(signature);
         bytes32 root = MerkleProof.processProofCalldata(proof, hash);
 
-        return _rawSignatureValidationWithSender(sender, root, innerSignature) ? bytes4(0x1626ba7e) : bytes4(0xffffffff);
+        if (!_rawSignatureValidation(root, innerSignature)) revert InvalidSignature();
+
+        return bytes4(0x1626ba7e);
     }
 
     /// @notice Returns the installed public key for an account.
@@ -136,35 +152,17 @@ contract MerkleValidator is IERC7579Validator, SignerWebAuthn {
         return key.qx != bytes32(0) && key.qy != bytes32(0);
     }
 
-    /// @dev EIP-7702 + IERC7579Validator overload.
-    function _rawSignatureValidationWithSender(address sender, bytes32 hash, bytes calldata signature)
-        internal
-        view
-        returns (bool)
-    {
-        if (signature.length == 65) {
-            (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(hash, signature);
-            return sender == recovered && err == ECDSA.RecoverError.NoError;
-        }
+    // ═══════════════════════════════════════════════════════════════════════════
+    //                          CALLDATA DECODING
+    // ═══════════════════════════════════════════════════════════════════════════
 
-        PublicKey memory key = _keys[sender];
-        if (_hasPublicKey(key)) {
-            return SignerWebAuthn._rawSignatureValidation(hash, signature);
-        }
-
-        return false;
-    }
-
-    /// @notice Extracts a Merkle proof and inner signature from UserOp signature calldata
-    /// @dev Avoids abi.decode to memory — reads offsets directly from calldata
-    /// @param userOpSignature The user operation signature
+    /// @notice Extracts a Merkle proof and inner signature from signature calldata.
+    /// @dev Avoids abi.decode to memory — reads offsets directly from calldata.
     /// @dev Layout: abi.encode(bytes32[], bytes)
     ///   [0x00..0x20)  offset to bytes32[] data
     ///   [0x20..0x40)  offset to bytes data
     ///   then the dynamic arrays themselves
-    /// @return proof The Merkle proof as bytes32[] (calldata slice)
-    /// @return signature The inner signature (calldata slice)
-    function _decodeSigCalldata(bytes calldata userOpSignature)
+    function _decodeSignature(bytes calldata userOpSignature)
         internal
         pure
         returns (bytes32[] calldata proof, bytes calldata signature)
