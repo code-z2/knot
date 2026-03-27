@@ -1,0 +1,2 @@
+export const PINATA_SIGN_EXPIRES_SECONDS = 3 * 60;
+export const PINATA_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
