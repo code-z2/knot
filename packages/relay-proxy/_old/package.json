@@ -1,0 +1,28 @@
+{
+  "name": "relay-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler build",
+    "format": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@account-kit/infra": "^4.84.1",
+    "@gelatocloud/gasless": "^0.0.12",
+    "pinata": "^2.5.5",
+    "viem": "^2.23.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260208.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.18",
+    "wrangler": "^4.1.2"
+  }
+}
