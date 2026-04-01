@@ -18,11 +18,14 @@ function createRegistrationCredential(id: string) {
 describe('relay proxy register and login routes', () => {
     it('completes register options and verify', async () => {
         const { app } = createTestApp();
-        const { optionsBody, optionsResponse, verifyBody, verifyResponse } = await registerUser(app, {
-            appAttestKeyId: 'attest-key-register',
-            credentialId: 'credential-register',
-            userId: 'user-register',
-        });
+        const { optionsBody, optionsResponse, verifyBody, verifyResponse } = await registerUser(
+            app,
+            {
+                appAttestKeyId: 'attest-key-register',
+                credentialId: 'credential-register',
+                userId: 'user-register',
+            },
+        );
 
         expect(optionsResponse.status).toBe(200);
         expect(optionsBody.result.challengeId.length).toBeGreaterThan(0);
@@ -51,36 +54,43 @@ describe('relay proxy register and login routes', () => {
             userId: 'user-duplicate',
         });
 
-        const duplicateOptionsResponse = await app.request('http://localhost/v1/user/register/options', {
-            method: 'POST',
-            headers: jsonHeaders(),
-            body: JSON.stringify({
-                id: 'register_options_duplicate',
-                jsonrpc: '2.0',
-                method: 'knot_userRegisterOptions',
-                params: {
-                    userId: 'user-duplicate',
-                },
-            }),
-        });
-
-        const duplicateOptionsBody = await readJson<RpcSuccess<{ challengeId: string }>>(duplicateOptionsResponse);
-
-        const duplicateVerifyResponse = await app.request('http://localhost/v1/user/register/verify', {
-            method: 'POST',
-            headers: jsonHeaders(),
-            body: JSON.stringify({
-                id: 'register_verify_duplicate',
-                jsonrpc: '2.0',
-                method: 'knot_userRegisterVerify',
-                params: {
-                appAttestKeyId: 'attest-key-duplicate-2',
-                attestation: 'attestation:duplicate',
-                challengeId: duplicateOptionsBody.result.challengeId,
-                credential: createRegistrationCredential('credential-duplicate-2'),
+        const duplicateOptionsResponse = await app.request(
+            'http://localhost/v1/user/register/options',
+            {
+                method: 'POST',
+                headers: jsonHeaders(),
+                body: JSON.stringify({
+                    id: 'register_options_duplicate',
+                    jsonrpc: '2.0',
+                    method: 'knot_userRegisterOptions',
+                    params: {
+                        userId: 'user-duplicate',
+                    },
+                }),
             },
-        }),
-    });
+        );
+
+        const duplicateOptionsBody =
+            await readJson<RpcSuccess<{ challengeId: string }>>(duplicateOptionsResponse);
+
+        const duplicateVerifyResponse = await app.request(
+            'http://localhost/v1/user/register/verify',
+            {
+                method: 'POST',
+                headers: jsonHeaders(),
+                body: JSON.stringify({
+                    id: 'register_verify_duplicate',
+                    jsonrpc: '2.0',
+                    method: 'knot_userRegisterVerify',
+                    params: {
+                        appAttestKeyId: 'attest-key-duplicate-2',
+                        attestation: 'attestation:duplicate',
+                        challengeId: duplicateOptionsBody.result.challengeId,
+                        credential: createRegistrationCredential('credential-duplicate-2'),
+                    },
+                }),
+            },
+        );
 
         expect(duplicateVerifyResponse.status).toBe(400);
         expect(await readJson<RpcFailure>(duplicateVerifyResponse)).toEqual({
@@ -102,7 +112,10 @@ describe('relay proxy register and login routes', () => {
             userId: 'user-login',
         });
 
-        const { body: optionsBody, response: optionsResponse } = await beginLogin(app, 'credential-login');
+        const { body: optionsBody, response: optionsResponse } = await beginLogin(
+            app,
+            'credential-login',
+        );
         const verifyResponse = await finishLogin(app, {
             appAttestKeyId: 'attest-key-login',
             challengeId: optionsBody.result.challengeId,
@@ -110,14 +123,18 @@ describe('relay proxy register and login routes', () => {
 
         expect(optionsResponse.status).toBe(200);
         expect(verifyResponse.status).toBe(200);
-        expect(await readJson<RpcSuccess<{
-            accessToken: string;
-            appAttestKeyId: string;
-            expiresAt: number;
-            refreshToken: string;
-            sessionId: string;
-            userId: string;
-        }>>(verifyResponse)).toEqual({
+        expect(
+            await readJson<
+                RpcSuccess<{
+                    accessToken: string;
+                    appAttestKeyId: string;
+                    expiresAt: number;
+                    refreshToken: string;
+                    sessionId: string;
+                    userId: string;
+                }>
+            >(verifyResponse),
+        ).toEqual({
             id: 'login_verify',
             jsonrpc: '2.0',
             result: {

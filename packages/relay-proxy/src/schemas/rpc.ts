@@ -20,10 +20,15 @@
  */
 import { z } from 'zod';
 import type { Context } from 'hono';
+import type { RpcUserOperation } from 'viem/account-abstraction';
 import { RPC_APP_ERRORS, invalidParams } from '@/errors';
 import type { RpcId } from '@/types';
 import { rpcAppError } from '@/utils';
 import { Registration, Authentication } from 'webauthx/server';
+
+const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
+const hexValueSchema = z.string().regex(/^0x[a-fA-F0-9]+$/);
+const bytesSchema = z.string().regex(/^0x[a-fA-F0-9]*$/);
 
 /**
  * Serialized WebAuthn registration credential (`ox/webauthn` Credential<true>).
@@ -60,6 +65,38 @@ const authResponseSchema: z.ZodType<Authentication.Response> = z.object({
     raw: z.any(),
 });
 
+const eip7702AuthSchema = z
+    .object({
+        address: addressSchema,
+        chainId: hexValueSchema,
+        nonce: hexValueSchema,
+        r: bytesSchema,
+        s: bytesSchema,
+        yParity: hexValueSchema,
+    })
+    .strict();
+
+const rpcUserOperationSchema = z
+    .object({
+        callData: bytesSchema,
+        callGasLimit: hexValueSchema,
+        eip7702Auth: eip7702AuthSchema.optional(),
+        factory: addressSchema.optional(),
+        factoryData: bytesSchema.optional(),
+        maxFeePerGas: z.literal('0x0'),
+        maxPriorityFeePerGas: z.literal('0x0'),
+        nonce: hexValueSchema,
+        paymaster: addressSchema.optional(),
+        paymasterData: bytesSchema.optional(),
+        paymasterPostOpGasLimit: hexValueSchema.optional(),
+        paymasterVerificationGasLimit: hexValueSchema.optional(),
+        preVerificationGas: hexValueSchema,
+        sender: addressSchema,
+        signature: bytesSchema,
+        verificationGasLimit: hexValueSchema,
+    })
+    .strict();
+
 /**
  * Builds a JSON-RPC 2.0 envelope schema for a given method and params shape.
  *
@@ -86,9 +123,7 @@ function rpcEnvelope<M extends string, P extends z.ZodType>(method: M, params: P
 export function rpcHook(result: { success: boolean; data: { id?: RpcId } }, c: Context) {
     if (!result.success) {
         const issues =
-            'error' in result && result.error instanceof z.ZodError
-                ? result.error.issues
-                : [];
+            'error' in result && result.error instanceof z.ZodError ? result.error.issues : [];
         const firstIssue = issues[0];
         const path = firstIssue ? firstIssue.path.map(String).join('.') : '';
         const details = issues.map((issue) => ({
@@ -123,12 +158,7 @@ export function rpcHook(result: { success: boolean; data: { id?: RpcId } }, c: C
             );
         }
 
-        return rpcAppError(
-            c,
-            result.data?.id ?? null,
-            RPC_APP_ERRORS.invalidRequest,
-            details,
-        );
+        return rpcAppError(c, result.data?.id ?? null, RPC_APP_ERRORS.invalidRequest, details);
     }
 }
 
@@ -176,6 +206,50 @@ export const userLoginVerifySchema = rpcEnvelope(
 
 /** Revoke the caller's own session. Params are intentionally empty. */
 export const userLogoutSchema = rpcEnvelope('knot_userLogout', z.object({}).loose());
+
+/** Return supported chains, optionally filtered by environment. */
+export const supportedChainsSchema = rpcEnvelope(
+    'knot_supportedChains',
+    z.object({
+        environment: z.enum(['mainnet', 'testnet']).optional(),
+    }),
+);
+
+export const relaySubmitSchema = rpcEnvelope(
+    'knot_relaySubmit',
+    z.discriminatedUnion('kind', [
+        z.object({
+            chainId: z.number().int(),
+            kind: z.literal('single'),
+            request: z.tuple([rpcUserOperationSchema, addressSchema]),
+        }),
+        z.object({
+            chainId: z.number().int(),
+            fillId: bytesSchema,
+            kind: z.literal('plan'),
+            request: z.tuple([
+                z
+                    .object({
+                        background: z.array(rpcUserOperationSchema),
+                        deferred: rpcUserOperationSchema.optional(),
+                        immediate: rpcUserOperationSchema.optional(),
+                    })
+                    .strict()
+                    .refine(
+                        ({ background, deferred, immediate }) =>
+                            background.length > 0 ||
+                            immediate !== undefined ||
+                            deferred !== undefined,
+                        {
+                            message: 'Plan must include at least one user operation.',
+                            path: ['background'],
+                        },
+                    ),
+                addressSchema,
+            ]),
+        }),
+    ]),
+);
 
 /** Issue a signed direct-upload URL for an image. */
 export const imageUploadOptionsSchema = rpcEnvelope(

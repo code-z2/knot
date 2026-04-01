@@ -29,11 +29,15 @@ describe('relay proxy auth fidelity', () => {
         });
 
         expect(logoutResponse.status).toBe(200);
-        expect(await readJson<RpcSuccess<{
-            loggedOut: boolean;
-            sessionId: string;
-            userId: string;
-        }>>(logoutResponse)).toEqual({
+        expect(
+            await readJson<
+                RpcSuccess<{
+                    loggedOut: boolean;
+                    sessionId: string;
+                    userId: string;
+                }>
+            >(logoutResponse),
+        ).toEqual({
             id: 'logout',
             jsonrpc: '2.0',
             result: {
@@ -56,19 +60,22 @@ describe('relay proxy auth fidelity', () => {
             userId: 'user-high',
         });
 
-        const unauthorizedResponse = await testApp.app.request('http://localhost/v1/protected/high', {
-            method: 'POST',
-            headers: {
-                authorization: `Bearer ${verifyBody.result.accessToken}`,
-                ...jsonHeaders(),
+        const unauthorizedResponse = await testApp.app.request(
+            'http://localhost/v1/protected/high',
+            {
+                method: 'POST',
+                headers: {
+                    authorization: `Bearer ${verifyBody.result.accessToken}`,
+                    ...jsonHeaders(),
+                },
+                body: JSON.stringify({
+                    id: 'protected_high_missing',
+                    jsonrpc: '2.0',
+                    method: 'knot_userLogout',
+                    params: {},
+                }),
             },
-            body: JSON.stringify({
-                id: 'protected_high_missing',
-                jsonrpc: '2.0',
-                method: 'knot_userLogout',
-                params: {},
-            }),
-        });
+        );
 
         expect(unauthorizedResponse.status).toBe(401);
         expect(await readJson<RpcFailure>(unauthorizedResponse)).toEqual({
@@ -100,7 +107,9 @@ describe('relay proxy auth fidelity', () => {
         });
 
         expect(authorizedResponse.status).toBe(200);
-        expect(await readJson<RpcSuccess<{ ok: boolean; userId: string }>>(authorizedResponse)).toEqual({
+        expect(
+            await readJson<RpcSuccess<{ ok: boolean; userId: string }>>(authorizedResponse),
+        ).toEqual({
             id: 'protected_high_ok',
             jsonrpc: '2.0',
             result: {

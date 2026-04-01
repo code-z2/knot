@@ -1,5 +1,5 @@
-import { UploadPurpose } from "@/types";
-import { generateUUID } from "./auth";
+import { UploadPurpose } from '@/types';
+import { generateUUID } from './auth';
 
 export function parseBoundedInteger(
     value: string | undefined,
@@ -20,10 +20,6 @@ export function createTimestamp() {
     return new Date().toISOString().replace(/[-:.TZ]/g, '');
 }
 
-export function createImageID(input: {
-    fileName: string;
-    purpose: UploadPurpose;
-    userId: string;
-}) {
+export function createImageID(input: { fileName: string; purpose: UploadPurpose; userId: string }) {
     return `images/${input.purpose}/${input.userId}/${createTimestamp()}-${generateUUID()}-${input.fileName}`;
 }

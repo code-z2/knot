@@ -1,4 +1,4 @@
-# Goldsky Orchestration Plan
+# Goldsky Compose Architecture
 
 ## Status
 
@@ -10,6 +10,7 @@ This document explains:
 - why the original reservation-hook model was not sufficient on its own
 - how `KnotConsumerHub` becomes the canonical orchestration surface for all `KnotAccount`s
 - what remains onchain vs offchain
+- how Goldsky Compose should be structured so it stays an orchestrator rather than becoming protocol state
 
 ## Why Goldsky Was Introduced
 
@@ -43,6 +44,40 @@ In short:
 - Goldsky Compose is the coordinator
 - Goldsky data pipelines can also replace generic wallet data APIs over time
 - the backend is reduced to durable storage and narrow relay glue
+
+## System View
+
+```mermaid
+flowchart LR
+    A["Source KnotAccount"] --> B["CrossChainExecutor"]
+    B --> C["KnotConsumerHub<br/>IntentRegistered(fillId)"]
+
+    D["Destination Across Fill"] --> E["AccumulatorModule"]
+    E --> F["KnotConsumerHub<br/>FillReady(fillId)"]
+
+    C --> G["Goldsky Indexing + Compose"]
+    F --> G
+
+    H["Deferred Payload Store<br/>keyed by fillId"] --> I["Relay Proxy"]
+    G --> I
+    I --> J["Gelato"]
+    J --> K["Destination UserOperation"]
+```
+
+## Architectural Boundary
+
+Goldsky Compose should be the orchestration layer on top of the protocol, not part of the protocol.
+
+The clean split is:
+
+- `KnotAccount`, `CrossChainExecutor`, and `AccumulatorModule` own onchain truth.
+- `KnotConsumerHub` is the canonical event surface.
+- Goldsky Compose watches the hub and correlates lifecycle by `fillId`.
+- durable storage keeps the deferred destination payload keyed by `fillId`.
+- Gelato remains the execution rail for destination `UserOperation`s.
+- the relay proxy stays narrow: authenticated lookup, provider passthrough, and later operational control endpoints.
+
+This means Goldsky is responsible for detecting and triggering work, but not for creating protocol truth.
 
 ## The Two High-Severity Constraints
 
@@ -250,6 +285,17 @@ When `FillReady(fillId)` appears:
 2. Goldsky fetches metadata or calls a narrow relay endpoint if needed
 3. Goldsky triggers relay submission through the chosen submission path
 
+Goldsky should treat this as an idempotent workflow keyed by `fillId`, not as a fire-and-forget webhook.
+
+The practical Compose job is:
+
+- wait for source-side `IntentRegistered(fillId, ...)`
+- wait for destination-side `FillReady(fillId, ...)`
+- join both records by `fillId`
+- resolve the deferred payload from storage or a narrow relay-proxy endpoint
+- trigger submission exactly once for that ready state
+- record submission status for retries and operational visibility
+
 ### 6. Gelato submits the destination `UserOperation`
 
 Gelato remains a submitter, not the lifecycle coordinator.
@@ -288,6 +334,94 @@ The hub interaction is global by construction:
 5. relay/storage systems key everything by the same `fillId`
 
 That gives Knot one canonical global pipeline instead of N per-account integrations.
+
+## Goldsky Compose Responsibilities
+
+Compose should own:
+
+- indexing `KnotConsumerHub` events across supported chains
+- correlating source dispatch and destination readiness by `fillId`
+- materializing one operational record per `fillId`
+- retry-safe workflow triggering
+- status fan-out into relay submission and operational dashboards
+
+Compose should not own:
+
+- deferred payload storage
+- fill authorization
+- destination solvency checks
+- protocol truth
+- the only replay or recovery mechanism
+
+If Compose misses a run, the system should still be recoverable from:
+
+- hub events
+- durable payload storage
+- current onchain account/module state
+
+That is the main architectural rule.
+
+## Offchain State Model
+
+The offchain orchestration record should be keyed by `fillId`.
+
+Recommended materialized fields:
+
+- `fillId`
+- `account`
+- `sourceChainId`
+- `destinationChainId`
+- `fillDeadline`
+- `registeredAt`
+- `readyAt`
+- `submissionStatus`
+- `submissionReference`
+- `terminalStatus`
+
+Suggested operational statuses:
+
+- `registered`
+- `ready`
+- `submitted`
+- `confirmed`
+- `dropped`
+- `stale`
+- `failed`
+
+These are operational statuses for Compose and relay glue. They are not the protocol source of truth.
+
+## Relay Boundary
+
+Goldsky should not construct provider-specific relay payloads itself if that logic is likely to grow.
+
+The cleaner boundary is:
+
+- storage is keyed by `fillId`
+- relay proxy resolves the deferred payload for one `fillId`
+- relay proxy passes through the provider-native JSON-RPC request to Gelato
+
+That keeps:
+
+- Goldsky focused on orchestration
+- relay proxy focused on authenticated execution glue
+- Gelato focused on execution
+
+In other words, Goldsky should decide _when_ to relay, not own all the logic for _how_ to relay.
+
+## Failure And Recovery Model
+
+Goldsky must assume duplicate delivery, delayed delivery, and replay.
+
+So the workflow should be:
+
+- idempotent per `fillId`
+- safe on repeated `IntentRegistered`
+- safe on repeated `FillReady`
+- safe on repeated relay status callbacks
+
+Recovery should be possible by replaying hub events and re-querying payload storage for a specific `fillId`.
+
+This is why Goldsky cannot be treated as the durable queue of record.
 
 ## Why This Is Cleaner Than Provider Webhooks
 

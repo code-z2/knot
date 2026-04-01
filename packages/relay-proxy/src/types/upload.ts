@@ -1,5 +1,3 @@
-import type { RpcEnvelope } from './rpc';
-
 export type UploadPurpose = 'avatar';
 
 export type ImageUploadOptionsParams = {

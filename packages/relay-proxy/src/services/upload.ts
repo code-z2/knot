@@ -1,8 +1,4 @@
-import type {
-    ImageUploadOptionsParams,
-    ImageUploadOptionsResult,
-    UploadRuntime,
-} from '@/types';
+import type { ImageUploadOptionsParams, ImageUploadOptionsResult, UploadRuntime } from '@/types';
 import { createImageID } from '@/utils';
 
 export async function issueImageUploadOptions(

@@ -5,7 +5,9 @@ import { parseBoundedInteger } from '@/utils';
 
 function createUploadConfig(env: CloudflareBindings): UploadConfig {
     return {
-        gatewayBaseURL: env.PINATA_GATEWAY_BASE_URL.trim().replace(/\/+$/, '').replace(/\/ipfs$/, ''),
+        gatewayBaseURL: env.PINATA_GATEWAY_BASE_URL.trim()
+            .replace(/\/+$/, '')
+            .replace(/\/ipfs$/, ''),
         imageGroupId: env.PINATA_IMAGE_GROUP_ID,
         maxFileSizeBytes: parseBoundedInteger(
             env.PINATA_MAX_FILE_SIZE_BYTES,
@@ -21,8 +23,6 @@ function createUploadConfig(env: CloudflareBindings): UploadConfig {
         ),
     };
 }
-
-
 
 function createUploadRuntime(env: CloudflareBindings): UploadRuntime {
     const config = createUploadConfig(env);

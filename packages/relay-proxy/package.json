@@ -8,7 +8,7 @@
     "build": "bunx wrangler deploy --dry-run",
     "check": "bunx tsc --noEmit",
     "test": "bun test ./tests",
-    "format": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
+    "format": "bunx prettier --write \"{src,tests}/**/*.{ts,tsx}\"",
     "verify": "bun run check && bun run test"
   },
   "dependencies": {

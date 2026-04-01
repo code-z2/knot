@@ -35,12 +35,14 @@ describe('relay proxy upload routes', () => {
 
         expect(response.status).toBe(200);
 
-        const body = await readJson<RpcSuccess<{
-            expiresAt: number;
-            gatewayBaseURL: string;
-            imageID: string;
-            uploadURL: string;
-        }>>(response);
+        const body = await readJson<
+            RpcSuccess<{
+                expiresAt: number;
+                gatewayBaseURL: string;
+                imageID: string;
+                uploadURL: string;
+            }>
+        >(response);
 
         expect(body).toEqual({
             id: 'upload_options',

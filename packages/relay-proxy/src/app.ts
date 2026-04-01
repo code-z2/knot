@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 
+import { SUPPORTED_RPC_METHODS } from '@/constants';
+import { createChainRoutes } from '@/routes/chains';
 import { createUserLoginRoutes } from '@/routes/login';
 import { createUserLogoutRoutes } from '@/routes/logout';
 import { createUserRegisterRoutes } from '@/routes/register';
@@ -14,6 +16,7 @@ export function createApp(options: CreateAppOptions = {}) {
             ok: true,
             rpc: true,
             service: 'relay-proxy',
+            supportedMethods: SUPPORTED_RPC_METHODS,
             version: 1,
         });
     });
@@ -30,6 +33,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.route('/v1/user/register', createUserRegisterRoutes(options));
     app.route('/v1/user/login', createUserLoginRoutes(options));
     app.route('/v1/user/logout', createUserLogoutRoutes(options));
+    app.route('/v1/chains', createChainRoutes());
     app.route('/v1/upload', createUploadRoutes(options));
 
     app.notFound((c) => {

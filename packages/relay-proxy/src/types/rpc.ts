@@ -1,3 +1,4 @@
+import { SUPPORTED_RPC_METHODS } from '@/constants';
 import type { RpcErrorDetail } from './error';
 
 export type RpcId = string | number | null;
@@ -7,13 +8,7 @@ export type RpcVersion = '2.0';
 /**
  * Route-scoped RPC methods accepted by the current relay-proxy surface.
  */
-export type RpcMethod =
-    | 'knot_imageUploadOptions'
-    | 'knot_userLoginOptions'
-    | 'knot_userLoginVerify'
-    | 'knot_userLogout'
-    | 'knot_userRegisterOptions'
-    | 'knot_userRegisterVerify';
+export type RpcMethod = (typeof SUPPORTED_RPC_METHODS)[number];
 
 /**
  * Standard request envelope shared by every public route.

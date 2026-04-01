@@ -1,6 +1,11 @@
 import type { RpcAppErrorDefinition } from '@/types';
 
 export const RPC_APP_ERRORS = {
+    bundlerNotConfigured: {
+        code: -32000,
+        reason: 'bundler_not_configured',
+        status: 500,
+    },
     challengeNotFound: {
         code: -32000,
         reason: 'challenge_not_found',

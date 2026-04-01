@@ -5,6 +5,8 @@ import type {
     PasskeyVerifier,
     SessionRecord,
 } from './auth';
+import type { RelayQuoteContext } from './relay';
+import type { SupportedChainConfig } from './chain';
 import type { UploadRuntime } from './upload';
 
 /**
@@ -13,6 +15,9 @@ import type { UploadRuntime } from './upload';
 export type CloudflareBindings = {
     AUTH_DB: D1Database;
     AUTH_KV: KVNamespace;
+
+    BUNDLER_API_KEY?: string;
+    JSON_RPC_API_KEY?: string;
 
     KNOT_APPLE_BUNDLE_ID: string;
     KNOT_APPLE_TEAM_ID: string;
@@ -57,6 +62,8 @@ export type CreateAppOptions = {
 export type AppBindings = {
     Bindings: CloudflareBindings;
     Variables: {
+        chain: SupportedChainConfig;
+        relayQuote: RelayQuoteContext;
         session: SessionRecord;
     };
 };
