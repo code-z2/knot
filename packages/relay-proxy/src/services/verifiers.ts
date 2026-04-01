@@ -1,8 +1,8 @@
+import type { AppAttestVerifier, AuthConfig, PasskeyVerifier } from '@/types';
 import { decodeBase64Url } from 'hono/utils/encode';
 import { verifyAssertion, verifyAttestation } from 'node-app-attest';
-import { Authentication, Registration } from 'webauthx/server';
-import type { AuthConfig, AppAttestVerifier, PasskeyVerifier } from '@/types';
 import { stringToBytes, toHex } from 'viem';
+import { Authentication, Registration } from 'webauthx/server';
 
 /**
  * Wraps the App Attest library behind the relay-proxy verifier interface.

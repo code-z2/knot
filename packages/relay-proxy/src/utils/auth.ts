@@ -1,4 +1,3 @@
-import { RpcId } from '@/types';
 import { sha256, stringToBytes, toHex } from 'viem';
 
 type BunRuntime = {

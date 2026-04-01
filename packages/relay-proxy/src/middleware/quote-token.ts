@@ -16,10 +16,6 @@ export function quoteToken(
         const bundlerApiKey = c.env.BUNDLER_API_KEY;
         const jsonRpcApiKey = c.env.JSON_RPC_API_KEY;
 
-        if (!bundlerApiKey) {
-            return rpcAppError(c, rpc.id, RPC_APP_ERRORS.bundlerNotConfigured);
-        }
-
         try {
             const bundlerClient = client({ chain, bundlerApiKey, jsonRpcApiKey });
 

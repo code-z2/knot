@@ -5,7 +5,7 @@ import type { SupportedChainConfig } from './chain';
 export type BundlerConfig = {
     chain: SupportedChainConfig;
     bundlerApiKey: string;
-    jsonRpcApiKey?: string;
+    jsonRpcApiKey: string;
 };
 
 export type CreateBundlerFactory<K extends Client> = (config: BundlerConfig) => K;
@@ -29,5 +29,10 @@ export type GelatoBundlerRpcSchema = [
         Method: 'eth_sendUserOperationSync';
         Parameters: [userOperation: RpcUserOperation, entryPoint: Address];
         ReturnType: RpcUserOperationReceipt;
+    },
+    {
+        Method: 'eth_sendUserOperation';
+        Parameters: [userOperation: RpcUserOperation, entryPoint: Address];
+        ReturnType: Hex;
     },
 ];

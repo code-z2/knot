@@ -6,7 +6,7 @@ import { consumeNonce } from '@/services/nonce';
 import { getSession } from '@/services/session';
 import { getAttestation, updateAttestation } from '@/services/user';
 import type { AppBindings, AuthFidelity, CreateAppOptions, RpcId } from '@/types';
-import { rpcAppError, buildAppAttestPayload, parseJsonRecord } from '@/utils';
+import { buildAppAttestPayload, parseJsonRecord, rpcAppError } from '@/utils';
 
 /**
  * Session and device-attestation middleware.

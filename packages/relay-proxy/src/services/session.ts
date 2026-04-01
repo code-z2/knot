@@ -1,7 +1,6 @@
-import { generateToken } from '@/utils';
-import type { AuthStore, SessionRecord } from '@/types';
 import { ACCESS_TOKEN_TTL_MS } from '@/constants';
-import { generateUUID } from '@/utils';
+import type { AuthStore, SessionRecord } from '@/types';
+import { generateToken, generateUUID } from '@/utils';
 
 export async function createSession(
     store: AuthStore,

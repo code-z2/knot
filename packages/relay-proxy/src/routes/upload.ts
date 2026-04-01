@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 
 import { RPC_APP_ERRORS } from '@/errors';
 import { auth } from '@/middleware/auth-handler';

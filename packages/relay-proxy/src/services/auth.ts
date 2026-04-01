@@ -1,5 +1,5 @@
 import { createAuthStore } from '@/stores/auth';
-import type { AuthConfig, AppBindings, CloudflareBindings, CreateAppOptions } from '@/types';
+import type { AppBindings, AuthConfig, CloudflareBindings, CreateAppOptions } from '@/types';
 import { createAppAttestVerifier, createPasskeyVerifier } from './verifiers';
 
 /**

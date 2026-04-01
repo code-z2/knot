@@ -1,12 +1,13 @@
+import { CHALLENGE_TTL_SECONDS, NONCE_TTL_SECONDS } from '@/constants';
 import type {
-    AuthStore,
     AppAttestationRecord,
+    AuthStore,
     ChallengeRecord,
+    CloudflareBindings,
     PasskeyRecord,
     SessionRecord,
     UserRecord,
 } from '@/types';
-import { CHALLENGE_TTL_SECONDS, NONCE_TTL_SECONDS } from '@/constants';
 import { createKVChallengeKey, createKVNonceKey, parseJsonRecord } from '@/utils';
 
 /**
@@ -15,7 +16,7 @@ import { createKVChallengeKey, createKVNonceKey, parseJsonRecord } from '@/utils
  * Durable identity and session records live in D1. One-time challenges and
  * replay nonces live in KV with short TTLs.
  */
-export function createAuthStore(env: { AUTH_DB: D1Database; AUTH_KV: KVNamespace }): AuthStore {
+export function createAuthStore(env: Pick<CloudflareBindings, 'AUTH_DB' | 'AUTH_KV'>): AuthStore {
     return {
         async storeChallenge(challenge, ttlSeconds = CHALLENGE_TTL_SECONDS) {
             await env.AUTH_KV.put(createKVChallengeKey(challenge.id), JSON.stringify(challenge), {

@@ -1,5 +1,5 @@
-import type { AuthStore } from '@/types';
 import { MAX_SKEW_MS, NONCE_TTL_SECONDS } from '@/constants';
+import type { AuthStore } from '@/types';
 
 /**
  * Accepts a request nonce once within the allowed clock-skew window.

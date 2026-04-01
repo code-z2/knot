@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 
 import { rpcHook, supportedChainsSchema } from '@/schemas/rpc';
 import type { AppBindings } from '@/types';

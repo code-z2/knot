@@ -1,5 +1,5 @@
-import type { AuthStore, ChallengeKind, ChallengeRecord } from '@/types';
 import { CHALLENGE_TTL_SECONDS } from '@/constants';
+import type { AuthStore, ChallengeKind, ChallengeRecord } from '@/types';
 import { generateUUID, randomChallenge } from '@/utils';
 
 /**

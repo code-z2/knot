@@ -4,14 +4,12 @@ import {
 } from 'viem/account-abstraction';
 
 import type { BundlerConfig, CreateBundlerFactory, GelatoBundlerRpcSchema } from '@/types';
-import { Address, createPublicClient, http, rpcSchema } from 'viem';
 import { buildBundlerUrl, buildJsonRpcUrl } from '@/utils';
+import { Address, createPublicClient, http, rpcSchema } from 'viem';
 
 function createClient(config: BundlerConfig) {
     const { chain, bundlerApiKey, jsonRpcApiKey } = config;
-    const url = jsonRpcApiKey
-        ? buildJsonRpcUrl(chain.id, jsonRpcApiKey)
-        : chain.rpcUrls.default.http[0];
+    const url = buildJsonRpcUrl(chain.id, jsonRpcApiKey);
 
     const client = createPublicClient({
         chain,
@@ -40,6 +38,13 @@ function createClient(config: BundlerConfig) {
             async sendUserOperationSync(userOperation: RpcUserOperation, entryPoint: Address) {
                 return client.request({
                     method: 'eth_sendUserOperationSync',
+                    params: [userOperation, entryPoint],
+                });
+            },
+            // pass through to the bundler
+            async sendUserOperation(userOperation: RpcUserOperation, entryPoint: Address) {
+                return client.request({
+                    method: 'eth_sendUserOperation',
                     params: [userOperation, entryPoint],
                 });
             },

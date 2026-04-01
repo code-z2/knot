@@ -1,13 +1,13 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 
 import { RPC_APP_ERRORS } from '@/errors';
+import { rpcHook, userRegisterOptionsSchema, userRegisterVerifySchema } from '@/schemas/rpc';
 import { createAuthClient } from '@/services/auth';
 import { consumeChallenge, issueChallenge } from '@/services/challenge';
 import { createPasskey } from '@/services/passkey';
 import { createSession } from '@/services/session';
 import { createAttestation, createUser } from '@/services/user';
-import { rpcHook, userRegisterOptionsSchema, userRegisterVerifySchema } from '@/schemas/rpc';
 import type { AppBindings, CreateAppOptions, UserRegisterOptionsResult } from '@/types';
 import { rpcAppError, rpcResult } from '@/utils';
 

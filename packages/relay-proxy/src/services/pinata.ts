@@ -1,7 +1,7 @@
-import { PinataSDK } from 'pinata';
 import { PINATA_MAX_FILE_SIZE_BYTES, PINATA_SIGN_EXPIRES_SECONDS } from '@/constants';
 import type { CloudflareBindings, CreateAppOptions, UploadConfig, UploadRuntime } from '@/types';
 import { parseBoundedInteger } from '@/utils';
+import { PinataSDK } from 'pinata';
 
 function createUploadConfig(env: CloudflareBindings): UploadConfig {
     return {

@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 
 import { auth } from '@/middleware/auth-handler';
+import { rpcHook, userLogoutSchema } from '@/schemas/rpc';
 import { createAuthClient } from '@/services/auth';
 import { revokeSession } from '@/services/session';
-import { rpcHook, userLogoutSchema } from '@/schemas/rpc';
 import type { AppBindings, CreateAppOptions } from '@/types';
 import { rpcResult } from '@/utils';
 

@@ -18,13 +18,12 @@
  *
  * @module
  */
-import { z } from 'zod';
-import type { Context } from 'hono';
-import type { RpcUserOperation } from 'viem/account-abstraction';
 import { RPC_APP_ERRORS, invalidParams } from '@/errors';
 import type { RpcId } from '@/types';
 import { rpcAppError } from '@/utils';
-import { Registration, Authentication } from 'webauthx/server';
+import type { Context } from 'hono';
+import { Authentication, Registration } from 'webauthx/server';
+import { z } from 'zod';
 
 const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 const hexValueSchema = z.string().regex(/^0x[a-fA-F0-9]+$/);
