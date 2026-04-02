@@ -20,11 +20,9 @@ async function dispatchAnomaly(anomaly: AnomalyQueueMessage, env: AnomalyBinding
 
     dispatchers.push(sendDiscordAnomaly(anomaly, env));
 
-    if (dispatchers.length > 0) {
-        const results = await Promise.allSettled(dispatchers);
+    const results = await Promise.allSettled(dispatchers);
 
-        if (results.some((result) => result.status === 'rejected')) {
-            throw new Error('anomaly_dispatch_failed');
-        }
+    if (results.some((result) => result.status === 'rejected')) {
+        throw new Error('anomaly_dispatch_failed');
     }
 }

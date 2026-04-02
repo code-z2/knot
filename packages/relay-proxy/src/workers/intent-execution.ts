@@ -3,6 +3,7 @@ import {
     INTENT_EXECUTION_KEY_PREFIX,
     INTENT_EXECUTION_MAX_ATTEMPTS,
     INTENT_EXECUTION_RETRY_AFTER_MS,
+    INTENT_EXECUTION_TTL_SECONDS,
 } from '@/constants';
 import { createBundlerClient } from '@/services/bundler';
 import {
@@ -10,7 +11,13 @@ import {
     withAnomalyTimestamp,
     withQueuedAttempt,
 } from '@/stores/intent-execution';
-import type { CloudflareBindings, IntentExecutionQueueMessage } from '@/types';
+import type {
+    CloudflareBindings,
+    IntentExecutionQueueMessage,
+    IntentExecutionRecord,
+    RelayDeferredResult,
+    RelayPlanParams,
+} from '@/types';
 import { createIntentExecutionAnomaly, getChainConfig, isExpired, isNearExpiry } from '@/utils';
 
 export async function consumeIntentExecutionBatch(
@@ -35,11 +42,7 @@ export async function consumeIntentExecutionBatch(
                 continue;
             }
 
-            const bundlerClient = client({
-                chain,
-                bundlerApiKey: env.BUNDLER_API_KEY,
-                jsonRpcApiKey: env.JSON_RPC_API_KEY,
-            });
+            const bundlerClient = client(env, chain, {});
 
             await bundlerClient.sendUserOperation(record.userOperation, record.entryPoint);
             await store.delete(record.fillId);
@@ -81,10 +84,19 @@ export async function sweepIntentExecutions(
 
             if (msSinceLastQueued < INTENT_EXECUTION_RETRY_AFTER_MS) continue;
 
-            if (isNearExpiry(record, now) || record.attempts >= INTENT_EXECUTION_MAX_ATTEMPTS) {
+            const anomalyKind = isNearExpiry(record, now)
+                ? 'near_expiry'
+                : record.attempts >= INTENT_EXECUTION_MAX_ATTEMPTS
+                  ? 'retry_exhausted'
+                  : null;
+
+            if (anomalyKind) {
                 if (msSinceLastAnomaly >= INTENT_EXECUTION_ANOMALY_RETRY_AFTER_MS) {
-                    await env.ANOMALY_QUEUE.send(createIntentExecutionAnomaly(record, now));
-                    await store.put(withAnomalyTimestamp(record, new Date(now).toISOString()));
+                    const timestamp = new Date(now).toISOString();
+                    await env.ANOMALY_QUEUE.send(
+                        createIntentExecutionAnomaly(record, now, anomalyKind),
+                    );
+                    await store.put(withAnomalyTimestamp(record, timestamp));
                 }
                 continue;
             }
@@ -95,4 +107,34 @@ export async function sweepIntentExecutions(
 
         cursor = listResult.list_complete ? undefined : listResult.cursor;
     } while (cursor);
+}
+
+export async function storeIntentExecution(
+    env: Pick<CloudflareBindings, 'RELAY_QUEUE' | 'RELAY_KV' | 'ANOMALY_QUEUE'>,
+    params: RelayPlanParams,
+    now = Date.now(),
+): Promise<RelayDeferredResult> {
+    const store = createIntentExecutionStore(env);
+
+    const record: IntentExecutionRecord = {
+        attempts: 0,
+        chainId: params.chainId,
+        createdAt: new Date(now).toISOString(),
+        entryPoint: params.request[1],
+        expiresAt: new Date(now + INTENT_EXECUTION_TTL_SECONDS * 1000).toISOString(),
+        fillId: params.fillId,
+        userOperation: params.request[0].deferred,
+    };
+
+    await store.put(record);
+
+    let queued = false;
+    try {
+        await env.RELAY_QUEUE.send(record.fillId);
+        queued = true;
+    } catch {
+        await env.ANOMALY_QUEUE.send(createIntentExecutionAnomaly(record, now, 'not_queued'));
+    }
+
+    return { fillId: record.fillId, queued };
 }

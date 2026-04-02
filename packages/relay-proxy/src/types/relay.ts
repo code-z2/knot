@@ -1,10 +1,10 @@
 import type { Address, Hex } from 'viem';
-import type { RpcUserOperation } from 'viem/account-abstraction';
-import type { GelatoUserOperationQuote } from './bundler';
+import type { RpcUserOperation, RpcUserOperationReceipt } from 'viem/account-abstraction';
+import type { GelatoUserOperationQuote, SendUserOperationBatchResult } from './bundler';
 
 export type RelayPlanOperations = {
     background: readonly RpcUserOperation[];
-    deferred?: RpcUserOperation;
+    deferred: RpcUserOperation;
     immediate?: RpcUserOperation;
 };
 
@@ -35,3 +35,22 @@ export type RelayPlanQuoteContext = {
 };
 
 export type RelayQuoteContext = RelaySingleQuoteContext | RelayPlanQuoteContext;
+
+export type RelayDeferredResult = {
+    fillId: Hex;
+    queued: boolean;
+};
+
+export type RelaySingleResult = {
+    kind: 'single';
+    userOperationHash: Hex;
+};
+
+export type RelayPlanResult = {
+    backgroundResults: readonly SendUserOperationBatchResult[];
+    deferred: RelayDeferredResult;
+    immediateReceipt?: RpcUserOperationReceipt;
+    kind: 'plan';
+};
+
+export type RelaySubmitResult = RelayPlanResult | RelaySingleResult;

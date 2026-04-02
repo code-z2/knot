@@ -8,7 +8,33 @@ export type BundlerConfig = {
     jsonRpcApiKey: string;
 };
 
-export type CreateBundlerFactory<K extends Client> = (config: BundlerConfig) => K;
+export type SendUserOperationBatchResult =
+    | {
+          index: number;
+          ok: true;
+          hash: `0x${string}`;
+      }
+    | {
+          index: number;
+          ok: false;
+          error: unknown;
+      };
+
+export type BundlerClient = Client & {
+    getUserOperationQuote: (
+        userOperation: RpcUserOperation,
+        entryPoint: Address,
+    ) => Promise<GelatoUserOperationQuote>;
+    sendUserOperation: (userOperation: RpcUserOperation, entryPoint: Address) => Promise<Hex>;
+    sendUserOperationSync: (
+        userOperation: RpcUserOperation,
+        entryPoint: Address,
+    ) => Promise<RpcUserOperationReceipt>;
+    sendUserOperationBatch: (
+        userOperations: RpcUserOperation[],
+        entryPoint: Address,
+    ) => Promise<SendUserOperationBatchResult[]>;
+};
 
 export type GelatoUserOperationQuote = {
     callGasLimit: Hex;

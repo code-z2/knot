@@ -230,17 +230,15 @@ export const relaySubmitSchema = rpcEnvelope(
                 z
                     .object({
                         background: z.array(rpcUserOperationSchema),
-                        deferred: rpcUserOperationSchema.optional(),
+                        deferred: rpcUserOperationSchema,
                         immediate: rpcUserOperationSchema.optional(),
                     })
                     .strict()
                     .refine(
                         ({ background, deferred, immediate }) =>
-                            background.length > 0 ||
-                            immediate !== undefined ||
-                            deferred !== undefined,
+                            background.length > 0 && deferred !== undefined,
                         {
-                            message: 'Plan must include at least one user operation.',
+                            message: 'Plan must include background and deferred user operations.',
                             path: ['background'],
                         },
                     ),

@@ -1,36 +1,27 @@
 import { zValidator } from '@hono/zod-validator';
 import { describe, expect, it } from 'bun:test';
 import { Hono } from 'hono';
+import type { Address } from 'viem';
+import type { RpcUserOperation } from 'viem/account-abstraction';
 
 import { chainPolicy } from '../src/middleware/chain-policy';
 import { quoteToken } from '../src/middleware/quote-token';
 import { relaySubmitSchema, rpcHook } from '../src/schemas/rpc';
-import type { AppBindings, BundlerConfig, RpcFailure } from '../src/types';
+import type { AppBindings, BundlerClient, CreateAppOptions, RpcFailure } from '../src/types';
 import { rpcResult } from '../src/utils';
 import { jsonHeaders, readJson } from './helpers/http';
 
-type BundlerClientFactory = (config: BundlerConfig) => {
-    getUserOperationQuote: (
-        userOperation: unknown,
-        entryPoint: unknown,
-    ) => Promise<{
-        callGasLimit: string;
-        fee: string;
-        gas: string;
-        l1Fee: string;
-        preVerificationGas: string;
-        verificationGasLimit: string;
-    }>;
-};
-
-function createQuoteApp(client: BundlerClientFactory) {
+function createQuoteApp(client: BundlerClient) {
     const app = new Hono<AppBindings>();
+    const options: CreateAppOptions = {
+        bundler: client,
+    };
 
     app.post(
         '/v1/test/quote',
         zValidator('json', relaySubmitSchema, rpcHook),
         chainPolicy(),
-        quoteToken(client as never),
+        quoteToken(options),
         (c) => {
             const rpc = c.req.valid('json');
 
@@ -56,23 +47,19 @@ function createQuoteRequest(body: unknown) {
 describe('relay proxy quote middleware', () => {
     it('quotes a single user operation', async () => {
         const requests: unknown[] = [];
-        const configs: BundlerConfig[] = [];
-        const app = createQuoteApp((config) => {
-            configs.push(config);
-            return {
-                getUserOperationQuote: async (userOperation, entryPoint) => {
-                    requests.push({ entryPoint, userOperation });
-                    return {
-                        callGasLimit: '0x1',
-                        fee: '0x2',
-                        gas: '0x3',
-                        l1Fee: '0x0',
-                        preVerificationGas: '0x4',
-                        verificationGasLimit: '0x5',
-                    };
-                },
-            };
-        });
+        const app = createQuoteApp({
+            getUserOperationQuote: async (userOperation: RpcUserOperation, entryPoint: Address) => {
+                requests.push({ entryPoint, userOperation });
+                return {
+                    callGasLimit: '0x1',
+                    fee: '0x2',
+                    gas: '0x3',
+                    l1Fee: '0x0',
+                    preVerificationGas: '0x4',
+                    verificationGasLimit: '0x5',
+                };
+            },
+        } as never);
 
         const response = await app.fetch(
             createQuoteRequest({
@@ -104,7 +91,6 @@ describe('relay proxy quote middleware', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(configs).toHaveLength(1);
         expect(requests).toHaveLength(1);
         expect(await readJson<unknown>(response)).toEqual({
             id: 'quote_single',
@@ -127,21 +113,19 @@ describe('relay proxy quote middleware', () => {
 
     it('quotes immediate and background operations but skips deferred', async () => {
         const requests: unknown[] = [];
-        const app = createQuoteApp(() => {
-            return {
-                getUserOperationQuote: async (userOperation, entryPoint) => {
-                    requests.push({ entryPoint, userOperation });
-                    return {
-                        callGasLimit: '0x1',
-                        fee: '0x2',
-                        gas: '0x3',
-                        l1Fee: '0x0',
-                        preVerificationGas: '0x4',
-                        verificationGasLimit: '0x5',
-                    };
-                },
-            };
-        });
+        const app = createQuoteApp({
+            getUserOperationQuote: async (userOperation: RpcUserOperation, entryPoint: Address) => {
+                requests.push({ entryPoint, userOperation });
+                return {
+                    callGasLimit: '0x1',
+                    fee: '0x2',
+                    gas: '0x3',
+                    l1Fee: '0x0',
+                    preVerificationGas: '0x4',
+                    verificationGasLimit: '0x5',
+                };
+            },
+        } as never);
 
         const response = await app.fetch(
             createQuoteRequest({
@@ -231,9 +215,11 @@ describe('relay proxy quote middleware', () => {
     });
 
     it('returns bundler_unavailable when the quote call fails', async () => {
-        const app = createQuoteApp(() => {
-            throw new Error('no bundler');
-        });
+        const app = createQuoteApp({
+            async getUserOperationQuote() {
+                throw new Error('no bundler');
+            },
+        } as never);
 
         const response = await app.fetch(
             createQuoteRequest({

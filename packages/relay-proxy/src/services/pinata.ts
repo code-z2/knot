@@ -1,5 +1,5 @@
 import { PINATA_MAX_FILE_SIZE_BYTES, PINATA_SIGN_EXPIRES_SECONDS } from '@/constants';
-import type { CloudflareBindings, CreateAppOptions, UploadConfig, UploadRuntime } from '@/types';
+import type { CloudflareBindings, CreateAppOptions, UploadClient, UploadConfig } from '@/types';
 import { parseBoundedInteger } from '@/utils';
 import { PinataSDK } from 'pinata';
 
@@ -24,7 +24,7 @@ function createUploadConfig(env: CloudflareBindings): UploadConfig {
     };
 }
 
-function createUploadRuntime(env: CloudflareBindings): UploadRuntime {
+function createUploadRuntime(env: CloudflareBindings): UploadClient {
     const config = createUploadConfig(env);
     const pinata = new PinataSDK({
         pinataJwt: env.PINATA_JWT,

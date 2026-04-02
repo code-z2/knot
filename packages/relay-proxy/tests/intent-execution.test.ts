@@ -85,7 +85,6 @@ function createRecord(overrides: Partial<IntentExecutionRecord> = {}): IntentExe
         entryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
         expiresAt: '2026-05-01T10:00:00.000Z',
         fillId: '0x1234',
-        userId: '0x1111111111111111111111111111111111111111',
         userOperation: {
             callData: '0x',
             callGasLimit: '0x1',

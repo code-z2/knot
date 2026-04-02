@@ -10,7 +10,6 @@ export type IntentExecutionRecord = {
     fillId: Hex;
     lastAnomalyAt?: string;
     lastQueuedAt?: string;
-    userId: string;
     userOperation: RpcUserOperation;
 };
 

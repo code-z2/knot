@@ -1,6 +1,16 @@
 # relay-proxy
 
-Barebones `Hono + Cloudflare Workers` relay proxy scaffold with route-scoped RPC envelopes.
+Route-scoped JSON-RPC edge backend for Knot on `Hono + Cloudflare Workers`.
+
+It currently owns:
+- passkey + App Attest auth
+- supported chains discovery
+- sponsored relay submission
+- direct image upload option issuance
+- deferred intent-execution queueing
+- anomaly delivery workers
+
+Architecture docs live in [architecture/README.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/README.md).
 
 ## Endpoints
 
@@ -16,39 +26,111 @@ Barebones `Hono + Cloudflare Workers` relay proxy scaffold with route-scoped RPC
   - method: `knot_userLoginVerify`
 - `POST /v1/user/logout`
   - method: `knot_userLogout`
+- `POST /v1/chains`
+  - method: `knot_supportedChains`
+- `POST /v1/relay/submit`
+  - method: `knot_relaySubmit`
 - `POST /v1/upload/image/options`
   - method: `knot_imageUploadOptions`
 
-## Structure
+The root `GET /` response exposes the current `supportedMethods` list.
 
-- `src/stores`
-- `src/services`
-- `src/routes`
-- `src/middleware`
-- `src/types`
-- `src/utils`
-- `tests`
+## Implemented Surface
 
-## Current Auth Slice
+### Auth
 
 Implemented now:
-- begin and finish user registration with real `webauthx` registration options and verification
-- begin and finish user login with real `webauthx` authentication options and verification
-- real Apple App Attest verification with `node-app-attest`
+- begin/finish user registration with `webauthx`
+- begin/finish user login with `webauthx`
+- Apple App Attest attestation verification
+- per-request App Attest assertion verification for high-fidelity routes
 - opaque access and refresh token issuance
-- attestation-key-bound relay auth
-- per-request App Attest assertion verification
-- D1-backed users, sessions, and App Attest key state
-- KV-backed one-time challenges and nonces
-- signed image upload URL issuance for direct-to-Pinata uploads
+- low/high auth fidelity middleware
+- D1-backed durable auth records
+- KV-backed one-time challenges and replay nonces
 
-## Cloudflare Bindings
+### Chains
 
-Storage bindings:
-- `AUTH_DB` as D1
-- `AUTH_KV` as KV
+Implemented now:
+- strict supported chain registry with explicit `mainnet` / `testnet` split
+- supported entry point validation
+- public `knot_supportedChains` route
+- Goldsky JSON-RPC URL builder
+- Gelato bundler URL builder
 
-Secrets:
+### Relay
+
+Implemented now:
+- sponsored-only `knot_relaySubmit`
+- strict `UserOperation`-native request validation
+- high-fidelity auth on relay submission
+- sender must match `session.userId`
+- inline `single` relay submission
+- inline `plan.immediate` sync submission
+- inline `plan.background` submission
+- deferred `plan.deferred` persistence and queue dispatch by `fillId`
+
+Not implemented yet:
+- gas tank reservation / settlement pipeline
+- relay status route
+- Goldsky-triggered operational execution route
+
+### Upload
+
+Implemented now:
+- signed Pinata image upload option issuance
+- low-fidelity authenticated access
+- strict filename/content-type validation at the schema boundary
+
+### Workers
+
+Implemented now:
+- anomaly queue worker
+- intent-execution queue worker
+- scheduled intent-execution sweep / retry path
+
+## Runtime Shape
+
+### Route and Middleware Layout
+
+- `src/routes`
+- `src/middleware`
+- `src/services`
+- `src/stores`
+- `src/types`
+- `src/utils`
+- `src/workers`
+- `tests`
+
+### Storage
+
+Current implemented storage:
+- `AUTH_DB`
+  - D1 for auth state
+- `AUTH_KV`
+  - one-time challenges and nonce replay tombstones
+- `RELAY_KV`
+  - deferred intent-execution records
+
+### Queues
+
+Current implemented queues:
+- `RELAY_QUEUE`
+  - deferred intent-execution dispatch
+- `ANOMALY_QUEUE`
+  - operator anomaly delivery
+
+### Secrets / Bindings
+
+Current runtime bindings:
+- `AUTH_DB`
+- `AUTH_KV`
+- `RELAY_KV`
+- `RELAY_QUEUE`
+- `ANOMALY_QUEUE`
+- `BUNDLER_API_KEY`
+- `JSON_RPC_API_KEY`
+- `DISCORD_WEBHOOK_URL`
 - `KNOT_RP_ID`
 - `KNOT_RP_NAME`
 - `KNOT_RP_ORIGIN`
@@ -58,16 +140,19 @@ Secrets:
 - `PINATA_JWT`
 - `PINATA_GATEWAY_BASE_URL`
 - `PINATA_IMAGE_GROUP_ID`
+- `PINATA_MAX_FILE_SIZE_BYTES`
+- `PINATA_SIGN_EXPIRES_SECONDS`
 
-These should be provisioned with Cloudflare secrets, not plain `vars` in `wrangler.toml`.
+Provision secrets with Cloudflare secrets, not plain `vars`.
 
-## Data Model
+## Migrations
 
-D1 schema lives in:
-- `migrations/0001_auth.sql`
+Current D1 schema baseline:
+- [0001_auth.sql](/Users/peter/Developer/knot/packages/relay-proxy/migrations/0001_auth.sql)
 
-Tables:
+Current tables:
 - `users`
+- `passkeys`
 - `app_attestations`
 - `sessions`
 
@@ -76,5 +161,5 @@ Tables:
 - `bun run dev`
 - `bun run build`
 - `bun run check`
-- `bun test`
+- `bun run test`
 - `bun run verify`

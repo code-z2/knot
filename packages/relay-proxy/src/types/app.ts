@@ -6,10 +6,11 @@ import type {
     PasskeyVerifier,
     SessionRecord,
 } from './auth';
+import type { BundlerClient } from './bundler';
 import type { SupportedChainConfig } from './chain';
 import type { IntentExecutionQueueMessage } from './intent-execution';
 import type { RelayQuoteContext } from './relay';
-import type { UploadRuntime } from './upload';
+import type { UploadClient } from './upload';
 
 /**
  * Worker bindings required by the active auth surface.
@@ -55,7 +56,8 @@ export type CreateAppOptions = {
             passkey: PasskeyVerifier;
         };
     };
-    upload?: UploadRuntime;
+    bundler?: BundlerClient;
+    upload?: UploadClient;
 };
 
 /**

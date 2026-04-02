@@ -2,22 +2,18 @@ import type { MiddlewareHandler } from 'hono';
 
 import { RPC_APP_ERRORS } from '@/errors/catalog';
 import { createBundlerClient } from '@/services/bundler';
-import type { AppBindings, RelaySubmitParams, RpcId } from '@/types';
+import type { AppBindings, CreateAppOptions, RelaySubmitParams, RpcId } from '@/types';
 import { rpcAppError } from '@/utils';
 
-export function quoteToken(
-    client: typeof createBundlerClient = createBundlerClient,
-): MiddlewareHandler<AppBindings> {
+export function quoteToken(options: CreateAppOptions = {}): MiddlewareHandler<AppBindings> {
     return async (c, next) => {
         const rpc = (c.req.valid as (target: 'json') => { id: RpcId; params: RelaySubmitParams })(
             'json',
         );
         const chain = c.get('chain');
-        const bundlerApiKey = c.env.BUNDLER_API_KEY;
-        const jsonRpcApiKey = c.env.JSON_RPC_API_KEY;
 
         try {
-            const bundlerClient = client({ chain, bundlerApiKey, jsonRpcApiKey });
+            const bundlerClient = createBundlerClient(c.env, chain, options);
 
             if (rpc.params.kind === 'single') {
                 const [userOperation, entryPoint] = rpc.params.request;

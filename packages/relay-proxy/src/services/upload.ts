@@ -1,11 +1,11 @@
-import type { ImageUploadOptionsParams, ImageUploadOptionsResult, UploadRuntime } from '@/types';
+import type { ImageUploadOptionsParams, ImageUploadOptionsResult, UploadClient } from '@/types';
 import { createImageID } from '@/utils';
 
 export async function issueImageUploadOptions(
-    runtime: UploadRuntime,
+    client: UploadClient,
     input: ImageUploadOptionsParams & { userId: string },
 ) {
-    if (input.byteLength > runtime.config.maxFileSizeBytes) {
+    if (input.byteLength > client.config.maxFileSizeBytes) {
         return {
             ok: false,
             error: 'file_too_large',
@@ -19,7 +19,7 @@ export async function issueImageUploadOptions(
     });
 
     try {
-        const uploadURL = await runtime.signer.createImageUploadURL({
+        const uploadURL = await client.signer.createImageUploadURL({
             byteLength: input.byteLength,
             contentType: input.contentType,
             fileName: input.fileName,
@@ -31,8 +31,8 @@ export async function issueImageUploadOptions(
         return {
             ok: true,
             result: {
-                expiresAt: Date.now() + runtime.config.signExpiresSeconds * 1_000,
-                gatewayBaseURL: `${runtime.config.gatewayBaseURL}/ipfs`,
+                expiresAt: Date.now() + client.config.signExpiresSeconds * 1_000,
+                gatewayBaseURL: `${client.config.gatewayBaseURL}/ipfs`,
                 imageID,
                 uploadURL,
             } satisfies ImageUploadOptionsResult,

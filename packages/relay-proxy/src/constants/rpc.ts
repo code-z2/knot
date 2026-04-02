@@ -1,5 +1,6 @@
 export const SUPPORTED_RPC_METHODS = [
     'knot_supportedChains',
+    'knot_relaySubmit',
     'knot_imageUploadOptions',
     'knot_userLoginOptions',
     'knot_userLoginVerify',

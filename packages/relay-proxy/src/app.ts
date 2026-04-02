@@ -4,6 +4,7 @@ import { SUPPORTED_RPC_METHODS } from '@/constants';
 import { createChainRoutes } from '@/routes/chains';
 import { createUserLoginRoutes } from '@/routes/login';
 import { createUserLogoutRoutes } from '@/routes/logout';
+import { createRelayRoutes } from '@/routes/relay';
 import { createUserRegisterRoutes } from '@/routes/register';
 import { createUploadRoutes } from '@/routes/upload';
 import type { AppBindings, CreateAppOptions } from '@/types';
@@ -34,6 +35,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.route('/v1/user/login', createUserLoginRoutes(options));
     app.route('/v1/user/logout', createUserLogoutRoutes(options));
     app.route('/v1/chains', createChainRoutes());
+    app.route('/v1/relay', createRelayRoutes(options));
     app.route('/v1/upload', createUploadRoutes(options));
 
     app.notFound((c) => {

@@ -34,8 +34,15 @@ export type FaucetFundingFailedAnomaly = BaseAnomalyMessage & {
     userId: string;
 };
 
+export type IntentExecutionNotQueuedAnomaly = BaseAnomalyMessage & {
+    fillId: string;
+    type: 'anomaly_intent_execution_not_queued';
+    userId: string;
+};
+
 export type AnomalyQueueMessage =
     | FaucetFundingFailedAnomaly
+    | IntentExecutionNotQueuedAnomaly
     | IntentExecutionRetryExhaustedAnomaly
     | IntentExecutionTtlExpiringAnomaly
     | ReservationRetryExhaustedAnomaly;

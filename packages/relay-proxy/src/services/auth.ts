@@ -3,20 +3,6 @@ import type { AppBindings, AuthConfig, CloudflareBindings, CreateAppOptions } fr
 import { createAppAttestVerifier, createPasskeyVerifier } from './verifiers';
 
 /**
- * Builds the production auth runtime from Worker bindings.
- */
-function createAuth(env: AppBindings['Bindings'], config: AuthConfig) {
-    return {
-        config,
-        store: createAuthStore(env),
-        verifiers: {
-            appAttest: createAppAttestVerifier(config),
-            passkey: createPasskeyVerifier(config),
-        },
-    };
-}
-
-/**
  * Reads auth configuration from Cloudflare runtime bindings.
  */
 function createAuthConfig(env: CloudflareBindings): AuthConfig {
@@ -31,9 +17,26 @@ function createAuthConfig(env: CloudflareBindings): AuthConfig {
 }
 
 /**
+ * Builds the production auth runtime from Worker bindings.
+ */
+function createAuth(env: AppBindings['Bindings'], config: AuthConfig) {
+    return {
+        config,
+        store: createAuthStore(env),
+        verifiers: {
+            appAttest: createAppAttestVerifier(config),
+            passkey: createPasskeyVerifier(config),
+        },
+    };
+}
+
+/**
  * Returns the injected auth runtime when tests provide one, otherwise creates
  * the Cloudflare-backed runtime.
  */
-export function createAuthClient(env: AppBindings['Bindings'], options: CreateAppOptions) {
+export function createAuthClient(
+    env: AppBindings['Bindings'],
+    options: Pick<CreateAppOptions, 'auth'>,
+) {
     return options.auth ?? createAuth(env, createAuthConfig(env));
 }

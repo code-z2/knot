@@ -46,5 +46,7 @@ export function buildAnomalyMetadata(anomaly: AnomalyQueueMessage): string[] {
                 `**Created At:** ${anomaly.createdAt}`,
                 `**Type:** \`${anomaly.type}\``,
             ];
+        default:
+            throw new Error(`Unknown anomaly type: ${anomaly.type}`);
     }
 }

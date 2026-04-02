@@ -34,7 +34,7 @@ export type UploadSigner = {
     createImageUploadURL: (input: UploadSignerInput) => Promise<string>;
 };
 
-export type UploadRuntime = {
+export type UploadClient = {
     config: UploadConfig;
     signer: UploadSigner;
 };
