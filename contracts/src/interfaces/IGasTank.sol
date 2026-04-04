@@ -39,6 +39,9 @@ interface IGasTank {
     /// @dev Caller is not the cosigner.
     error NotCosigner();
 
+    /// @dev The cosigner-gated path is disabled for this GasTank.
+    error CosignerDisabled();
+
     /// @dev The cosigner signature deadline has expired.
     error DeadlineExpired();
 
@@ -74,7 +77,8 @@ interface IGasTank {
     /// @notice Pull USDC from msg.sender. Emits Deposited for indexing.
     function deposit(uint256 amount) external;
 
-    /// @notice Withdraw USDC instantly with cosigner co-signature.
+    /// @notice Withdraw USDC instantly.
+    /// @dev Managed mode requires a cosigner signature. Self-managed mode (`address(0)`) skips signature validation.
     function withdraw(uint256 amount, address to, uint256 deadline, bytes calldata cosignerSig) external;
 
     /// @notice Initiate a forced withdrawal with a 4-hour timelock.
@@ -87,6 +91,7 @@ interface IGasTank {
     function cancelForced() external;
 
     /// @notice Cosigner debits USDC for gas billing.
+    /// @dev Reverts with `CosignerDisabled` when deployed with `address(0)` as cosigner.
     function debit(uint256 amount, address to) external;
 
     /// @notice Owner recovers non-USDC tokens sent by mistake.

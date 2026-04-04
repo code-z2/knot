@@ -1,6 +1,6 @@
 # Gas Tank
 
-Per-user USDC escrow for gas sponsorship. Each user gets a deterministic GasTank contract on Base, deployed via CreateX. The user is the owner; the protocol is the cosigner.
+Per-user USDC escrow for gas sponsorship. Each user gets a deterministic GasTank contract on Base, deployed via CreateX. The user is the owner; the gas provider is fixed at deployment time through the `cosigner` constructor arg.
 
 ## Contracts
 
@@ -23,11 +23,18 @@ The GasTank knows nothing about Across, SpokePool, or cross-chain orders. All br
 
 CreateX deploys GasTanks. Constructor args are deterministic (owner, cosigner, usdc), so anyone can deploy for any user. No custom factory contract.
 
+Two deployment modes exist:
+
+- managed: `cosigner = <provider address>` (for example Knot)
+- self-managed: `cosigner = address(0)`
+
+The mode is immutable. Switching providers means using a different deterministic GasTank address, not mutating the existing tank.
+
 ## State
 
 ```
 address immutable OWNER        // user's smart account
-address immutable COSIGNER     // protocol operator
+address immutable COSIGNER     // gas provider, or address(0) for self-managed mode
 IERC20  immutable USDC         // USDC token
 
 uint256 withdrawNonce           // replay protection for instant withdrawals
@@ -42,11 +49,11 @@ PendingWithdrawal {
 | Function | Access | Description |
 |----------|--------|-------------|
 | `deposit(amount)` | Anyone | Pull USDC from msg.sender. Emits `Deposited`. |
-| `withdraw(amount, to, deadline, cosignerSig)` | Owner | Instant withdrawal. Cosigner co-signs via EIP-712. |
+| `withdraw(amount, to, deadline, cosignerSig)` | Owner | Instant withdrawal. Managed mode requires cosigner co-signature via EIP-712. Self-managed mode skips signature validation. |
 | `initiateForced(amount)` | Owner | Start 4-hour timelock. One pending per GasTank. |
 | `claimForced(to)` | Owner | Claim after timelock. Gets `min(requested, balance)`. |
 | `cancelForced()` | Owner | Cancel pending forced withdrawal. |
-| `debit(amount, to)` | Cosigner | Charge gas fees. Transfers USDC to `to` (paymaster, billing pool). |
+| `debit(amount, to)` | Cosigner | Charge gas fees. Transfers USDC to `to` (paymaster, billing pool). Disabled in self-managed mode. |
 | `sweep(token, to)` | Owner | Recover non-USDC tokens sent by mistake. |
 
 ## EIP-712
@@ -61,7 +68,7 @@ Domain:
 Withdraw(uint256 amount, address to, uint256 nonce, uint256 deadline)
 ```
 
-The cosigner signs `Withdraw` off-chain. The owner submits the transaction with the signature. Nonce increments on each use.
+In managed mode, the cosigner signs `Withdraw` off-chain and the owner submits the transaction with the signature. Nonce increments on each use. In self-managed mode (`COSIGNER == address(0)`), the owner still uses `withdraw(...)`, but the tank skips cosigner signature validation.
 
 ## Deposit Flows
 
@@ -103,7 +110,7 @@ User requests withdrawal → app calls protocol API
 ```
 User calls gasTank.initiateForced(amount)
   → 4h timer starts
-  [Cosigner can debit outstanding gas fees during window]
+  [Managed cosigner can debit outstanding gas fees during window]
 After 4h:
   User calls gasTank.claimForced(to)
   → receives min(requestedAmount, currentBalance)
@@ -112,9 +119,11 @@ After 4h:
 ## Billing
 
 ```
-Protocol aggregates gas costs per user (off-chain)
+Managed provider aggregates gas costs per user (off-chain)
   → gasTank.debit(amount, paymasterAddress)
   → USDC goes to Pimlico/Gelato
+
+Self-managed mode uses `address(0)` as cosigner, which disables `debit(...)` entirely.
 ```
 
 ## Deployment

@@ -14,7 +14,8 @@ import {IGasTank} from "../interfaces/IGasTank.sol";
 ///
 /// @dev Architecture:
 ///      - One GasTank per user, deployed via CreateX (deterministic CREATE2 address).
-///      - Owner = user's smart account. Cosigner = protocol operator.
+///      - Owner = user's smart account.
+///      - Cosigner = protocol operator for managed mode, or `address(0)` for self-managed mode.
 ///      - Balance is simply `USDC.balanceOf(address(this))` — no internal ledger.
 ///      - USDC can be sent to the CREATE2 address before deployment.
 ///
@@ -23,10 +24,12 @@ import {IGasTank} from "../interfaces/IGasTank.sol";
 ///               the GasTank is just the `recipient` in ExecutionParams.
 ///
 ///      Withdrawal:
-///        - Instant: Owner + cosigner co-sign (EIP-712). Cosigner signature verified on-chain.
-///        - Forced:  Owner alone, 4-hour timelock. Cosigner can debit outstanding fees during window.
+///        - Instant: Owner path. Managed mode requires cosigner co-sign (EIP-712).
+///                   Self-managed mode (`COSIGNER == address(0)`) skips signature validation.
+///        - Forced:  Owner alone, 4-hour timelock. Managed cosigner can debit outstanding fees during window.
 ///
 ///      Billing: Cosigner calls `debit()` to charge gas fees, directing USDC to the paymaster.
+///               Disabled when `COSIGNER == address(0)`.
 contract GasTank is IGasTank, EIP712 {
     using SafeERC20 for IERC20;
 
@@ -48,7 +51,8 @@ contract GasTank is IGasTank, EIP712 {
     /// @notice The user's smart account that owns this GasTank.
     address public immutable OWNER;
 
-    /// @notice The protocol address that co-signs instant withdrawals and debits gas fees.
+    /// @notice The configured gas provider.
+    /// @dev `address(0)` means self-managed mode and disables protocol debit while leaving owner withdrawal self-managed.
     address public immutable COSIGNER;
 
     /// @notice The USDC token contract.
@@ -69,7 +73,7 @@ contract GasTank is IGasTank, EIP712 {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @param _owner   The user's smart account address.
-    /// @param _cosigner The protocol operator address.
+    /// @param _cosigner The protocol operator address, or `address(0)` for self-managed mode.
     /// @param _usdc    The USDC token address on Default chain.
     constructor(address _owner, address _cosigner, address _usdc) EIP712("KnotGasTank", "1") {
         OWNER = _owner;
@@ -102,10 +106,13 @@ contract GasTank is IGasTank, EIP712 {
 
         uint256 nonce = withdrawNonce++;
 
-        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(WITHDRAW_TYPEHASH, amount, to, nonce, deadline)));
+        if (COSIGNER != address(0)) {
+            bytes32 digest =
+                _hashTypedDataV4(keccak256(abi.encode(WITHDRAW_TYPEHASH, amount, to, nonce, deadline)));
 
-        if (ECDSA.recover(digest, cosignerSig) != COSIGNER) {
-            revert InvalidCosignerSignature();
+            if (ECDSA.recover(digest, cosignerSig) != COSIGNER) {
+                revert InvalidCosignerSignature();
+            }
         }
 
         USDC.safeTransfer(to, amount);
@@ -168,6 +175,9 @@ contract GasTank is IGasTank, EIP712 {
 
     /// @inheritdoc IGasTank
     function debit(uint256 amount, address to) external {
+        if (COSIGNER == address(0)) {
+            revert CosignerDisabled();
+        }
         if (msg.sender != COSIGNER) {
             revert NotCosigner();
         }

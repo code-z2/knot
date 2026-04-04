@@ -88,6 +88,7 @@ contract MockToken {
 
 contract GasTankTest is Test {
     GasTank public tank;
+    GasTank public selfManagedTank;
     MockUSDC public usdc;
     MockToken public otherToken;
 
@@ -111,6 +112,7 @@ contract GasTankTest is Test {
         otherToken = new MockToken();
 
         tank = new GasTank(owner, cosigner, address(usdc));
+        selfManagedTank = new GasTank(owner, address(0), address(usdc));
 
         // Fund owner with USDC for deposits
         usdc.mint(owner, 100_000e6);
@@ -162,6 +164,12 @@ contract GasTankTest is Test {
         assertEq(address(tank.USDC()), address(usdc));
         assertEq(tank.FORCED_DELAY(), 4 hours);
         assertEq(tank.withdrawNonce(), 0);
+    }
+
+    function test_Constructor_SelfManagedMode() public view {
+        assertEq(selfManagedTank.OWNER(), owner);
+        assertEq(selfManagedTank.COSIGNER(), address(0));
+        assertEq(address(selfManagedTank.USDC()), address(usdc));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -313,6 +321,22 @@ contract GasTankTest is Test {
         vm.prank(owner);
         vm.expectRevert(IGasTank.InvalidCosignerSignature.selector);
         tank.withdraw(2000e6, recipient, deadline, sig);
+    }
+
+    function test_Withdraw_SelfManagedMode() public {
+        vm.startPrank(owner);
+        usdc.approve(address(selfManagedTank), 5000e6);
+        selfManagedTank.deposit(5000e6);
+        vm.stopPrank();
+
+        uint256 deadline = block.timestamp + 1 hours;
+
+        vm.prank(owner);
+        selfManagedTank.withdraw(1000e6, recipient, deadline, "");
+
+        assertEq(usdc.balanceOf(recipient), 1000e6);
+        assertEq(usdc.balanceOf(address(selfManagedTank)), 4000e6);
+        assertEq(selfManagedTank.withdrawNonce(), 1);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -503,6 +527,17 @@ contract GasTankTest is Test {
         vm.prank(owner);
         vm.expectRevert(IGasTank.NotCosigner.selector);
         tank.debit(1000e6, paymaster);
+    }
+
+    function test_RevertWhen_Debit_CosignerDisabled() public {
+        vm.startPrank(owner);
+        usdc.approve(address(selfManagedTank), 5000e6);
+        selfManagedTank.deposit(5000e6);
+        vm.stopPrank();
+
+        vm.prank(cosigner);
+        vm.expectRevert(IGasTank.CosignerDisabled.selector);
+        selfManagedTank.debit(1000e6, paymaster);
     }
 
     function testFuzz_Debit(uint256 depositAmount, uint256 debitAmount) public {
