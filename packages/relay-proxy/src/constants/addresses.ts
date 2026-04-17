@@ -7,3 +7,5 @@ export const USDC_BY_CHAIN = {
     84532: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
     421614: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d',
 } as const satisfies Record<number, Address>;
+
+export const CREATE_X_ADDRESS = '0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed';

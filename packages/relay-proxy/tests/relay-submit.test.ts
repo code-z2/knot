@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 
 import { createIntentExecutionStore } from '../src/stores/intent-execution';
-import type { Address } from 'viem';
+import type { Address, Hex } from 'viem';
 import type { RpcUserOperation } from 'viem/account-abstraction';
 import type { RpcFailure, RpcSuccess, SendUserOperationBatchResult } from '../src/types';
+import { uint } from '../src/utils';
 import { createTestApp } from './helpers/app';
 import { registerUser } from './helpers/auth-flow';
 import { jsonHeaders, readJson } from './helpers/http';
@@ -43,15 +44,13 @@ function createQueue<T>() {
     };
 }
 
-function createRelayEnv(
-    kv: ReturnType<typeof createMockKV>,
-    queue: ReturnType<typeof createQueue<string>>,
-) {
+function createRelayEnv(kv: ReturnType<typeof createMockKV>, queue: ReturnType<typeof createQueue<string>>) {
     return {
         ANOMALY_QUEUE: createQueue<unknown>() as never,
         AUTH_DB: {} as never,
         AUTH_KV: {} as never,
         BUNDLER_API_KEY: 'bundler-api-key',
+        GAS_USAGE_KV: createMockKV() as never,
         JSON_RPC_API_KEY: 'rpc-api-key',
         KNOT_APPLE_BUNDLE_ID: 'app.knot.ios',
         KNOT_APPLE_TEAM_ID: 'TEAM123456',
@@ -82,12 +81,98 @@ function createRelayRequest(body: unknown, accessToken: string, appAttestKeyId: 
     });
 }
 
+function createUserOperation(sender: string, nonce: Hex): RpcUserOperation {
+    return {
+        callData: '0x',
+        callGasLimit: '0x1',
+        maxFeePerGas: '0x0',
+        maxPriorityFeePerGas: '0x0',
+        nonce,
+        preVerificationGas: '0x1',
+        sender: sender as Address,
+        signature: '0x',
+        verificationGasLimit: '0x1',
+    };
+}
+
+function createRelayOperation(
+    sender: string,
+    nonce: Hex,
+    chainId: number,
+    strategy: 'immediate' | 'background' | 'deferred',
+) {
+    return {
+        ...createUserOperation(sender, nonce),
+        chainId,
+        strategy,
+    };
+}
+
+function createRelayGasClient(userId: string) {
+    return {
+        async admitExposure() {
+            return { pendingExposureUsdc: '0x2' };
+        },
+        async decrementPendingExposure() {
+            return { pendingExposureUsdc: '0x0' };
+        },
+        async incrementOutstandingDebt() {
+            return { outstandingDebtUsdc: '0x2' };
+        },
+        async ctx() {
+            return {
+                balanceUsdc: uint('0xffff'),
+                gasProfile: {
+                    minimumAllowedUsdc: uint.zero,
+                    overdraftEligible: false,
+                    overdraftEnabled: false,
+                    overdraftLocked: false,
+                    overdraftOutstandingUsdc: uint.zero,
+                    outstandingDebtUsdc: uint.zero,
+                    updatedAt: 0,
+                    userId,
+                },
+                pendingExposureUsdc: uint.zero,
+                provider: { kind: 'self' },
+            };
+        },
+    } as never;
+}
+
 describe('relay proxy relay submit route', () => {
     it('submits a single user operation inline', async () => {
         const kv = createMockKV();
         const queue = createQueue<string>();
         const calls: Array<{ type: string; value: unknown[] }> = [];
         const userId = '0x1111111111111111111111111111111111111111';
+        const immediateReceipt = {
+            actualGasCost: '0x1',
+            actualGasUsed: '0x2',
+            entryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
+            logs: [],
+            nonce: '0x1',
+            paymaster: null,
+            reason: null,
+            receipt: {
+                blockHash: '0xblock',
+                blockNumber: '0x1',
+                contractAddress: null,
+                cumulativeGasUsed: '0x1',
+                effectiveGasPrice: '0x1',
+                from: userId,
+                gasUsed: '0x1',
+                logs: [],
+                logsBloom: `0x${'0'.repeat(512)}`,
+                status: '0x1',
+                to: userId,
+                transactionHash: '0xtx',
+                transactionIndex: '0x0',
+                type: '0x2',
+            },
+            sender: userId,
+            success: true,
+            userOpHash: '0xsinglehash',
+        };
         const { app } = createTestApp({
             bundler: {
                 async getUserOperationQuote(userOperation: RpcUserOperation, entryPoint: Address) {
@@ -116,10 +201,16 @@ describe('relay proxy relay submit route', () => {
                 async sendUserOperationBatch() {
                     throw new Error('not_used');
                 },
-                async sendUserOperationSync() {
-                    throw new Error('not_used');
+                async sendUserOperationSync(userOperation: RpcUserOperation, entryPoint: Address) {
+                    calls.push({
+                        type: 'sync',
+                        value: [userOperation, entryPoint],
+                    });
+
+                    return immediateReceipt as never;
                 },
             } as never,
+            gasClient: createRelayGasClient(userId),
         });
 
         const { verifyBody } = await registerUser(app, {
@@ -135,20 +226,8 @@ describe('relay proxy relay submit route', () => {
                     jsonrpc: '2.0',
                     method: 'knot_relaySubmit',
                     params: {
-                        chainId: 84532,
-                        kind: 'single',
                         request: [
-                            {
-                                callData: '0x',
-                                callGasLimit: '0x1',
-                                maxFeePerGas: '0x0',
-                                maxPriorityFeePerGas: '0x0',
-                                nonce: '0x1',
-                                preVerificationGas: '0x1',
-                                sender: userId,
-                                signature: '0x',
-                                verificationGasLimit: '0x1',
-                            },
+                            [createRelayOperation(userId, '0x1', 84532, 'immediate')],
                             '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                         ],
                     },
@@ -160,17 +239,14 @@ describe('relay proxy relay submit route', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(
-            await readJson<RpcSuccess<{ kind: 'single'; userOperationHash: string }>>(response),
-        ).toEqual({
+        expect(await readJson<RpcSuccess<{ immediate: typeof immediateReceipt }>>(response)).toEqual({
             id: 'relay_single',
             jsonrpc: '2.0',
             result: {
-                kind: 'single',
-                userOperationHash: '0xsinglehash',
+                immediate: immediateReceipt,
             },
         });
-        expect(calls.map((call) => call.type)).toEqual(['quote', 'send']);
+        expect(calls.map((call) => call.type)).toEqual(['quote', 'sync']);
         expect(queue.sent).toEqual([]);
         expect([...kv.records.keys()]).toEqual([]);
     });
@@ -221,23 +297,18 @@ describe('relay proxy relay submit route', () => {
                     };
                 },
                 async sendUserOperation() {
-                    throw new Error('not_used');
+                    calls.push('send');
+                    return '0xbackground1';
                 },
                 async sendUserOperationBatch() {
-                    calls.push('send');
-                    return [
-                        {
-                            hash: '0xbackground1',
-                            index: 0,
-                            ok: true,
-                        },
-                    ] satisfies SendUserOperationBatchResult[];
+                    throw new Error('not_used');
                 },
                 async sendUserOperationSync() {
                     calls.push('sync');
                     return immediateReceipt as never;
                 },
             } as never,
+            gasClient: createRelayGasClient(userId),
         });
 
         const { verifyBody } = await registerUser(app, {
@@ -253,47 +324,13 @@ describe('relay proxy relay submit route', () => {
                     jsonrpc: '2.0',
                     method: 'knot_relaySubmit',
                     params: {
-                        chainId: 84532,
                         fillId: '0x1234',
-                        kind: 'plan',
                         request: [
-                            {
-                                background: [
-                                    {
-                                        callData: '0x',
-                                        callGasLimit: '0x1',
-                                        maxFeePerGas: '0x0',
-                                        maxPriorityFeePerGas: '0x0',
-                                        nonce: '0x2',
-                                        preVerificationGas: '0x1',
-                                        sender: userId,
-                                        signature: '0x',
-                                        verificationGasLimit: '0x1',
-                                    },
-                                ],
-                                deferred: {
-                                    callData: '0x',
-                                    callGasLimit: '0x1',
-                                    maxFeePerGas: '0x0',
-                                    maxPriorityFeePerGas: '0x0',
-                                    nonce: '0x3',
-                                    preVerificationGas: '0x1',
-                                    sender: userId,
-                                    signature: '0x',
-                                    verificationGasLimit: '0x1',
-                                },
-                                immediate: {
-                                    callData: '0x',
-                                    callGasLimit: '0x1',
-                                    maxFeePerGas: '0x0',
-                                    maxPriorityFeePerGas: '0x0',
-                                    nonce: '0x1',
-                                    preVerificationGas: '0x1',
-                                    sender: userId,
-                                    signature: '0x',
-                                    verificationGasLimit: '0x1',
-                                },
-                            },
+                            [
+                                createRelayOperation(userId, '0x1', 84532, 'immediate'),
+                                createRelayOperation(userId, '0x2', 421614, 'background'),
+                                createRelayOperation(userId, '0x3', 11155111, 'deferred'),
+                            ],
                             '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                         ],
                     },
@@ -308,20 +345,19 @@ describe('relay proxy relay submit route', () => {
         expect(
             await readJson<
                 RpcSuccess<{
-                    backgroundResults: readonly SendUserOperationBatchResult[];
+                    background: readonly SendUserOperationBatchResult[];
                     deferred: { fillId: string; queued: boolean };
-                    immediateReceipt: typeof immediateReceipt;
-                    kind: 'plan';
+                    immediate: typeof immediateReceipt;
                 }>
             >(response),
         ).toEqual({
             id: 'relay_plan',
             jsonrpc: '2.0',
             result: {
-                backgroundResults: [
+                background: [
                     {
+                        chainId: 421614,
                         hash: '0xbackground1',
-                        index: 0,
                         ok: true,
                     },
                 ],
@@ -329,8 +365,7 @@ describe('relay proxy relay submit route', () => {
                     fillId: '0x1234',
                     queued: true,
                 },
-                immediateReceipt,
-                kind: 'plan',
+                immediate: immediateReceipt,
             },
         });
         expect(calls).toEqual(['sync', 'send']);
@@ -342,7 +377,7 @@ describe('relay proxy relay submit route', () => {
         const record = await store.get('0x1234');
 
         expect(record).not.toBeNull();
-        expect(record?.chainId).toBe(84532);
+        expect(record?.chainId).toBe(11155111);
         expect(record?.fillId).toBe('0x1234');
         expect(record?.userOperation.sender).toBe(userId);
     });
@@ -373,6 +408,7 @@ describe('relay proxy relay submit route', () => {
                     throw new Error('should_not_send');
                 },
             } as never,
+            gasClient: createRelayGasClient(userId),
         });
 
         const { verifyBody } = await registerUser(app, {
@@ -388,20 +424,15 @@ describe('relay proxy relay submit route', () => {
                     jsonrpc: '2.0',
                     method: 'knot_relaySubmit',
                     params: {
-                        chainId: 84532,
-                        kind: 'single',
                         request: [
-                            {
-                                callData: '0x',
-                                callGasLimit: '0x1',
-                                maxFeePerGas: '0x0',
-                                maxPriorityFeePerGas: '0x0',
-                                nonce: '0x1',
-                                preVerificationGas: '0x1',
-                                sender: '0x4444444444444444444444444444444444444444',
-                                signature: '0x',
-                                verificationGasLimit: '0x1',
-                            },
+                            [
+                                createRelayOperation(
+                                    '0x4444444444444444444444444444444444444444',
+                                    '0x1',
+                                    84532,
+                                    'immediate',
+                                ),
+                            ],
                             '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                         ],
                     },

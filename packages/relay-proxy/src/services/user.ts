@@ -4,7 +4,7 @@ export async function createUser(
     store: AuthStore,
     input: {
         now: number;
-        userId: string;
+        userId: `0x${string}`;
     },
 ): Promise<UserRecord | null> {
     const user: UserRecord = {

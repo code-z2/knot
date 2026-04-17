@@ -6,9 +6,34 @@ export const RPC_APP_ERRORS = {
         reason: 'bundler_not_configured',
         status: 500,
     },
+    gasProviderUnsupported: {
+        code: -32000,
+        reason: 'unsupported_gas_provider',
+        status: 400,
+    },
     challengeNotFound: {
         code: -32000,
         reason: 'challenge_not_found',
+        status: 400,
+    },
+    overdraftLocked: {
+        code: -32000,
+        reason: 'overdraft_locked',
+        status: 400,
+    },
+    insufficientGasHeadroom: {
+        code: -32000,
+        reason: 'insufficient_gas_headroom',
+        status: 400,
+    },
+    overdraftNotEligible: {
+        code: -32000,
+        reason: 'overdraft_not_eligible',
+        status: 400,
+    },
+    pendingDebitOutstanding: {
+        code: -32000,
+        reason: 'pending_debit_outstanding',
         status: 400,
     },
     fileTooLarge: {

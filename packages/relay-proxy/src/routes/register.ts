@@ -47,10 +47,7 @@ export function createUserRegisterRoutes(options: CreateAppOptions = {}) {
         const result: UserRegisterOptionsResult = {
             appAttestChallenge: challenge.challenge,
             challengeId: challenge.id,
-            options: client.verifiers.passkey.getRegistrationOptions(
-                rpc.params.userId,
-                challenge.challenge,
-            ),
+            options: client.verifiers.passkey.getRegistrationOptions(rpc.params.userId, challenge.challenge),
         };
 
         return c.json(rpcResult(rpc.id, result));
@@ -61,11 +58,7 @@ export function createUserRegisterRoutes(options: CreateAppOptions = {}) {
 
         const client = createAuthClient(c.env, options);
         const now = Date.now();
-        const challenge = await consumeChallenge(
-            client.store,
-            rpc.params.challengeId,
-            'user_register',
-        );
+        const challenge = await consumeChallenge(client.store, rpc.params.challengeId, 'user_register');
 
         if (!challenge || !challenge.userId) {
             return rpcAppError(c, rpc.id, RPC_APP_ERRORS.challengeNotFound);

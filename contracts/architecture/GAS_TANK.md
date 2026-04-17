@@ -6,8 +6,8 @@ Per-user USDC escrow for gas sponsorship. Each user gets a deterministic GasTank
 
 | File | Lines | Role |
 |------|-------|------|
-| `src/gas-tank/GasTank.sol` | ~120 | Per-user escrow: deposit, withdraw, forced withdrawal, debit, sweep |
-| `src/gas-tank/IGasTank.sol` | ~90 | Interface, events, errors, structs |
+| `src/gas-tank/GasTank.sol` | ~120 | Per-user escrow: deposit, instant withdraw, delayed permissionless withdraw, debit, sweep |
+| `src/gas-tank/IGasTank.sol` | ~70 | Interface, events, and errors |
 
 ## Design
 
@@ -38,10 +38,7 @@ address immutable COSIGNER     // gas provider, or address(0) for self-managed m
 IERC20  immutable USDC         // USDC token
 
 uint256 withdrawNonce           // replay protection for instant withdrawals
-PendingWithdrawal {
-    uint128 amount              // requested amount (packed with unlockTime in one slot)
-    uint64  unlockTime          // block.timestamp + 4 hours
-}
+uint64  lastProtocolCollectionAt // rolling collection-window anchor
 ```
 
 ## Functions
@@ -50,9 +47,7 @@ PendingWithdrawal {
 |----------|--------|-------------|
 | `deposit(amount)` | Anyone | Pull USDC from msg.sender. Emits `Deposited`. |
 | `withdraw(amount, to, deadline, cosignerSig)` | Owner | Instant withdrawal. Managed mode requires cosigner co-signature via EIP-712. Self-managed mode skips signature validation. |
-| `initiateForced(amount)` | Owner | Start 4-hour timelock. One pending per GasTank. |
-| `claimForced(to)` | Owner | Claim after timelock. Gets `min(requested, balance)`. |
-| `cancelForced()` | Owner | Cancel pending forced withdrawal. |
+| `withdrawPermissionless(amount, to)` | Owner | Delayed owner-only withdrawal. Managed mode requires the rolling collection window to have elapsed. Self-managed mode is effectively always unlocked. |
 | `debit(amount, to)` | Cosigner | Charge gas fees. Transfers USDC to `to` (paymaster, billing pool). Disabled in self-managed mode. |
 | `sweep(token, to)` | Owner | Recover non-USDC tokens sent by mistake. |
 
@@ -65,10 +60,10 @@ Domain:
   chainId: 8453 (Base)
   verifyingContract: <per-user GasTank address>
 
-Withdraw(uint256 amount, address to, uint256 nonce, uint256 deadline)
+withdraw(uint256 amount, address to, uint256 nonce, uint256 deadline)
 ```
 
-In managed mode, the cosigner signs `Withdraw` off-chain and the owner submits the transaction with the signature. Nonce increments on each use. In self-managed mode (`COSIGNER == address(0)`), the owner still uses `withdraw(...)`, but the tank skips cosigner signature validation.
+In managed mode, the cosigner signs `withdraw` off-chain and the owner submits the transaction with the signature. Nonce increments on each use. In self-managed mode (`COSIGNER == address(0)`), the owner still uses `withdraw(...)`, but the tank skips cosigner signature validation.
 
 ## Deposit Flows
 
@@ -100,20 +95,22 @@ User withdraws USDC from CEX to GasTank CREATE2 address on Base
 
 ```
 User requests withdrawal → app calls protocol API
-  → protocol validates balance, signs Withdraw EIP-712
+  → protocol validates balance, signs withdraw EIP-712
   → user submits gasTank.withdraw(amount, to, deadline, cosignerSig)
   → USDC transferred immediately
 ```
 
-### Forced (4-hour timelock)
+### Delayed permissionless
 
 ```
-User calls gasTank.initiateForced(amount)
-  → 4h timer starts
-  [Managed cosigner can debit outstanding gas fees during window]
-After 4h:
-  User calls gasTank.claimForced(to)
-  → receives min(requestedAmount, currentBalance)
+Managed mode:
+  User waits until:
+    block.timestamp >= lastProtocolCollectionAt + 30 days
+  User calls gasTank.withdrawPermissionless(amount, to)
+  → USDC transferred without cosigner signature
+
+Self-managed mode:
+  withdrawPermissionless(...) is immediately available because there is no protocol collection rail to protect
 ```
 
 ## Billing
@@ -124,6 +121,9 @@ Managed provider aggregates gas costs per user (off-chain)
   → USDC goes to Pimlico/Gelato
 
 Self-managed mode uses `address(0)` as cosigner, which disables `debit(...)` entirely.
+
+Every successful `debit(...)` refreshes `lastProtocolCollectionAt`.
+This creates a rolling quiet window before `withdrawPermissionless(...)` becomes available again.
 ```
 
 ## Deployment
@@ -148,9 +148,9 @@ createX.deployCreate2(salt, initCode);
 
 | Risk | Mitigation |
 |------|------------|
-| Cosigner drains via debit | Trusted for billing. Forced withdrawal is user's escape hatch. |
-| Cosigner blocks instant withdrawal | User falls back to forced (4h). Cosigner cannot cancel forced path. |
+| Cosigner drains via debit | Trusted for billing. Permissionless delayed withdrawal remains the long-term escape hatch. |
+| Cosigner blocks instant withdrawal | User falls back to delayed permissionless withdrawal after the rolling quiet window. |
 | Signature replay | Nonce per GasTank + deadline expiry. |
-| Balance underflow on forced claim | `min(requested, balance)` — debits during window reduce claimable. |
+| Protocol collects while user wants to exit | `withdrawPermissionless(...)` opens only after `lastProtocolCollectionAt + 30 days`. |
 | Non-USDC sent to GasTank | `sweep()` recovers any non-USDC token. |
 | CREATE2 front-running | Constructor args are deterministic. Deploying "for" someone gives them ownership. |

@@ -27,10 +27,7 @@ import { buildAppAttestPayload, parseJsonRecord, rpcAppError } from '@/utils';
  * On success the middleware sets `session` on the Hono context so downstream
  * handlers can identify the caller.
  */
-export function auth(
-    fidelity: AuthFidelity,
-    options: CreateAppOptions = {},
-): MiddlewareHandler<AppBindings> {
+export function auth(fidelity: AuthFidelity, options: CreateAppOptions = {}): MiddlewareHandler<AppBindings> {
     return async (c, next) => {
         const rawBody = await c.req.text();
         const rpcId = parseJsonRecord<{ id: RpcId }>(rawBody)?.id ?? null;

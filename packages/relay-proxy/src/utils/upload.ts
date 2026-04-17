@@ -1,12 +1,7 @@
 import { UploadPurpose } from '@/types';
 import { generateUUID } from './auth';
 
-export function parseBoundedInteger(
-    value: string | undefined,
-    min: number,
-    max: number,
-    fallback: number,
-) {
+export function parseBoundedInteger(value: string | undefined, min: number, max: number, fallback: number) {
     const parsed = Number.parseInt(value ?? '', 10);
 
     if (!Number.isFinite(parsed) || parsed < min || parsed > max) {

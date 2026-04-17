@@ -23,11 +23,7 @@ export type AppAttestVerifier = {
     }) => {
         signCount: number;
     };
-    verifyAttestation: (input: {
-        attestation: string;
-        challenge: string;
-        keyId: string;
-    }) => AppAttestationVerification;
+    verifyAttestation: (input: { attestation: string; challenge: string; keyId: string }) => AppAttestationVerification;
 };
 
 /**
@@ -41,8 +37,5 @@ export type PasskeyVerifier = {
         publicKey: string;
         response: Authentication.Response;
     }) => boolean;
-    verifyRegistration: (input: {
-        challenge: string;
-        credential: Registration.Credential;
-    }) => Registration.Response;
+    verifyRegistration: (input: { challenge: string; credential: Registration.Credential }) => Registration.Response;
 };

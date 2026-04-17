@@ -1,56 +1,62 @@
+/**
+ * Relay request/response type definitions.
+ *
+ * @module
+ */
 import type { Address, Hex } from 'viem';
 import type { RpcUserOperation, RpcUserOperationReceipt } from 'viem/account-abstraction';
 import type { GelatoUserOperationQuote, SendUserOperationBatchResult } from './bundler';
+import { SupportedChainId } from './chain';
 
-export type RelayPlanOperations = {
-    background: readonly RpcUserOperation[];
-    deferred: RpcUserOperation;
-    immediate?: RpcUserOperation;
+/**
+ * Multi-phase relay plan — used for cross-chain intents.
+ *
+ * - `background`: Operations submitted in parallel (fire-and-forget).
+ * - `deferred`: The intent-execution operation stored in KV for the
+ *   queue worker to retry until the cross-chain fill confirms.
+ * - `immediate`: synchronous operation that the handler waits
+ *   for a receipt before returning or a singular userOperation without the cross-chain ceremony.
+ */
+export type RelayStrategy = 'immediate' | 'background' | 'deferred';
+
+export type RelayOperation = {
+    strategy: RelayStrategy;
+    chainId: SupportedChainId;
+} & RpcUserOperation;
+
+export type RelayParams = {
+    request: readonly [operations: RelayOperation[], entryPoint: Address];
 };
 
-export type RelaySingleParams = {
-    chainId: number;
-    kind: 'single';
-    request: readonly [operation: RpcUserOperation, entryPoint: Address];
-};
-
-export type RelayPlanParams = {
-    chainId: number;
+export type RelayPlanParams = RelayParams & {
     fillId: Hex;
-    kind: 'plan';
-    request: readonly [operations: RelayPlanOperations, entryPoint: Address];
 };
 
-export type RelaySubmitParams = RelaySingleParams | RelayPlanParams;
+export type RelaySubmitParams = RelayParams | RelayPlanParams;
 
-export type RelaySingleQuoteContext = {
-    kind: 'single';
-    quote: GelatoUserOperationQuote;
-};
-
-export type RelayPlanQuoteContext = {
-    backgroundQuotes: readonly GelatoUserOperationQuote[];
-    immediateQuote?: GelatoUserOperationQuote;
-    kind: 'plan';
-};
-
-export type RelayQuoteContext = RelaySingleQuoteContext | RelayPlanQuoteContext;
+export type RelayQuoteContext = Record<number, GelatoUserOperationQuote>;
 
 export type RelayDeferredResult = {
     fillId: Hex;
     queued: boolean;
 };
 
-export type RelaySingleResult = {
-    kind: 'single';
-    userOperationHash: Hex;
+export type RelayImmediateResult = {
+    immediate: RpcUserOperationReceipt;
 };
 
 export type RelayPlanResult = {
-    backgroundResults: readonly SendUserOperationBatchResult[];
+    background: SendUserOperationBatchResult[];
     deferred: RelayDeferredResult;
-    immediateReceipt?: RpcUserOperationReceipt;
-    kind: 'plan';
 };
 
-export type RelaySubmitResult = RelayPlanResult | RelaySingleResult;
+export type RelaySubmitResult = Partial<RelayImmediateResult & RelayPlanResult>;
+
+export type UnwrappedRelayOperation = {
+    chainId: SupportedChainId;
+    userOp: RpcUserOperation;
+};
+
+export type WrappedRelayOperation = RelayOperation & {
+    unwrap: () => UnwrappedRelayOperation;
+};

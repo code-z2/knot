@@ -1,4 +1,4 @@
-import type { CloudflareBindings } from '@/types';
+import type { CloudflareBindings, IntentExecutionRecord } from '@/types';
 
 export type AnomalyBindings = Pick<CloudflareBindings, 'DISCORD_WEBHOOK_URL'>;
 
@@ -23,14 +23,15 @@ export type IntentExecutionRetryExhaustedAnomaly = BaseAnomalyMessage & {
     userId: string;
 };
 
-export type ReservationRetryExhaustedAnomaly = BaseAnomalyMessage & {
-    reservationId: string;
-    type: 'anomaly_reservation_retry_exhausted';
+export type FaucetFundingFailedAnomaly = BaseAnomalyMessage & {
+    type: 'anomaly_faucet_funding_failed';
     userId: string;
 };
 
-export type FaucetFundingFailedAnomaly = BaseAnomalyMessage & {
-    type: 'anomaly_faucet_funding_failed';
+export type RelayGasAccountingFailedAnomaly = BaseAnomalyMessage & {
+    chargeUsdc: string;
+    failures: readonly unknown[];
+    type: 'anomaly_relay_gas_accounting_failed';
     userId: string;
 };
 
@@ -45,4 +46,6 @@ export type AnomalyQueueMessage =
     | IntentExecutionNotQueuedAnomaly
     | IntentExecutionRetryExhaustedAnomaly
     | IntentExecutionTtlExpiringAnomaly
-    | ReservationRetryExhaustedAnomaly;
+    | RelayGasAccountingFailedAnomaly;
+
+export type AnomalyType = AnomalyQueueMessage['type'];

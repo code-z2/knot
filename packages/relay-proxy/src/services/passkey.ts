@@ -1,4 +1,5 @@
 import type { AuthStore, PasskeyRecord } from '@/types';
+import type { Address } from 'viem';
 
 export async function createPasskey(
     store: AuthStore,
@@ -7,7 +8,7 @@ export async function createPasskey(
         credentialId: string;
         now: number;
         publicKey: string;
-        userId: string;
+        userId: Address;
     },
 ): Promise<PasskeyRecord | null> {
     const passkey: PasskeyRecord = {

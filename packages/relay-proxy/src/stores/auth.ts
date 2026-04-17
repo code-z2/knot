@@ -133,13 +133,7 @@ export function createAuthStore(env: Pick<CloudflareBindings, 'AUTH_DB' | 'AUTH_
                 `insert into passkeys (credential_id, user_id, public_key, counter, created_at)
            values (?1, ?2, ?3, ?4, ?5)`,
             )
-                .bind(
-                    passkey.credentialId,
-                    passkey.userId,
-                    passkey.publicKey,
-                    passkey.counter,
-                    passkey.createdAt,
-                )
+                .bind(passkey.credentialId, passkey.userId, passkey.publicKey, passkey.counter, passkey.createdAt)
                 .run();
 
             return passkey;

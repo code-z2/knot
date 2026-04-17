@@ -1,6 +1,7 @@
 import { CHALLENGE_TTL_SECONDS } from '@/constants';
 import type { AuthStore, ChallengeKind, ChallengeRecord } from '@/types';
 import { generateUUID, randomChallenge } from '@/utils';
+import type { Address } from 'viem';
 
 /**
  * Consumes a challenge exactly once and only for the flow kind that issued it.
@@ -17,7 +18,7 @@ export async function issueChallenge(
     input: {
         credentialId?: string;
         kind: ChallengeKind;
-        userId: string;
+        userId: Address;
     },
 ): Promise<ChallengeRecord> {
     const record: ChallengeRecord = {

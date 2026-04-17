@@ -23,24 +23,16 @@ export function createTestApp(options: CreateAppOptions = {}) {
     };
 }
 
-export function attachHighFidelityTestRoute(
-    app: ReturnType<typeof createTestApp>['app'],
-    options: CreateAppOptions,
-) {
-    app.post(
-        '/v1/protected/high',
-        zValidator('json', userLogoutSchema, rpcHook),
-        auth('high', options),
-        (c) => {
-            const rpc = c.req.valid('json');
-            const session = c.get('session');
+export function attachHighFidelityTestRoute(app: ReturnType<typeof createTestApp>['app'], options: CreateAppOptions) {
+    app.post('/v1/protected/high', zValidator('json', userLogoutSchema, rpcHook), auth('high', options), (c) => {
+        const rpc = c.req.valid('json');
+        const session = c.get('session');
 
-            return c.json(
-                rpcResult(rpc.id, {
-                    ok: true,
-                    userId: session.userId,
-                }),
-            );
-        },
-    );
+        return c.json(
+            rpcResult(rpc.id, {
+                ok: true,
+                userId: session.userId,
+            }),
+        );
+    });
 }

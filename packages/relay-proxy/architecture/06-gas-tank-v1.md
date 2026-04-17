@@ -1,17 +1,19 @@
 # Gas Tank V1
 
-Gas Tank V1 is the accounting and settlement layer behind sponsored relay.
+Gas Tank V1 is the accounting and collection layer behind sponsored relay.
 
 It is built around:
 
-- the onchain per-user Base USDC GasTank
-- operational reservation state
-- post-execution settlement
+- the onchain per-user Base USDC Gas Tank
+- a durable per-user gas account in D1
+- a per-user Gas Account Durable Object for atomic runtime exposure
+- post-execution actual-cost accounting
+- periodic protocol debt collection
 - overdraft policy
 - durable usage history
 
 The onchain contract remains the source of actual user funds.
-The backend owns the operational pipeline around those funds.
+The backend owns sponsor admission, debt tracking, and collection timing around those funds.
 
 ## Onchain Source Of Truth
 
@@ -21,13 +23,14 @@ See [GAS_TANK.md](/Users/peter/Developer/knot/contracts/architecture/GAS_TANK.md
 
 Important properties:
 
-- one GasTank per user
+- one Gas Tank per user
 - Base USDC only
 - real balance is onchain
-- protocol cosigner can `debit(amount, to)`
-- owner can withdraw or forced-withdraw
+- protocol cosigner can collect from the tank
+- owner can withdraw immediately with cosign
+- owner can withdraw permissionlessly only after the rolling quiet period
 
-Gas Tank V1 should not introduce an onchain reservation ledger.
+Gas Tank V1 should not introduce an onchain per-transaction reservation ledger.
 
 ## Product Model
 
@@ -39,48 +42,133 @@ The iOS product already exposes these concepts:
 - overdraft usage
 - gas usage history
 
-So backend state should preserve those exact ideas instead of inventing a different mental model.
+Backend state should preserve those exact ideas instead of inventing a second financial model.
 
-## Reservation Model
+## Runtime And Durable State
 
-Reservations are operational holds, not permanent ledger records.
+Gas Tank V1 no longer uses reservation records as the primary accounting primitive.
 
-They exist so the protocol can avoid sponsoring more relay work than the user's gas position can support.
+Instead it tracks two different classes of sponsor exposure:
 
-Reservations should be:
+- `pendingExposureUsdc`
+  - sponsor risk from accepted but unresolved relay
+- `outstandingDebtUsdc`
+  - realized debt from completed relay that has not yet been collected
 
-- short-lived
-- queue-driven
-- eventually settled or released
+The intended state split is:
 
-Reservation state belongs in KV, not in the GasTank contract.
+- `pendingExposureUsdc` in a per-user Durable Object
+- `outstandingDebtUsdc` in the durable D1 gas account row
+- current balance read from the onchain Gas Tank
+
+This keeps the hot admission path atomic without turning D1 into a high-churn runtime store.
 
 ## Admission Rule
 
 When deciding whether to accept a new sponsored relay, the backend should check:
 
-- current onchain GasTank balance
-- open reservations
+- current onchain Gas Tank balance
+- durable outstanding debt
+- current pending exposure
 - current overdraft policy
 
-The effective available amount is:
+The effective sponsor headroom is:
 
 ```text
-availableToReserve = onchainBalanceUsdc - openReservationAmountUsdc
+effectiveHeadroomUsdc =
+  onchainBalanceUsdc
+  - outstandingDebtUsdc
+  - pendingExposureUsdc
+  + overdraftHeadroomUsdc
 ```
 
-A new relay is allowed only if:
+A new sponsored relay is allowed only if:
 
 ```text
-availableToReserve - estimatedReservationUsdc >= minimumAllowedUsdc
+effectiveHeadroomUsdc >= quotedMaxChargeUsdc
 ```
 
 Where:
 
-- `minimumAllowedUsdc = 0` for users without overdraft
-- `minimumAllowedUsdc = -2 USDC` for users with overdraft eligibility
+- `quotedMaxChargeUsdc` comes from server-side relay quote data
+- `overdraftHeadroomUsdc = 0` for users without overdraft
+- `overdraftHeadroomUsdc = abs(minimumAllowedUsdc)` for users with overdraft enabled and eligible
 
-If a user goes below the overdraft floor, Relay V1 should stop accepting new sponsored transactions until the balance is repaired.
+If the user falls below the allowed floor, Relay V1 should stop accepting new sponsored relay until the position is repaired.
+
+## Sponsor Lifecycle
+
+### 1. Admission
+
+On accept:
+
+- quote the exact sponsored relay
+- check effective headroom
+- increment `pendingExposureUsdc`
+- submit the relay operation to the bundler
+
+### 2. Finalization
+
+Relay Proxy charges from the server-side Gelato quote produced for the current relay request.
+
+- if the bundler rejects before accepting the operation, release `pendingExposureUsdc`
+- if the bundler accepts the operation, increment durable `outstandingDebtUsdc` by the quoted charge
+- release `pendingExposureUsdc`
+- increment usage history
+
+Plan requests are billed as an aggregate plan charge. If the plan reaches the accepted execution phase, the user owes the full quoted plan charge even when individual background operations report failure. Clients are expected to simulate operations before submission; Gelato still performs its own admission checks.
+
+Conceptually:
+
+```text
+pendingExposureUsdc -= quotedChargeUsdc
+outstandingDebtUsdc += quotedChargeUsdc
+```
+
+### 3. Collection
+
+Collection is not performed after every receipt.
+
+Gas Tank V1 should use periodic collection plus withdrawal-time collection.
+
+The collectible amount is:
+
+```text
+collectibleUsdc = min(onchainBalanceUsdc, outstandingDebtUsdc)
+```
+
+Once collection succeeds:
+
+```text
+outstandingDebtUsdc -= collectibleUsdc
+```
+
+Collection should be triggered by:
+
+- fast withdrawal before cosigning
+- periodic collection sweep
+- optional opportunistic collection when operationally cheap
+
+## Monthly Collection Model
+
+The protocol should avoid immediate per-receipt collection because that doubles settlement gas burden.
+
+Instead:
+
+- the current server-side Gelato quote is realized into durable debt after bundler acceptance
+- debt is collected on a periodic sweep
+- the sweep should run before the permissionless withdrawal window, for example day `29`
+- fast withdrawal should still collect debt first before returning a cosignature
+
+The collection unit is the user, not the individual relay.
+
+This means the queue and worker model should operate on:
+
+- users with collectible debt
+
+not on:
+
+- one reservation per relay
 
 ## Overdraft
 
@@ -89,82 +177,25 @@ Overdraft is a policy layer, not a hidden internal hack.
 Gas Tank V1 should model:
 
 - `minimumAllowedUsdc`
+- `overdraftEligible`
 - `overdraftEnabled`
+- `overdraftLocked`
 - `overdraftOutstandingUsdc`
 
 Backend behavior:
 
-- if onchain balance is sufficient at settlement time, collect the pending reservation and resolve any outstanding overdraft
-- if onchain balance is insufficient, let the user's position move into overdraft up to the allowed floor
-- if the user exceeds the overdraft floor, stop accepting new sponsored relay
+- if balance is sufficient at collection time, collect debt and reduce any outstanding overdraft exposure
+- if balance is insufficient, leave remaining debt outstanding and enforce policy through admission checks
+- if the user exceeds the allowed floor, stop accepting new sponsored relay
 
-If the user's account is below zero beyond the allowed floor:
+If the user's position is below the allowed floor:
 
 - new relay is rejected
-- overdraft should not be toggleable off until it is repaid
+- overdraft should not be toggleable off until repaid
 
-## Reservation Lifecycle
+## Gas Account
 
-### 1. Quote-backed reservation amount
-
-For `single`, `immediate`, and `background`, reservation amount should be based on backend quote data.
-
-The backend should not reserve from:
-
-- user-supplied fee assumptions
-- raw incoming fee fields inside the `UserOperation`
-
-Instead:
-
-- derive the supported quote token from chain policy
-- get the quote needed for sponsored execution
-- create reservation from that server-side view
-
-### 2. Reservation creation
-
-Reservation should be created after the relevant relay work is sent and quote/task context exists.
-
-That keeps reservation aligned with actual sponsor work rather than purely hypothetical client intent.
-
-### 3. Settlement
-
-After execution confirms:
-
-- actual cost is resolved
-- a pending debit record is created
-- debit worker later debits the user's Base GasTank
-
-### 4. Release or finalize
-
-Once the debit succeeds:
-
-- reservation is marked settled
-- gas profile is updated
-- usage history is written
-
-If the reservation is never debited successfully:
-
-- retries continue up to the policy limit
-- then anomaly handling takes over
-
-## Settlement Model
-
-Settlement is post-execution.
-
-That means:
-
-- reserve optimistically for admission safety
-- settle with actual values later
-
-The debit target should be the protocol billing or treasury address on Base.
-That treasury can then replenish Gelato centrally.
-
-This keeps the onchain debit surface simple and avoids binding the GasTank contract to provider-specific funding flows.
-
-## Gas Profile
-
-Gas Tank V1 should keep one aggregated gas profile per user in KV.
-Gas Tank V1 should keep one durable gas profile per user in D1.
+Gas Tank V1 should keep one durable gas account per user in D1.
 
 Suggested fields:
 
@@ -174,17 +205,19 @@ Suggested fields:
 - `overdraftEnabled`
 - `overdraftLocked`
 - `overdraftOutstandingUsdc`
+- `outstandingDebtUsdc`
 - `updatedAt`
 
-This record is the authoritative product and policy snapshot used by:
+This record is the authoritative durable gas-account snapshot used by:
 
 - relay admission
-- user-facing gas tank views
-- overdraft policy enforcement
-- internal admin or support tools
+- user-facing gas views
+- debt collection
+- overdraft enforcement
+- internal admin or support tooling
 
 Current balance should not be cached here.
-Current balance is read from the onchain GasTank when the endpoint needs it.
+Current balance is read from the onchain Gas Tank when needed.
 
 ## Usage Aggregate
 
@@ -220,7 +253,7 @@ Example:
 }
 ```
 
-Each successful debit should update the current UTC daily bucket.
+Each finalized actual charge should update the current UTC daily bucket.
 
 Reads for:
 
@@ -230,28 +263,59 @@ Reads for:
 
 should aggregate the active daily bucket keys inside that window.
 
-This keeps usage simple and lets KV TTL prune old buckets automatically.
-Gas usage aggregate should exclude overdraft resolution bookkeeping.
+Gas usage aggregate should exclude internal debt-collection bookkeeping.
+
+## Contract Surface
+
+The Base Gas Tank should stay narrow.
+
+Core functions:
+
+- `deposit(uint256 amount)`
+- `withdraw(uint256 amount, address to, uint256 deadline, bytes cosignerSig)`
+- `collect(uint256 amount, address to)` or the current `debit(uint256 amount, address to)` equivalent
+- `withdrawPermissionless(uint256 amount, address to)`
+
+Core state:
+
+- `owner`
+- `cosigner`
+- `withdrawNonce`
+- `lastProtocolCollectionAt`
+- `permissionlessWithdrawalDelay`
+
+Rules:
+
+- fast withdrawal is available with protocol cosign
+- every protocol collection updates `lastProtocolCollectionAt`
+- permissionless withdrawal is available only after:
+
+```text
+block.timestamp >= lastProtocolCollectionAt + permissionlessWithdrawalDelay
+```
+
+This gives the protocol a bounded collection window while preserving eventual user exit.
 
 ## Safety Rule
 
-Do not infer balance deltas offchain.
+Do not infer balances or collectibility purely offchain.
 
-For settlement and overdraft decisions, use:
+For admission and collection decisions, use:
 
-- current onchain GasTank balance
-- current reservation state
+- current onchain Gas Tank balance
+- current durable gas-account state
+- current pending exposure from the user's Durable Object
 
-This is safer than trying to maintain a purely synthetic internal balance.
+This is safer than trying to maintain a synthetic offchain balance.
 
 ## V1 Simplicity Rule
 
 Gas Tank V1 should stay predictable:
 
-- onchain funds in GasTank
-- reservations in a per-user Durable Object
-- gas profile and overdraft policy in D1
+- onchain funds in a per-user Base Gas Tank
+- one durable gas account per user in D1
+- one Gas Account Durable Object per user for atomic exposure tracking
 - gas usage aggregate in KV daily buckets
-- actual debits performed by queued workers
+- actual collection performed by periodic workers and withdraw-time settlement
 
-That is enough to be robust without introducing a heavy financial backend on day one.
+That is enough to be robust without carrying the operational weight of a per-reservation settlement system.

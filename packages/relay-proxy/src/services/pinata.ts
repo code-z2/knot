@@ -15,12 +15,7 @@ function createUploadConfig(env: CloudflareBindings): UploadConfig {
             25_000_000,
             PINATA_MAX_FILE_SIZE_BYTES,
         ),
-        signExpiresSeconds: parseBoundedInteger(
-            env.PINATA_SIGN_EXPIRES_SECONDS,
-            60,
-            900,
-            PINATA_SIGN_EXPIRES_SECONDS,
-        ),
+        signExpiresSeconds: parseBoundedInteger(env.PINATA_SIGN_EXPIRES_SECONDS, 60, 900, PINATA_SIGN_EXPIRES_SECONDS),
     };
 }
 

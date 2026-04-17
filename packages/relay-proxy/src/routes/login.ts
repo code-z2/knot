@@ -61,10 +61,7 @@ export function createUserLoginRoutes(options: CreateAppOptions = {}) {
         const result: UserLoginOptionsResult = {
             appAttestChallenge: challenge.challenge,
             challengeId: challenge.id,
-            options: client.verifiers.passkey.getAuthenticationOptions(
-                rpc.params.credentialId,
-                challenge.challenge,
-            ),
+            options: client.verifiers.passkey.getAuthenticationOptions(rpc.params.credentialId, challenge.challenge),
         };
 
         return c.json(rpcResult(rpc.id, result));
@@ -75,11 +72,7 @@ export function createUserLoginRoutes(options: CreateAppOptions = {}) {
 
         const client = createAuthClient(c.env, options);
         const now = Date.now();
-        const challenge = await consumeChallenge(
-            client.store,
-            rpc.params.challengeId,
-            'user_login',
-        );
+        const challenge = await consumeChallenge(client.store, rpc.params.challengeId, 'user_login');
 
         if (!challenge || !challenge.credentialId) {
             return rpcAppError(c, rpc.id, RPC_APP_ERRORS.challengeNotFound);
@@ -94,13 +87,7 @@ export function createUserLoginRoutes(options: CreateAppOptions = {}) {
 
         const user = await getUser(client.store, passkey?.userId ?? '');
 
-        if (
-            !passkey ||
-            !user ||
-            user.status !== 'active' ||
-            !appAttestation ||
-            appAttestation.status !== 'active'
-        ) {
+        if (!passkey || !user || user.status !== 'active' || !appAttestation || appAttestation.status !== 'active') {
             return rpcAppError(c, rpc.id, RPC_APP_ERRORS.userNotFound);
         }
 

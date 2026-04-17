@@ -91,8 +91,7 @@ abstract contract BaseDeploy is Script {
         vm.serializeAddress(obj, "executor", deployment.executor);
         vm.serializeAddress(obj, "accumulator", deployment.accumulator);
         vm.serializeAddress(obj, "hub", deployment.hub);
-        string memory json =
-            vm.serializeAddress(obj, "accountImplementation", deployment.accountImplementation);
+        string memory json = vm.serializeAddress(obj, "accountImplementation", deployment.accountImplementation);
 
         string memory path = string.concat(dir, "/", vm.toString(block.chainid), ".json");
         vm.writeJson(json, path);
@@ -150,10 +149,7 @@ abstract contract BaseDeploy is Script {
 
     /// @dev Predicts the Create2 address for `CreateX.deployCreate2(bytes32,bytes)`.
     function _computeCreate2Address(bytes32 salt, bytes memory initCode) internal pure returns (address predicted) {
-        predicted = address(
-            uint160(
-                uint256(keccak256(abi.encodePacked(bytes1(0xff), CREATEX, salt, keccak256(initCode))))
-            )
-        );
+        predicted =
+            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), CREATEX, salt, keccak256(initCode))))));
     }
 }

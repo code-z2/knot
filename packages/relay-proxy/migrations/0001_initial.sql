@@ -43,3 +43,14 @@ create table sessions (
 create index sessions_access_token_idx on sessions (access_token);
 create index sessions_user_id_idx on sessions (user_id);
 create index sessions_app_attest_key_id_idx on sessions (app_attest_key_id);
+
+create table gas_profiles (
+  user_id text primary key,
+  minimum_allowed_usdc text not null,
+  overdraft_eligible integer not null check (overdraft_eligible in (0, 1)),
+  overdraft_enabled integer not null check (overdraft_enabled in (0, 1)),
+  overdraft_locked integer not null check (overdraft_locked in (0, 1)),
+  overdraft_outstanding_usdc text not null,
+  outstanding_debt_usdc text not null,
+  updated_at integer not null
+);

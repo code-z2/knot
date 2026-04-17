@@ -18,15 +18,17 @@ The relay proxy sits between:
 - the iOS app
 - Goldsky-driven orchestration
 - Gelato relay, bundler, and paymaster APIs
+- ENS offchain resolver flows for `not.fi`
 - storage providers such as Pinata
 
 Operationally, Relay Proxy V1 also depends on:
 
 - a dedicated deferred relay KV
-- a reservation Durable Object domain
+- a gas-account Durable Object domain
 - a faucet Durable Object domain
-- queue workers for deferred relay, debit settlement, and anomaly delivery
-- D1 for durable policy state
+- a public ENS/profile read surface
+- queue workers for deferred relay, debt collection, and anomaly delivery
+- D1 for durable gas-account and policy state
 - KV daily buckets for rolling gas usage aggregates
 
 ## Design Direction
@@ -56,6 +58,9 @@ Example:
 - `POST /v1/chains`
 - body method: `knot_supportedChains`
 
+- `POST /v1/profile`
+  - body method: `knot_profileUpdate`
+
 This keeps:
 - Hono middleware clean
 - method contracts strict
@@ -68,9 +73,10 @@ This keeps:
 - Relay routes may preserve provider-native params when that reduces adapter churn.
 - The top-level request envelope still belongs to Knot, not to the provider.
 - Health and operational routes may remain plain JSON.
+- Public ENS gateway and profile read routes may remain plain HTTP JSON.
 - Only deferred execution is queued in Relay V1.
-- Reservations are operational state, not permanent business records.
-- Onchain GasTank balance is the safety source for final settlement and overdraft checks.
+- Onchain Gas Tank balance is the safety source for sponsor admission and debt collection.
+- Gas Tank accounting uses pending exposure plus durable debt, not per-relay reservation records.
 
 ## Operational Components
 
@@ -79,9 +85,13 @@ Relay Proxy V1 should be understood as six bounded parts:
 - user-facing routes
 - internal operational routes
 - Gelato client and quote helpers
-- Gas Tank reservation and settlement pipeline
+- Gas Tank debt-accounting and collection pipeline
 - queue workers
 - storage bindings
+
+Relay Proxy V1 also owns one public identity surface:
+
+- ENS offchain profile resolution and reverse profile lookup
 
 The user-facing route surface should stay small.
 
@@ -97,11 +107,14 @@ It exists for:
 The first scaffold only needs:
 - `GET /`
 - `GET /health`
+- `GET /ccip/ens/{sender}/{data}.json`
+- `GET /public/profile/reverse`
 - `POST /v1/user/register/options`
 - `POST /v1/user/register/verify`
 - `POST /v1/user/login/options`
 - `POST /v1/user/login/verify`
 - `POST /v1/user/logout`
+- `POST /v1/profile`
 - `POST /v1/upload/image/options`
 - `POST /v1/relay/submit`
 
@@ -121,3 +134,4 @@ See also:
 - [08-storage-model.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/08-storage-model.md)
 - [09-faucet-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/09-faucet-v1.md)
 - [10-chain-list-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/10-chain-list-v1.md)
+- [11-ens-profile-offchain-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/11-ens-profile-offchain-v1.md)

@@ -5,7 +5,7 @@ Relay Proxy V1 needs queues, but only for the parts that are truly asynchronous.
 The queue system should stay lean:
 
 - deferred relay execution is queued
-- reservation debit settlement is queued
+- periodic debt collection is queued or swept
 - anomaly notification delivery is queued
 
 Immediate and background relay are not queued in V1.
@@ -15,7 +15,7 @@ Immediate and background relay are not queued in V1.
 V1 should have three independent queue concerns:
 
 - deferred relay queue
-- reservation settlement queue
+- debt collection sweep
 - anomaly queue
 
 They should not be collapsed into one opaque catch-all pipe.
@@ -52,42 +52,49 @@ If deferred relay fails:
 The queue payload should not carry the whole `UserOperation`.
 It should carry only the minimal routing identity.
 
-## Reservation Settlement Queue
+## Debt Collection Sweep
 
 Purpose:
 
-- turn pending reservations into onchain GasTank debits
-- retry failed debit attempts
-- update gas profile and usage aggregate
+- turn durable user debt into onchain Base Gas Tank collections
+- batch collections where operationally useful
+- retry failed collection attempts
+- update the durable gas account after successful collection
 
-Suggested payload:
+The collection unit is the user, not the individual relay.
 
-- `reservationId`
+Suggested payload or work item:
+
 - `userId`
-- `attempt`
+- optional `scheduledAt`
+- optional `attempt`
 
-The settlement worker should resolve the rest from KV and onchain state.
+The collection worker should resolve the rest from D1, the user's Gas Account Durable Object, and onchain state.
 
-### Settlement worker behavior
+### Collection worker behavior
 
-For each pending reservation:
+For each indebted user:
 
-1. read the reservation from the user's reservation Durable Object
-2. read the user's current onchain GasTank balance
-3. decide whether to:
-   - debit normally
-   - spend into overdraft
-   - reject because the user is beyond overdraft floor
-4. submit `gasTank.debit(...)`
-5. update reservation status
-6. update D1 gas profile if overdraft state changed
-7. update the KV daily usage bucket
+1. read the durable gas account from D1
+2. skip if `outstandingDebtUsdc == 0`
+3. read the user's current onchain Gas Tank balance
+4. compute:
 
-If debit fails:
+```text
+collectibleUsdc = min(onchainBalanceUsdc, outstandingDebtUsdc)
+```
+
+5. if batching is enabled, place the user into a batch collection plan
+6. submit one or more Base collection transactions
+7. finalize the durable debt reduction through the user's Gas Account Durable Object
+
+If collection fails:
 
 - increment attempts
 - retry up to the configured limit
 - emit anomaly after the final retry budget is exhausted
+
+Collection should also run on the fast withdrawal path before the protocol agrees to cosign an immediate withdrawal.
 
 ## Anomaly Queue
 
@@ -104,7 +111,7 @@ Suggested message:
 - `body`
 - `userId` nullable
 - `fillId` nullable
-- `reservationId` nullable
+- `collectionUserId` nullable
 - `createdAt`
 
 The anomaly worker's job is delivery, not reconstruction.
@@ -129,12 +136,12 @@ Relay cron should:
 - skip items too close to TTL
 - emit anomaly for near-expiry failures instead of requeueing forever
 
-### Reservation cron
+### Collection cron
 
-Reservation cron should:
+Collection cron should:
 
-- find reservations in pending settlement state
-- push them to the settlement queue
+- find users with `outstandingDebtUsdc > 0`
+- push them to the collection worker or iterate them directly
 - avoid pushing already exhausted retries
 - emit anomaly once the retry budget is exhausted
 
@@ -145,30 +152,29 @@ Retry budgets should be small and explicit.
 Suggested V1 rule:
 
 - retry deferred relay up to a bounded count while TTL remains healthy
-- retry reservation debit up to `3` times
+- retry debt collection up to `3` times
 - after the final failed retry, emit anomaly and stop automated retries
 
 This keeps queue behavior predictable and makes the anomaly channel meaningful.
 
 ## Durable Objects
 
-Durable Objects should own live reservation state in V1.
+Durable Objects should own live gas-account runtime state in V1.
 
-Use one reservation Durable Object per user.
+Use one Gas Account Durable Object per user.
 
-That Durable Object should own:
+That Durable Object should own hot atomic state such as:
 
-- open reservations
-- reservation status transitions
-- retry counters
-- atomic per-user reservation updates
+- `pendingExposureUsdc`
+- atomic per-user gas-account mutations
+- finalization of durable debt updates after quote-based bundler acceptance and collection
 
-This keeps live reservation mutation out of weak concurrent KV writes while leaving the rest of the system simple:
+This keeps hot financial mutation out of weak concurrent KV writes while leaving the rest of the system simple:
 
 - Deferred userops in KV
 - usage aggregate in KV
-- gas profile and policy in D1
-- queues for asynchronous execution and settlement
+- durable gas account and policy in D1
+- queues for asynchronous execution, collection, and anomaly delivery
 
 ## Design Rule
 

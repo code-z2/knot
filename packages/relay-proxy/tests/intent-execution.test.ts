@@ -8,12 +8,10 @@ import {
     INTENT_EXECUTION_TTL_WARNING_MS,
 } from '../src/constants';
 import { createIntentExecutionStore } from '../src/stores/intent-execution';
-import {
-    consumeIntentExecutionBatch,
-    sweepIntentExecutions,
-} from '../src/workers/intent-execution';
+import { consumeIntentExecutionBatch, sweepIntentExecutions } from '../src/workers/intent-execution';
 import type {
     AnomalyQueueMessage,
+    CloudflareBindings,
     IntentExecutionQueueMessage,
     IntentExecutionRecord,
 } from '../src/types';
@@ -130,10 +128,10 @@ describe('relay proxy intent execution worker', () => {
         await consumeIntentExecutionBatch(
             batch,
             {
-                BUNDLER_API_KEY: 'api-key',
+                BUNDLER_API_KEY: 'api-key' as never,
+                JSON_RPC_API_KEY: 'rpc-key' as never,
                 RELAY_KV: kv as unknown as KVNamespace,
-                JSON_RPC_API_KEY: 'rpc-key',
-            },
+            } as unknown as CloudflareBindings,
             (_config) =>
                 ({
                     async sendUserOperation(userOperation: unknown, entryPoint: unknown) {
@@ -170,10 +168,10 @@ describe('relay proxy intent execution worker', () => {
         await consumeIntentExecutionBatch(
             batch,
             {
-                BUNDLER_API_KEY: 'api-key',
-                JSON_RPC_API_KEY: 'rpc-key',
+                BUNDLER_API_KEY: 'api-key' as never,
+                JSON_RPC_API_KEY: 'rpc-key' as never,
                 RELAY_KV: kv as unknown as KVNamespace,
-            },
+            } as unknown as CloudflareBindings,
             () => {
                 throw new Error('send failed');
             },
@@ -243,7 +241,7 @@ describe('relay proxy intent execution cron', () => {
         expect(queue.sent).toEqual([]);
     });
 
-    it('sends an anomaly instead of queueing when the record is near expiry', async () => {
+    it('sends an anomaly and queues retryable records when the record is near expiry', async () => {
         const kv = createMockKV();
         const queue = createQueue<IntentExecutionQueueMessage>();
         const anomalyQueue = createQueue<AnomalyQueueMessage>();
@@ -265,9 +263,12 @@ describe('relay proxy intent execution cron', () => {
             now,
         );
 
-        expect(queue.sent).toEqual([]);
+        expect(queue.sent).toEqual([record.fillId]);
         expect(anomalyQueue.sent[0]?.type).toBe('anomaly_intent_execution_ttl_expiring');
-        expect((await store.get(record.fillId))?.lastAnomalyAt).toBe('2026-04-01T12:00:00.000Z');
+        const updated = await store.get(record.fillId);
+        expect(updated?.attempts).toBe(1);
+        expect(updated?.lastAnomalyAt).toBe('2026-04-01T12:00:00.000Z');
+        expect(updated?.lastQueuedAt).toBe('2026-04-01T12:00:00.000Z');
     });
 
     it('sends an anomaly after the retry budget is exhausted', async () => {
@@ -295,7 +296,7 @@ describe('relay proxy intent execution cron', () => {
         expect(anomalyQueue.sent[0]?.type).toBe('anomaly_intent_execution_retry_exhausted');
     });
 
-    it('does not resend an anomaly before the cooldown elapses', async () => {
+    it('queues without resending an anomaly before the cooldown elapses', async () => {
         const kv = createMockKV();
         const queue = createQueue<IntentExecutionQueueMessage>();
         const anomalyQueue = createQueue<AnomalyQueueMessage>();
@@ -305,9 +306,7 @@ describe('relay proxy intent execution cron', () => {
         const now = Date.parse('2026-04-01T12:00:00.000Z');
         const record = createRecord({
             expiresAt: new Date(now + INTENT_EXECUTION_TTL_WARNING_MS - 1).toISOString(),
-            lastAnomalyAt: new Date(
-                now - INTENT_EXECUTION_ANOMALY_RETRY_AFTER_MS + 60_000,
-            ).toISOString(),
+            lastAnomalyAt: new Date(now - INTENT_EXECUTION_ANOMALY_RETRY_AFTER_MS + 60_000).toISOString(),
         });
         await store.put(record);
 
@@ -320,9 +319,11 @@ describe('relay proxy intent execution cron', () => {
             now,
         );
 
-        expect(queue.sent).toEqual([]);
+        expect(queue.sent).toEqual([record.fillId]);
         expect(anomalyQueue.sent).toEqual([]);
-        expect((await store.get(record.fillId))?.lastAnomalyAt).toBe(record.lastAnomalyAt);
+        const updated = await store.get(record.fillId);
+        expect(updated?.lastAnomalyAt).toBe(record.lastAnomalyAt);
+        expect(updated?.lastQueuedAt).toBe('2026-04-01T12:00:00.000Z');
     });
 
     it('resends an anomaly after the cooldown elapses', async () => {
@@ -348,8 +349,10 @@ describe('relay proxy intent execution cron', () => {
             now,
         );
 
-        expect(queue.sent).toEqual([]);
+        expect(queue.sent).toEqual([record.fillId]);
         expect(anomalyQueue.sent[0]?.type).toBe('anomaly_intent_execution_ttl_expiring');
-        expect((await store.get(record.fillId))?.lastAnomalyAt).toBe('2026-04-01T12:00:00.000Z');
+        const updated = await store.get(record.fillId);
+        expect(updated?.lastAnomalyAt).toBe('2026-04-01T12:00:00.000Z');
+        expect(updated?.lastQueuedAt).toBe('2026-04-01T12:00:00.000Z');
     });
 });

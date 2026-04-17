@@ -1,13 +1,9 @@
+import type { Address, Hex } from 'viem';
 import type { AnomalyQueueMessage } from './anomaly';
-import type {
-    AppAttestVerifier,
-    AuthConfig,
-    AuthStore,
-    PasskeyVerifier,
-    SessionRecord,
-} from './auth';
+import type { AppAttestVerifier, AuthConfig, AuthStore, PasskeyVerifier, SessionRecord } from './auth';
 import type { BundlerClient } from './bundler';
-import type { SupportedChainConfig } from './chain';
+import type { ChainPolicyContext } from './chain';
+import type { GasClient } from './gas';
 import type { IntentExecutionQueueMessage } from './intent-execution';
 import type { RelayQuoteContext } from './relay';
 import type { UploadClient } from './upload';
@@ -19,14 +15,20 @@ export type CloudflareBindings = {
     AUTH_DB: D1Database;
     AUTH_KV: KVNamespace;
 
+    GAS_TANK_DO: DurableObjectNamespace;
+    GAS_TANK_DB: D1Database;
+    GAS_USAGE_KV: KVNamespace;
+    TREASURY_ADDRESS: Hex;
+
     RELAY_KV: KVNamespace;
     RELAY_QUEUE: Queue<IntentExecutionQueueMessage>;
 
     ANOMALY_QUEUE: Queue<AnomalyQueueMessage>;
     DISCORD_WEBHOOK_URL?: string;
 
-    BUNDLER_API_KEY: string;
-    JSON_RPC_API_KEY: string;
+    BUNDLER_API_KEY: SecretsStoreSecret;
+    JSON_RPC_API_KEY: SecretsStoreSecret;
+    SERVER_KEY: SecretsStoreSecret;
 
     KNOT_APPLE_BUNDLE_ID: string;
     KNOT_APPLE_TEAM_ID: string;
@@ -41,6 +43,15 @@ export type CloudflareBindings = {
     PINATA_JWT: string;
     PINATA_MAX_FILE_SIZE_BYTES?: string;
     PINATA_SIGN_EXPIRES_SECONDS?: string;
+
+    ACCOUNT_IMPLEMENTATION: Address;
+    CROSS_CHAIN_EXECUTOR_MODULE: Address;
+    ACCUMULATOR_MODULE: Address;
+    MERKLE_VALIDATOR_MODULE: Address;
+    SPOKE_POOL: Address;
+    CONSUMER_HUB: Address;
+    GX: Hex;
+    GY: Hex;
 };
 
 /**
@@ -56,6 +67,7 @@ export type CreateAppOptions = {
             passkey: PasskeyVerifier;
         };
     };
+    gasClient?: GasClient;
     bundler?: BundlerClient;
     upload?: UploadClient;
 };
@@ -72,8 +84,8 @@ export type CreateAppOptions = {
 export type AppBindings = {
     Bindings: CloudflareBindings;
     Variables: {
-        chain: SupportedChainConfig;
-        relayQuote: RelayQuoteContext;
+        chain: ChainPolicyContext;
+        quotes: RelayQuoteContext;
         session: SessionRecord;
     };
 };

@@ -1,10 +1,7 @@
 import type { AnomalyBindings, AnomalyQueueMessage } from '@/types';
-import { buildAnomalyMessage } from './utils';
+import { buildOutboundAnomalyMessage } from '@/utils';
 
-export async function sendDiscordAnomaly(
-    anomaly: AnomalyQueueMessage,
-    env: AnomalyBindings,
-): Promise<void> {
+export async function sendDiscordAnomaly(anomaly: AnomalyQueueMessage, env: AnomalyBindings): Promise<void> {
     const webhookUrl = env.DISCORD_WEBHOOK_URL;
     if (!webhookUrl) {
         return;
@@ -12,7 +9,7 @@ export async function sendDiscordAnomaly(
 
     const response = await fetch(webhookUrl, {
         body: JSON.stringify({
-            content: buildAnomalyMessage(anomaly),
+            content: buildOutboundAnomalyMessage(anomaly),
         }),
         headers: {
             'Content-Type': 'application/json',

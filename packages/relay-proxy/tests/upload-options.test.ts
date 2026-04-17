@@ -5,13 +5,19 @@ import { createTestApp } from './helpers/app';
 import { registerUser } from './helpers/auth-flow';
 import { jsonHeaders, readJson } from './helpers/http';
 
+const UPLOAD_USER = '0x3000000000000000000000000000000000000001';
+const UPLOAD_LIMIT_USER = '0x3000000000000000000000000000000000000002';
+const UPLOAD_TYPE_USER = '0x3000000000000000000000000000000000000003';
+const UPLOAD_NAME_USER = '0x3000000000000000000000000000000000000004';
+const UPLOAD_FAIL_USER = '0x3000000000000000000000000000000000000005';
+
 describe('relay proxy upload routes', () => {
     it('issues image upload options for an authenticated user', async () => {
         const { app } = createTestApp();
         const { verifyBody } = await registerUser(app, {
             appAttestKeyId: 'attest-key-upload',
             credentialId: 'credential-upload',
-            userId: 'user-upload',
+            userId: UPLOAD_USER,
         });
 
         const response = await app.request('http://localhost/v1/upload/image/options', {
@@ -55,7 +61,7 @@ describe('relay proxy upload routes', () => {
             },
         });
 
-        expect(body.result.imageID.startsWith('images/avatar/user-upload/')).toBe(true);
+        expect(body.result.imageID.startsWith(`images/avatar/${UPLOAD_USER}/`)).toBe(true);
         expect(body.result.imageID.endsWith('profile-photo.jpg')).toBe(true);
     });
 
@@ -94,7 +100,7 @@ describe('relay proxy upload routes', () => {
         const { verifyBody } = await registerUser(app, {
             appAttestKeyId: 'attest-key-upload-limit',
             credentialId: 'credential-upload-limit',
-            userId: 'user-upload-limit',
+            userId: UPLOAD_LIMIT_USER,
         });
 
         const response = await app.request('http://localhost/v1/upload/image/options', {
@@ -133,7 +139,7 @@ describe('relay proxy upload routes', () => {
         const { verifyBody } = await registerUser(app, {
             appAttestKeyId: 'attest-key-upload-type',
             credentialId: 'credential-upload-type',
-            userId: 'user-upload-type',
+            userId: UPLOAD_TYPE_USER,
         });
 
         const response = await app.request('http://localhost/v1/upload/image/options', {
@@ -178,7 +184,7 @@ describe('relay proxy upload routes', () => {
         const { verifyBody } = await registerUser(app, {
             appAttestKeyId: 'attest-key-upload-name',
             credentialId: 'credential-upload-name',
-            userId: 'user-upload-name',
+            userId: UPLOAD_NAME_USER,
         });
 
         const response = await app.request('http://localhost/v1/upload/image/options', {
@@ -238,7 +244,7 @@ describe('relay proxy upload routes', () => {
         const { verifyBody } = await registerUser(testApp.app, {
             appAttestKeyId: 'attest-key-upload-fail',
             credentialId: 'credential-upload-fail',
-            userId: 'user-upload-fail',
+            userId: UPLOAD_FAIL_USER,
         });
 
         const response = await testApp.app.request('http://localhost/v1/upload/image/options', {

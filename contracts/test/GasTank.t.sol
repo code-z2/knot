@@ -100,7 +100,7 @@ contract GasTankTest is Test {
 
     // EIP-712 constants — must match GasTank
     bytes32 private constant WITHDRAW_TYPEHASH =
-        keccak256("Withdraw(uint256 amount,address to,uint256 nonce,uint256 deadline)");
+        keccak256("withdraw(uint256 amount,address to,uint256 nonce,uint256 deadline)");
 
     function setUp() public {
         owner = makeAddr("owner");
@@ -162,8 +162,9 @@ contract GasTankTest is Test {
         assertEq(tank.OWNER(), owner);
         assertEq(tank.COSIGNER(), cosigner);
         assertEq(address(tank.USDC()), address(usdc));
-        assertEq(tank.FORCED_DELAY(), 4 hours);
+        assertEq(tank.PERMISSIONLESS_WITHDRAW_DELAY(), 30 days);
         assertEq(tank.withdrawNonce(), 0);
+        assertEq(tank.lastProtocolCollectionAt(), block.timestamp);
     }
 
     function test_Constructor_SelfManagedMode() public view {
@@ -340,152 +341,87 @@ contract GasTankTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //                        FORCED WITHDRAWAL
+    //                 DELAYED PERMISSIONLESS WITHDRAWAL
     // ═══════════════════════════════════════════════════════════════════════
 
-    function test_ForcedWithdrawal_FullLifecycle() public {
+    function test_WithdrawPermissionless_AfterDelay() public {
         _depositAs(owner, 5000e6);
 
-        // Initiate
+        vm.warp(block.timestamp + tank.PERMISSIONLESS_WITHDRAW_DELAY());
+
         vm.prank(owner);
-        tank.initiateForced(3000e6);
-
-        (uint128 amount, uint64 unlockTime) = tank.pendingWithdrawal();
-        assertEq(amount, 3000e6);
-        assertEq(unlockTime, block.timestamp + 4 hours);
-
-        // Wait 4 hours
-        vm.warp(block.timestamp + 4 hours);
-
-        // Claim
-        vm.prank(owner);
-        tank.claimForced(recipient);
+        tank.withdrawPermissionless(3000e6, recipient);
 
         assertEq(usdc.balanceOf(recipient), 3000e6);
         assertEq(usdc.balanceOf(address(tank)), 2000e6);
-
-        // Pending cleared
-        (amount, unlockTime) = tank.pendingWithdrawal();
-        assertEq(amount, 0);
-        assertEq(unlockTime, 0);
     }
 
-    function test_ForcedWithdrawal_EmitsEvents() public {
+    function test_WithdrawPermissionless_EmitsEvent() public {
         _depositAs(owner, 5000e6);
 
-        uint256 expectedUnlock = block.timestamp + 4 hours;
-
-        vm.expectEmit(false, false, false, true);
-        emit IGasTank.ForcedInitiated(3000e6, expectedUnlock);
-
-        vm.prank(owner);
-        tank.initiateForced(3000e6);
-
-        vm.warp(expectedUnlock);
+        vm.warp(block.timestamp + tank.PERMISSIONLESS_WITHDRAW_DELAY());
 
         vm.expectEmit(true, false, false, true);
-        emit IGasTank.ForcedClaimed(recipient, 3000e6);
+        emit IGasTank.PermissionlessWithdrawn(recipient, 3000e6);
 
         vm.prank(owner);
-        tank.claimForced(recipient);
+        tank.withdrawPermissionless(3000e6, recipient);
     }
 
-    function test_ForcedWithdrawal_ClaimReducedByDebit() public {
-        _depositAs(owner, 5000e6);
+    function test_WithdrawPermissionless_SelfManagedMode() public {
+        vm.startPrank(owner);
+        usdc.approve(address(selfManagedTank), 5000e6);
+        selfManagedTank.deposit(5000e6);
+        vm.stopPrank();
 
-        // Initiate forced withdrawal for full balance
         vm.prank(owner);
-        tank.initiateForced(5000e6);
-
-        // During the 4h window, cosigner debits outstanding gas fees
-        vm.prank(cosigner);
-        tank.debit(2000e6, paymaster);
-
-        // After timelock, user claims — gets min(5000, 3000) = 3000
-        vm.warp(block.timestamp + 4 hours);
-        vm.prank(owner);
-        tank.claimForced(recipient);
+        selfManagedTank.withdrawPermissionless(3000e6, recipient);
 
         assertEq(usdc.balanceOf(recipient), 3000e6);
-        assertEq(usdc.balanceOf(paymaster), 2000e6);
+        assertEq(usdc.balanceOf(address(selfManagedTank)), 2000e6);
     }
 
-    function test_ForcedWithdrawal_Cancel() public {
+    function test_RevertWhen_WithdrawPermissionless_NotOwner() public {
         _depositAs(owner, 5000e6);
-
-        vm.prank(owner);
-        tank.initiateForced(3000e6);
-
-        vm.expectEmit(false, false, false, false);
-        emit IGasTank.ForcedCancelled();
-
-        vm.prank(owner);
-        tank.cancelForced();
-
-        (uint128 amount,) = tank.pendingWithdrawal();
-        assertEq(amount, 0);
-
-        // Balance untouched
-        assertEq(usdc.balanceOf(address(tank)), 5000e6);
-    }
-
-    function test_RevertWhen_InitiateForced_NotOwner() public {
-        vm.prank(makeAddr("stranger"));
-        vm.expectRevert(IGasTank.NotOwner.selector);
-        tank.initiateForced(1000e6);
-    }
-
-    function test_RevertWhen_InitiateForced_AlreadyPending() public {
-        _depositAs(owner, 5000e6);
-
-        vm.prank(owner);
-        tank.initiateForced(1000e6);
-
-        vm.prank(owner);
-        vm.expectRevert(IGasTank.ForcedAlreadyPending.selector);
-        tank.initiateForced(2000e6);
-    }
-
-    function test_RevertWhen_ClaimForced_NoPending() public {
-        vm.prank(owner);
-        vm.expectRevert(IGasTank.NoForcedPending.selector);
-        tank.claimForced(recipient);
-    }
-
-    function test_RevertWhen_ClaimForced_StillLocked() public {
-        _depositAs(owner, 5000e6);
-
-        vm.prank(owner);
-        tank.initiateForced(1000e6);
-
-        // Try to claim before timelock expires
-        vm.warp(block.timestamp + 3 hours);
-        vm.prank(owner);
-        vm.expectRevert(IGasTank.ForcedStillLocked.selector);
-        tank.claimForced(recipient);
-    }
-
-    function test_RevertWhen_ClaimForced_NotOwner() public {
-        _depositAs(owner, 5000e6);
-
-        vm.prank(owner);
-        tank.initiateForced(1000e6);
-
-        vm.warp(block.timestamp + 4 hours);
-        vm.prank(makeAddr("stranger"));
-        vm.expectRevert(IGasTank.NotOwner.selector);
-        tank.claimForced(recipient);
-    }
-
-    function test_RevertWhen_CancelForced_NotOwner() public {
-        _depositAs(owner, 5000e6);
-
-        vm.prank(owner);
-        tank.initiateForced(1000e6);
 
         vm.prank(makeAddr("stranger"));
         vm.expectRevert(IGasTank.NotOwner.selector);
-        tank.cancelForced();
+        tank.withdrawPermissionless(1000e6, recipient);
+    }
+
+    function test_RevertWhen_WithdrawPermissionless_StillLocked() public {
+        _depositAs(owner, 5000e6);
+
+        uint256 unlockTime = uint256(tank.lastProtocolCollectionAt()) + tank.PERMISSIONLESS_WITHDRAW_DELAY();
+
+        vm.warp(unlockTime - 1);
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IGasTank.PermissionlessWithdrawalStillLocked.selector, unlockTime));
+        tank.withdrawPermissionless(1000e6, recipient);
+    }
+
+    function test_Debit_RefreshesPermissionlessWindow() public {
+        _depositAs(owner, 5000e6);
+
+        vm.warp(block.timestamp + 10 days);
+
+        vm.prank(cosigner);
+        tank.debit(1000e6, paymaster);
+
+        assertEq(tank.lastProtocolCollectionAt(), block.timestamp);
+
+        uint256 unlockTime = block.timestamp + tank.PERMISSIONLESS_WITHDRAW_DELAY();
+        vm.warp(unlockTime - 1);
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IGasTank.PermissionlessWithdrawalStillLocked.selector, unlockTime));
+        tank.withdrawPermissionless(1000e6, recipient);
+
+        vm.warp(unlockTime);
+        vm.prank(owner);
+        tank.withdrawPermissionless(1000e6, recipient);
+
+        assertEq(usdc.balanceOf(recipient), 1000e6);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -688,22 +624,19 @@ contract GasTankTest is Test {
         assertEq(usdc.balanceOf(recipient), 5000e6);
     }
 
-    function test_Integration_ForcedWithdrawal_DebitDuringWindow() public {
+    function test_Integration_PermissionlessWithdrawal_AfterMonthlyCollectionWindow() public {
         _depositAs(owner, 10_000e6);
 
-        // 1. Owner initiates forced withdrawal for full balance
-        vm.prank(owner);
-        tank.initiateForced(10_000e6);
-
-        // 2. During 4h window, cosigner debits outstanding gas fees
-        vm.warp(block.timestamp + 1 hours);
+        // 1. Protocol collects during the active monthly window.
+        vm.warp(block.timestamp + 29 days);
         vm.prank(cosigner);
         tank.debit(3000e6, paymaster);
 
-        // 3. After timelock, user claims — gets 7000 (min of 10000 requested, 7000 available)
-        vm.warp(block.timestamp + 3 hours);
+        // 2. User cannot permissionlessly withdraw until the next quiet window opens.
+        uint256 unlockTime = block.timestamp + tank.PERMISSIONLESS_WITHDRAW_DELAY();
+        vm.warp(unlockTime);
         vm.prank(owner);
-        tank.claimForced(recipient);
+        tank.withdrawPermissionless(7000e6, recipient);
 
         assertEq(usdc.balanceOf(recipient), 7000e6);
         assertEq(usdc.balanceOf(paymaster), 3000e6);

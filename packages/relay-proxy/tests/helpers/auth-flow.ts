@@ -1,8 +1,4 @@
-import type {
-    RpcSuccess,
-    UserRegisterOptionsResult,
-    UserLoginOptionsResult,
-} from '../../src/types';
+import type { RpcSuccess, UserRegisterOptionsResult, UserLoginOptionsResult } from '../../src/types';
 import { jsonHeaders, readJson } from './http';
 
 type RegisterSessionResult = {
@@ -83,10 +79,7 @@ export async function registerUser(
     };
 }
 
-export async function beginLogin(
-    app: ReturnType<typeof import('./app').createTestApp>['app'],
-    credentialId: string,
-) {
+export async function beginLogin(app: ReturnType<typeof import('./app').createTestApp>['app'], credentialId: string) {
     const response = await app.request('http://localhost/v1/user/login/options', {
         method: 'POST',
         headers: jsonHeaders(),

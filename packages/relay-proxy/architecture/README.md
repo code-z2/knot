@@ -9,6 +9,9 @@ Current direction:
 - route-scoped RPC envelopes
 - one uniform app-facing auth contract
 - passkeys plus App Attest
+- per-user gas account durability in `D1`
+- atomic sponsor exposure in a per-user `Durable Object`
+- periodic Base debt collection instead of per-relay reservation settlement
 
 ## Documents
 
@@ -23,3 +26,4 @@ Current direction:
 - [08-storage-model.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/08-storage-model.md)
 - [09-faucet-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/09-faucet-v1.md)
 - [10-chain-list-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/10-chain-list-v1.md)
+- [11-ens-profile-offchain-v1.md](/Users/peter/Developer/knot/packages/relay-proxy/architecture/11-ens-profile-offchain-v1.md)

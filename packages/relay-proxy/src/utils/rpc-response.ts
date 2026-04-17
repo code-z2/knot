@@ -1,3 +1,17 @@
+/**
+ * JSON-RPC 2.0 response builders — shared by every route handler.
+ *
+ * Three functions cover the full response surface:
+ * - {@link rpcError}: Generic error with a numeric code and message.
+ * - {@link rpcAppError}: App-specific error from the {@link RPC_APP_ERRORS} catalog.
+ * - {@link rpcResult}: Success response wrapping an arbitrary result payload.
+ *
+ * All three produce a `{ jsonrpc, id, ... }` envelope that satisfies the
+ * {@link RpcSuccess} / {@link RpcFailure} types, keeping the wire format
+ * consistent across every endpoint.
+ *
+ * @module
+ */
 import type { Context } from 'hono';
 
 import type { RpcAppErrorDefinition, RpcErrorDetail, RpcFailure, RpcId, RpcSuccess } from '@/types';
@@ -24,12 +38,7 @@ export function rpcError(
     );
 }
 
-export function rpcAppError(
-    c: Context,
-    id: RpcId,
-    error: RpcAppErrorDefinition,
-    details?: RpcErrorDetail[],
-) {
+export function rpcAppError(c: Context, id: RpcId, error: RpcAppErrorDefinition, details?: RpcErrorDetail[]) {
     return c.json(
         {
             jsonrpc: '2.0',

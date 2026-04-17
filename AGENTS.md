@@ -7,6 +7,10 @@
 - Use plan mode for verification steps, not just building
 - Write detailed specs upfront to reduce ambiguity
 
+#### Plan Strategy
+
+1. plan -> implement -> request feedback <-> iterate until approved -> request commit approval -> draft commit -> next task.
+
 ### 2. Subagent Strategy
 
 - Use subagents liberally to keep main context window clean
@@ -56,6 +60,7 @@
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimat Impact**: Changes should only touch what's necessary. Avoid introducing bugs
+- **Simplicity**: Avoid parsers, normalizations, bloating code, always prioritise strict types to reduce the need for parsers. Only use parsers or nomalization when it is really need and not something a strict typed API an cover
 
 ## Core Skills
 

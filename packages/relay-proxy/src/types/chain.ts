@@ -1,11 +1,13 @@
+import { MAINNET_CHAIN_IDZ, TESTNET_CHAIN_IDZ } from '@/constants';
 import type { Address, Chain } from 'viem';
-import type { RpcId } from './rpc';
+import z from 'zod';
+import { BundlerClient } from './bundler';
 
 export type ChainEnvironment = 'mainnet' | 'testnet';
 
-export type MainnetChainId = 8453 | 42161;
+export type MainnetChainId = z.infer<typeof MAINNET_CHAIN_IDZ>;
 
-export type TestnetChainId = 84532 | 421614 | 11155111;
+export type TestnetChainId = z.infer<typeof TESTNET_CHAIN_IDZ>;
 
 export type SupportedChainId = MainnetChainId | TestnetChainId;
 
@@ -20,10 +22,7 @@ export type FaucetAsset =
           token: Address;
       };
 
-export type BaseChainConfig<
-    TChainId extends SupportedChainId,
-    TEnvironment extends ChainEnvironment,
-> = Chain & {
+export type BaseChainConfig<TChainId extends SupportedChainId, TEnvironment extends ChainEnvironment> = Chain & {
     id: TChainId;
     enabled: boolean;
     environment: TEnvironment;
@@ -51,10 +50,4 @@ export type PublicChainDescriptor = {
     name: string;
 };
 
-export type ChainPolicyBody = {
-    id: RpcId;
-    params?: {
-        chainId?: number;
-        request?: readonly [unknown, string?];
-    };
-};
+export type ChainPolicyContext = Record<number, { client: Promise<BundlerClient>; config: SupportedChainConfig }>;

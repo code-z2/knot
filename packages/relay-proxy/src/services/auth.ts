@@ -34,9 +34,6 @@ function createAuth(env: AppBindings['Bindings'], config: AuthConfig) {
  * Returns the injected auth runtime when tests provide one, otherwise creates
  * the Cloudflare-backed runtime.
  */
-export function createAuthClient(
-    env: AppBindings['Bindings'],
-    options: Pick<CreateAppOptions, 'auth'>,
-) {
+export function createAuthClient(env: AppBindings['Bindings'], options: Pick<CreateAppOptions, 'auth'>) {
     return options.auth ?? createAuth(env, createAuthConfig(env));
 }

@@ -60,9 +60,23 @@ The backend should own this envelope shape even when relay params stay close to 
   - allowed methods:
     - `knot_supportedChains`
 
+- `POST /v1/profile`
+  - allowed methods:
+    - `knot_profileUpdate`
+
+- `POST /v1/gas/withdraw`
+  - allowed methods:
+    - `knot_gasWithdraw`
+
 Operational routes may stay plain JSON:
 - `GET /`
 - `GET /health`
+
+Public read routes may also stay plain JSON or plain HTTP:
+
+- `GET /ccip/ens/{sender}/{data}.json`
+- `GET /public/profile/reverse?address=0x...`
+- `GET /public/profile/name?name=pizza.not.fi`
 
 Internal operational routes should be kept separate from user-facing routes.
 
@@ -91,6 +105,8 @@ const ROUTE_METHODS = {
   '/v1/relay/submit': ['knot_relaySubmit'],
   '/v1/faucet/request': ['knot_faucetRequest'],
   '/v1/chains': ['knot_supportedChains'],
+  '/v1/profile': ['knot_profileUpdate'],
+  '/v1/gas/withdraw': ['knot_gasWithdraw'],
 } as const
 ```
 
@@ -104,6 +120,8 @@ app.post('/v1/upload/image/options', rpcMethod('knot_imageUploadOptions'), handl
 app.post('/v1/relay/submit', rpcMethod('knot_relaySubmit'), handleRelaySubmit)
 app.post('/v1/faucet/request', rpcMethod('knot_faucetRequest'), handleFaucetRequest)
 app.post('/v1/chains', rpcMethod('knot_supportedChains'), handleChainList)
+app.post('/v1/profile', rpcMethod('knot_profileUpdate'), handleProfileUpdate)
+app.post('/v1/gas/withdraw', rpcMethod('knot_gasWithdraw'), handleGasWithdraw)
 ```
 
 The `rpcMethod(...)` middleware should:
@@ -114,6 +132,20 @@ The `rpcMethod(...)` middleware should:
 - expose the typed request on the context
 
 ## Error Shape
+
+The CCIP route is the exception.
+
+It should not use the JSON-RPC envelope because ENS resolvers expect a plain HTTP gateway.
+
+It should return:
+
+```json
+{
+  "data": "0x..."
+}
+```
+
+This route is infrastructure, not an app-facing RPC route.
 
 Invalid RPC requests should return JSON-RPC-style errors.
 
@@ -131,3 +163,21 @@ Example:
 ```
 
 This keeps the route contract strict and easy to test.
+
+## Gas Withdrawal Semantics
+
+`POST /v1/gas/withdraw` is the fast-path withdrawal route.
+
+The intended behavior is:
+
+1. authenticate the user
+2. read the user's Base Gas Tank balance and durable outstanding debt
+3. collect `min(balance, outstandingDebt)` from the Gas Tank
+4. reject if outstanding debt remains after collection
+5. compute the withdraw amount as the remaining debt-free Gas Tank balance
+6. reject if the computed withdraw amount is zero
+7. reject if current policy still blocks fast withdrawal
+8. read the current Gas Tank withdraw nonce
+9. return the computed amount and protocol cosigner signature for immediate owner withdrawal
+
+Permissionless delayed withdrawal remains an onchain escape hatch and does not require the relay proxy.

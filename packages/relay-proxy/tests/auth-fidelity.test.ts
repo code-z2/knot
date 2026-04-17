@@ -5,13 +5,17 @@ import { createTestApp, attachHighFidelityTestRoute } from './helpers/app';
 import { registerUser } from './helpers/auth-flow';
 import { jsonHeaders, readJson } from './helpers/http';
 
+const LOGOUT_USER = '0x2000000000000000000000000000000000000001';
+const HIGH_FIDELITY_USER = '0x2000000000000000000000000000000000000002';
+const INVALID_ASSERTION_USER = '0x2000000000000000000000000000000000000003';
+
 describe('relay proxy auth fidelity', () => {
     it('uses low fidelity auth for logout', async () => {
         const { app } = createTestApp();
         const { verifyBody } = await registerUser(app, {
             appAttestKeyId: 'attest-key-logout',
             credentialId: 'credential-logout',
-            userId: 'user-logout',
+            userId: LOGOUT_USER,
         });
 
         const logoutResponse = await app.request('http://localhost/v1/user/logout', {
@@ -43,7 +47,7 @@ describe('relay proxy auth fidelity', () => {
             result: {
                 loggedOut: true,
                 sessionId: expect.any(String),
-                userId: 'user-logout',
+                userId: LOGOUT_USER,
             },
         });
     });
@@ -57,25 +61,22 @@ describe('relay proxy auth fidelity', () => {
         const { verifyBody } = await registerUser(testApp.app, {
             appAttestKeyId: 'attest-key-high',
             credentialId: 'credential-high',
-            userId: 'user-high',
+            userId: HIGH_FIDELITY_USER,
         });
 
-        const unauthorizedResponse = await testApp.app.request(
-            'http://localhost/v1/protected/high',
-            {
-                method: 'POST',
-                headers: {
-                    authorization: `Bearer ${verifyBody.result.accessToken}`,
-                    ...jsonHeaders(),
-                },
-                body: JSON.stringify({
-                    id: 'protected_high_missing',
-                    jsonrpc: '2.0',
-                    method: 'knot_userLogout',
-                    params: {},
-                }),
+        const unauthorizedResponse = await testApp.app.request('http://localhost/v1/protected/high', {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${verifyBody.result.accessToken}`,
+                ...jsonHeaders(),
             },
-        );
+            body: JSON.stringify({
+                id: 'protected_high_missing',
+                jsonrpc: '2.0',
+                method: 'knot_userLogout',
+                params: {},
+            }),
+        });
 
         expect(unauthorizedResponse.status).toBe(401);
         expect(await readJson<RpcFailure>(unauthorizedResponse)).toEqual({
@@ -107,14 +108,12 @@ describe('relay proxy auth fidelity', () => {
         });
 
         expect(authorizedResponse.status).toBe(200);
-        expect(
-            await readJson<RpcSuccess<{ ok: boolean; userId: string }>>(authorizedResponse),
-        ).toEqual({
+        expect(await readJson<RpcSuccess<{ ok: boolean; userId: string }>>(authorizedResponse)).toEqual({
             id: 'protected_high_ok',
             jsonrpc: '2.0',
             result: {
                 ok: true,
-                userId: 'user-high',
+                userId: HIGH_FIDELITY_USER,
             },
         });
     });
@@ -128,7 +127,7 @@ describe('relay proxy auth fidelity', () => {
         const { verifyBody } = await registerUser(testApp.app, {
             appAttestKeyId: 'attest-key-invalid',
             credentialId: 'credential-invalid',
-            userId: 'user-invalid',
+            userId: INVALID_ASSERTION_USER,
         });
 
         const response = await testApp.app.request('http://localhost/v1/protected/high', {

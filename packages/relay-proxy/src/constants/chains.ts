@@ -1,26 +1,21 @@
 import type { Address } from 'viem';
 import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from 'viem/chains';
 
-import type { ChainRegistry, MainnetChainId, TestnetChainId } from '@/types';
-import { USDC_BY_CHAIN } from '@/constants/usdc';
+import type { ChainRegistry } from '@/types';
+import { entryPoint07Address, entryPoint08Address, entryPoint09Address } from 'viem/account-abstraction';
+import z from 'zod';
+import { USDC_BY_CHAIN } from './addresses';
 
-export const MAINNET_CHAIN_IDS = [8453, 42161] as const satisfies readonly MainnetChainId[];
+export const MAINNET_CHAIN_IDS = [8453, 42161] as const;
+export const MAINNET_CHAIN_IDZ = z.union(MAINNET_CHAIN_IDS.map((id) => z.literal(id)));
 
-export const TESTNET_CHAIN_IDS = [
-    84532, 421614, 11155111,
-] as const satisfies readonly TestnetChainId[];
-
-export const ENTRY_POINT_V07 =
-    '0x0000000071727De22E5E9d8BAf0edAc6f37da032' as const satisfies Address;
-export const ENTRY_POINT_V08 =
-    '0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108' as const satisfies Address;
-export const ENTRY_POINT_V09 =
-    '0x433709009B8330FDa32311DF1C2AFA402eD8D009' as const satisfies Address;
+export const TESTNET_CHAIN_IDS = [84532, 421614, 11155111] as const;
+export const TESTNET_CHAIN_IDZ = z.union(TESTNET_CHAIN_IDS.map((id) => z.literal(id)));
 
 export const SUPPORTED_ENTRY_POINTS = [
-    ENTRY_POINT_V07,
-    ENTRY_POINT_V08,
-    ENTRY_POINT_V09,
+    entryPoint07Address,
+    entryPoint08Address,
+    entryPoint09Address,
 ] as const satisfies readonly Address[];
 
 export const FAUCET_NATIVE_AMOUNT = '0.01';
@@ -123,3 +118,6 @@ export const CHAIN_REGISTRY = {
     421614: TESTNET_CHAINS[1],
     11155111: TESTNET_CHAINS[2],
 } as const satisfies ChainRegistry;
+
+export const MAINNET_GAS_CHAIN = CHAIN_REGISTRY[8453];
+export const TESTNET_GAS_CHAIN = CHAIN_REGISTRY[84532];

@@ -11,6 +11,22 @@ import type { AppBindings, BundlerClient, CreateAppOptions, RpcFailure } from '.
 import { rpcResult } from '../src/utils';
 import { jsonHeaders, readJson } from './helpers/http';
 
+function createRelayOperation(chainId: number, strategy: 'immediate' | 'background' | 'deferred', nonce: string) {
+    return {
+        callData: '0x',
+        callGasLimit: '0x1',
+        chainId,
+        maxFeePerGas: '0x0',
+        maxPriorityFeePerGas: '0x0',
+        nonce,
+        preVerificationGas: '0x1',
+        sender: '0x1111111111111111111111111111111111111111',
+        signature: '0x',
+        strategy,
+        verificationGasLimit: '0x1',
+    };
+}
+
 function createQuoteApp(client: BundlerClient) {
     const app = new Hono<AppBindings>();
     const options: CreateAppOptions = {
@@ -20,14 +36,14 @@ function createQuoteApp(client: BundlerClient) {
     app.post(
         '/v1/test/quote',
         zValidator('json', relaySubmitSchema, rpcHook),
-        chainPolicy(),
-        quoteToken(options),
+        chainPolicy(options),
+        quoteToken(),
         (c) => {
             const rpc = c.req.valid('json');
 
             return c.json(
                 rpcResult(rpc.id, {
-                    quote: c.get('relayQuote'),
+                    quote: c.get('quotes'),
                 }),
             );
         },
@@ -67,20 +83,8 @@ describe('relay proxy quote middleware', () => {
                 jsonrpc: '2.0',
                 method: 'knot_relaySubmit',
                 params: {
-                    chainId: 84532,
-                    kind: 'single',
                     request: [
-                        {
-                            callData: '0x',
-                            callGasLimit: '0x1',
-                            maxFeePerGas: '0x0',
-                            maxPriorityFeePerGas: '0x0',
-                            nonce: '0x1',
-                            preVerificationGas: '0x1',
-                            sender: '0x1111111111111111111111111111111111111111',
-                            signature: '0x',
-                            verificationGasLimit: '0x1',
-                        },
+                        [createRelayOperation(84532, 'immediate', '0x1')],
                         '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                     ],
                 },
@@ -97,8 +101,7 @@ describe('relay proxy quote middleware', () => {
             jsonrpc: '2.0',
             result: {
                 quote: {
-                    kind: 'single',
-                    quote: {
+                    84532: {
                         callGasLimit: '0x1',
                         fee: '0x2',
                         gas: '0x3',
@@ -133,47 +136,13 @@ describe('relay proxy quote middleware', () => {
                 jsonrpc: '2.0',
                 method: 'knot_relaySubmit',
                 params: {
-                    chainId: 84532,
                     fillId: '0x1234',
-                    kind: 'plan',
                     request: [
-                        {
-                            background: [
-                                {
-                                    callData: '0x',
-                                    callGasLimit: '0x1',
-                                    maxFeePerGas: '0x0',
-                                    maxPriorityFeePerGas: '0x0',
-                                    nonce: '0x2',
-                                    preVerificationGas: '0x1',
-                                    sender: '0x1111111111111111111111111111111111111111',
-                                    signature: '0x',
-                                    verificationGasLimit: '0x1',
-                                },
-                            ],
-                            deferred: {
-                                callData: '0x',
-                                callGasLimit: '0x1',
-                                maxFeePerGas: '0x0',
-                                maxPriorityFeePerGas: '0x0',
-                                nonce: '0x3',
-                                preVerificationGas: '0x1',
-                                sender: '0x1111111111111111111111111111111111111111',
-                                signature: '0x',
-                                verificationGasLimit: '0x1',
-                            },
-                            immediate: {
-                                callData: '0x',
-                                callGasLimit: '0x1',
-                                maxFeePerGas: '0x0',
-                                maxPriorityFeePerGas: '0x0',
-                                nonce: '0x1',
-                                preVerificationGas: '0x1',
-                                sender: '0x1111111111111111111111111111111111111111',
-                                signature: '0x',
-                                verificationGasLimit: '0x1',
-                            },
-                        },
+                        [
+                            createRelayOperation(84532, 'immediate', '0x1'),
+                            createRelayOperation(421614, 'background', '0x2'),
+                            createRelayOperation(11155111, 'deferred', '0x3'),
+                        ],
                         '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                     ],
                 },
@@ -190,17 +159,7 @@ describe('relay proxy quote middleware', () => {
             jsonrpc: '2.0',
             result: {
                 quote: {
-                    backgroundQuotes: [
-                        {
-                            callGasLimit: '0x1',
-                            fee: '0x2',
-                            gas: '0x3',
-                            l1Fee: '0x0',
-                            preVerificationGas: '0x4',
-                            verificationGasLimit: '0x5',
-                        },
-                    ],
-                    immediateQuote: {
+                    421614: {
                         callGasLimit: '0x1',
                         fee: '0x2',
                         gas: '0x3',
@@ -208,7 +167,14 @@ describe('relay proxy quote middleware', () => {
                         preVerificationGas: '0x4',
                         verificationGasLimit: '0x5',
                     },
-                    kind: 'plan',
+                    84532: {
+                        callGasLimit: '0x1',
+                        fee: '0x2',
+                        gas: '0x3',
+                        l1Fee: '0x0',
+                        preVerificationGas: '0x4',
+                        verificationGasLimit: '0x5',
+                    },
                 },
             },
         });
@@ -227,20 +193,8 @@ describe('relay proxy quote middleware', () => {
                 jsonrpc: '2.0',
                 method: 'knot_relaySubmit',
                 params: {
-                    chainId: 84532,
-                    kind: 'single',
                     request: [
-                        {
-                            callData: '0x',
-                            callGasLimit: '0x1',
-                            maxFeePerGas: '0x0',
-                            maxPriorityFeePerGas: '0x0',
-                            nonce: '0x1',
-                            preVerificationGas: '0x1',
-                            sender: '0x1111111111111111111111111111111111111111',
-                            signature: '0x',
-                            verificationGasLimit: '0x1',
-                        },
+                        [createRelayOperation(84532, 'immediate', '0x1')],
                         '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
                     ],
                 },

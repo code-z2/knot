@@ -148,7 +148,7 @@ Provision secrets with Cloudflare secrets, not plain `vars`.
 ## Migrations
 
 Current D1 schema baseline:
-- [0001_auth.sql](/Users/peter/Developer/knot/packages/relay-proxy/migrations/0001_auth.sql)
+- [0001_initial.sql](/Users/peter/Developer/knot/packages/relay-proxy/migrations/0001_initial.sql)
 
 Current tables:
 - `users`

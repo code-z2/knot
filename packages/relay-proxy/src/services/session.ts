@@ -7,7 +7,7 @@ export async function createSession(
     input: {
         appAttestKeyId: string;
         now: number;
-        userId: string;
+        userId: `0x${string}`;
     },
 ): Promise<SessionRecord> {
     const record: SessionRecord = {
@@ -24,11 +24,7 @@ export async function createSession(
     return store.createSession(record);
 }
 
-export async function getSession(
-    store: AuthStore,
-    accessToken: string,
-    now: number,
-): Promise<SessionRecord | null> {
+export async function getSession(store: AuthStore, accessToken: string, now: number): Promise<SessionRecord | null> {
     const session = await store.getSession(accessToken);
 
     if (!session) {
@@ -42,9 +38,6 @@ export async function getSession(
     return session;
 }
 
-export async function revokeSession(
-    store: AuthStore,
-    accessToken: string,
-): Promise<{ ok: boolean }> {
+export async function revokeSession(store: AuthStore, accessToken: string): Promise<{ ok: boolean }> {
     return store.revokeSession(accessToken);
 }

@@ -1,6 +1,26 @@
+/**
+ * Cloudflare Worker entry point — the three lifecycle hooks that define
+ * relay-proxy's runtime surface.
+ *
+ * - **fetch**: All HTTP traffic routes through the Hono app ({@link app}).
+ * - **queue**: Processes two CF Queue bindings in a shared consumer.
+ *   `anomaly-queue` messages are Discord webhook notifications;
+ *   `intent-execution-queue` messages are deferred ERC-4337 operations
+ *   that couldn't be submitted synchronously during the relay flow.
+ *   The exhaustive switch guarantees a compile error if a new queue is
+ *   added without a matching handler.
+ * - **scheduled**: A CRON trigger that sweeps stale intent-execution
+ *   records in KV, re-queuing operations that haven't been retried
+ *   recently and raising anomalies for those nearing TTL or retry limits.
+ *
+ * @module
+ */
 import type { AppBatchQueue, CloudflareBindings } from '@/types';
 import { consumeAnomalyBatch, consumeIntentExecutionBatch, sweepIntentExecutions } from '@/workers';
+import { GasAccountDurableObject } from './durable-objects/gas';
 import app from './app';
+
+export { GasAccountDurableObject };
 
 export default {
     async fetch(request: Request, env: CloudflareBindings, ctx: ExecutionContext) {

@@ -18,16 +18,24 @@
  *
  * @module
  */
+import { MAINNET_CHAIN_IDS, MAINNET_CHAIN_IDZ, TESTNET_CHAIN_IDS, TESTNET_CHAIN_IDZ } from '@/constants';
 import { RPC_APP_ERRORS, invalidParams } from '@/errors';
 import type { RpcId } from '@/types';
 import { rpcAppError } from '@/utils';
 import type { Context } from 'hono';
+import type { Address, Hex } from 'viem';
 import { Authentication, Registration } from 'webauthx/server';
 import { z } from 'zod';
 
-const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
-const hexValueSchema = z.string().regex(/^0x[a-fA-F0-9]+$/);
-const bytesSchema = z.string().regex(/^0x[a-fA-F0-9]*$/);
+const addressSchema = z.custom<Address>((value) => {
+    return typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);
+});
+const hexValueSchema = z.custom<Hex>((value) => {
+    return typeof value === 'string' && /^0x[a-fA-F0-9]+$/.test(value);
+});
+const bytesSchema = z.custom<Hex>((value) => {
+    return typeof value === 'string' && /^0x[a-fA-F0-9]*$/.test(value);
+});
 
 /**
  * Serialized WebAuthn registration credential (`ox/webauthn` Credential<true>).
@@ -41,7 +49,7 @@ const credentialSchema: z.ZodType<Registration.Credential> = z.object({
     attestationObject: z.string().min(1),
     clientDataJSON: z.string().min(1),
     id: z.string().min(1),
-    publicKey: z.custom<`0x${string}`>(),
+    publicKey: z.custom<Hex>(),
     raw: z.any(),
 });
 
@@ -54,13 +62,13 @@ const credentialSchema: z.ZodType<Registration.Credential> = z.object({
 const authResponseSchema: z.ZodType<Authentication.Response> = z.object({
     id: z.string().min(1),
     metadata: z.object({
-        authenticatorData: z.custom<`0x${string}`>(),
+        authenticatorData: z.custom<Hex>(),
         challengeIndex: z.number().optional(),
         clientDataJSON: z.string().min(1),
         typeIndex: z.number().optional(),
         userVerificationRequired: z.boolean().optional(),
     }),
-    signature: z.custom<`0x${string}`>(),
+    signature: z.custom<Hex>(),
     raw: z.any(),
 });
 
@@ -75,6 +83,20 @@ const eip7702AuthSchema = z
     })
     .strict();
 
+/**
+ * Strict schema for ERC-4337 UserOperations targeted at Gelato's sponsored bundler.
+ *
+ * ## Sponsored-Only Enforcement
+ *
+ * This proxy is exclusively for sponsored traffic. Following Gelato's Gas Tank architecture,
+ * sponsored transactions must defer settlement until post-execution instead of pre-paying
+ * via the EntryPoint. Therefore, this schema strictly requires:
+ * - `maxFeePerGas: "0x0"`
+ * - `maxPriorityFeePerGas: "0x0"`
+ *
+ * If a client sends a payload attempting to pre-pay fees (non-zero limits), it is rejected
+ * at the Zod layer natively.
+ */
 const rpcUserOperationSchema = z
     .object({
         callData: bytesSchema,
@@ -121,8 +143,7 @@ function rpcEnvelope<M extends string, P extends z.ZodType>(method: M, params: P
  */
 export function rpcHook(result: { success: boolean; data: { id?: RpcId } }, c: Context) {
     if (!result.success) {
-        const issues =
-            'error' in result && result.error instanceof z.ZodError ? result.error.issues : [];
+        const issues = 'error' in result && result.error instanceof z.ZodError ? result.error.issues : [];
         const firstIssue = issues[0];
         const path = firstIssue ? firstIssue.path.map(String).join('.') : '';
         const details = issues.map((issue) => ({
@@ -131,21 +152,11 @@ export function rpcHook(result: { success: boolean; data: { id?: RpcId } }, c: C
         }));
 
         if (path === 'method') {
-            return rpcAppError(
-                c,
-                result.data?.id ?? null,
-                RPC_APP_ERRORS.methodNotAllowedForRoute,
-                details,
-            );
+            return rpcAppError(c, result.data?.id ?? null, RPC_APP_ERRORS.methodNotAllowedForRoute, details);
         }
 
         if (path === 'jsonrpc') {
-            return rpcAppError(
-                c,
-                result.data?.id ?? null,
-                RPC_APP_ERRORS.invalidJsonrpcVersion,
-                details,
-            );
+            return rpcAppError(c, result.data?.id ?? null, RPC_APP_ERRORS.invalidJsonrpcVersion, details);
         }
 
         if (path === 'params' || path.startsWith('params.')) {
@@ -169,7 +180,7 @@ export function rpcHook(result: { success: boolean; data: { id?: RpcId } }, c: C
 export const userRegisterOptionsSchema = rpcEnvelope(
     'knot_userRegisterOptions',
     z.object({
-        userId: z.string().min(1),
+        userId: addressSchema,
     }),
 );
 
@@ -214,39 +225,141 @@ export const supportedChainsSchema = rpcEnvelope(
     }),
 );
 
-export const relaySubmitSchema = rpcEnvelope(
-    'knot_relaySubmit',
-    z.discriminatedUnion('kind', [
-        z.object({
-            chainId: z.number().int(),
-            kind: z.literal('single'),
-            request: z.tuple([rpcUserOperationSchema, addressSchema]),
-        }),
-        z.object({
-            chainId: z.number().int(),
-            fillId: bytesSchema,
-            kind: z.literal('plan'),
-            request: z.tuple([
-                z
-                    .object({
-                        background: z.array(rpcUserOperationSchema),
-                        deferred: rpcUserOperationSchema,
-                        immediate: rpcUserOperationSchema.optional(),
-                    })
-                    .strict()
-                    .refine(
-                        ({ background, deferred, immediate }) =>
-                            background.length > 0 && deferred !== undefined,
-                        {
-                            message: 'Plan must include background and deferred user operations.',
-                            path: ['background'],
-                        },
-                    ),
-                addressSchema,
-            ]),
-        }),
-    ]),
+export const gasStatusSchema = rpcEnvelope(
+    'knot_gasStatus',
+    z
+        .object({
+            environment: z.enum(['mainnet', 'testnet']).optional(),
+        })
+        .strict(),
 );
+
+export const gasHistorySchema = rpcEnvelope(
+    'knot_gasHistory',
+    z.object({
+        window: z.enum(['1y', '3m', '6m']).optional(),
+    }),
+);
+
+export const gasOverdraftUpdateSchema = rpcEnvelope(
+    'knot_gasOverdraftUpdate',
+    z.object({
+        action: z.enum(['disable', 'enable']),
+    }),
+);
+
+export const gasWithdrawSchema = rpcEnvelope(
+    'knot_gasWithdraw',
+    z
+        .object({
+            environment: z.enum(['mainnet', 'testnet']).optional(),
+            deadline: z.number().int().positive(),
+            to: addressSchema,
+        })
+        .strict(),
+);
+
+/**
+ * Extends the baseline UserOperation payload with proxy-specific routing metadata.
+ *
+ * The `strategy` dictates how and when the payload is executed:
+ * - `immediate`: Executed synchronously, blocks the response until broadcast.
+ * - `background`: Executed asynchronously in parallel, does not block response.
+ * - `deferred`: Stored in a queue (KV) with a TTL, executed later in response to an orchestration event.
+ */
+const relayOperationSchema = rpcUserOperationSchema.extend({
+    strategy: z.enum(['immediate', 'background', 'deferred']),
+    chainId: z.coerce.number().pipe(z.union([MAINNET_CHAIN_IDZ, TESTNET_CHAIN_IDZ])),
+});
+
+/**
+ * Schema for the array-based, rooted multi-step execution payload.
+ *
+ * ## Refinements
+ *
+ * This schema enforces rigorous structural and business logic through `.superRefine`:
+ * 1. **Network Isolation**: All operations in the array must exclusively target Testnet chains or Mainnet chains. Mixing environments strictly fails validation.
+ * 2. **Chain Uniqueness**: The proxy does not allow dispatching multiple ops to the same chain in a single payload.
+ * 3. **Strategy Cardinality**:
+ *    - For normal usage (`fillId` absent), there must be exactly 1 `immediate` operation and nothing else.
+ *    - For plans (`fillId` present), there must be exactly 1 `deferred`, at least 1 `background`, and at most 1 `immediate` operation.
+ */
+const relaySubmitParamsSchema = z
+    .object({
+        fillId: bytesSchema.optional(),
+        request: z.tuple([z.array(relayOperationSchema), addressSchema]),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+        const ops = data.request[0];
+
+        let immediateCount = 0;
+        let backgroundCount = 0;
+        let deferredCount = 0;
+
+        let hasDuplicateChainId = false;
+
+        let hasMainnet = false;
+        let hasTestnet = false;
+
+        const uniqueChainIds = new Set<number>();
+
+        for (const op of ops) {
+            if (op.strategy === 'immediate') immediateCount++;
+            else if (op.strategy === 'background') backgroundCount++;
+            else if (op.strategy === 'deferred') deferredCount++;
+
+            if (uniqueChainIds.has(op.chainId)) {
+                hasDuplicateChainId = true;
+            }
+            uniqueChainIds.add(op.chainId);
+
+            if ((MAINNET_CHAIN_IDS as readonly number[]).includes(op.chainId)) hasMainnet = true;
+            if ((TESTNET_CHAIN_IDS as readonly number[]).includes(op.chainId)) hasTestnet = true;
+        }
+
+        if (hasDuplicateChainId) {
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Relay operations must target unique chain IDs.',
+                path: ['request', 0],
+            });
+        }
+
+        if (hasMainnet && hasTestnet) {
+            ctx.addIssue({
+                code: 'custom',
+                message:
+                    'All operations in a request must target either entirely mainnet chains or entirely testnet chains. You cannot mix environments.',
+                path: ['request', 0],
+            });
+        }
+
+        if (data.fillId) {
+            if (immediateCount > 1 || deferredCount !== 1 || backgroundCount < 1) {
+                ctx.addIssue({
+                    code: 'custom',
+                    message:
+                        'Plans must contain exactly 1 deferred, at least 1 background, and at most 1 immediate operation.',
+                    path: ['request', 0],
+                });
+            }
+        } else if (ops.length !== 1 || immediateCount !== 1) {
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Single operations must contain exactly one immediate step.',
+                path: ['request', 0],
+            });
+        }
+    });
+
+/**
+ * The unified JSON-RPC 2.0 envelope schema for incoming `knot_relaySubmit` requests.
+ *
+ * This is the entry point for validation. It guarantees structural correctness
+ * before the proxy does any active computation, caching, or middleware evaluation.
+ */
+export const relaySubmitSchema = rpcEnvelope('knot_relaySubmit', relaySubmitParamsSchema);
 
 /** Issue a signed direct-upload URL for an image. */
 export const imageUploadOptionsSchema = rpcEnvelope(
@@ -262,3 +375,9 @@ export const imageUploadOptionsSchema = rpcEnvelope(
         purpose: z.literal('avatar'),
     }),
 );
+
+export type RelaySubmitInput = {
+    out: {
+        json: z.output<typeof relaySubmitSchema>;
+    };
+};

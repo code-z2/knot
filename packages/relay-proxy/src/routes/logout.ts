@@ -15,26 +15,21 @@ import { rpcResult } from '@/utils';
 export function createUserLogoutRoutes(options: CreateAppOptions = {}) {
     const routes = new Hono<AppBindings>();
 
-    routes.post(
-        '/',
-        zValidator('json', userLogoutSchema, rpcHook),
-        auth('low', options),
-        async (c) => {
-            const rpc = c.req.valid('json');
-            const session = c.get('session');
+    routes.post('/', zValidator('json', userLogoutSchema, rpcHook), auth('low', options), async (c) => {
+        const rpc = c.req.valid('json');
+        const session = c.get('session');
 
-            const client = createAuthClient(c.env, options);
-            await revokeSession(client.store, session.accessToken);
+        const client = createAuthClient(c.env, options);
+        await revokeSession(client.store, session.accessToken);
 
-            return c.json(
-                rpcResult(rpc.id, {
-                    loggedOut: true,
-                    sessionId: session.id,
-                    userId: session.userId,
-                }),
-            );
-        },
-    );
+        return c.json(
+            rpcResult(rpc.id, {
+                loggedOut: true,
+                sessionId: session.id,
+                userId: session.userId,
+            }),
+        );
+    });
 
     return routes;
 }

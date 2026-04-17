@@ -340,7 +340,7 @@ Relay V1 should target post-transaction settlement instead of optimistic pre-deb
 The intended model is:
 
 - gas tank settles in Base USDC only
-- relay proxy charges for actual gas used
+- relay proxy charges from the current server-side Gelato quote for the accepted relay request
 - debit happens after execution, not before
 
 That means gas tank is an accounting and settlement layer, not a quote-time payload mutation layer.

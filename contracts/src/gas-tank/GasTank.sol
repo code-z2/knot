@@ -26,9 +26,10 @@ import {IGasTank} from "../interfaces/IGasTank.sol";
 ///      Withdrawal:
 ///        - Instant: Owner path. Managed mode requires cosigner co-sign (EIP-712).
 ///                   Self-managed mode (`COSIGNER == address(0)`) skips signature validation.
-///        - Forced:  Owner alone, 4-hour timelock. Managed cosigner can debit outstanding fees during window.
+///        - Permissionless: Owner alone after the rolling protocol collection window elapses.
 ///
 ///      Billing: Cosigner calls `debit()` to charge gas fees, directing USDC to the paymaster.
+///               Each debit refreshes the rolling permissionless-withdrawal timer.
 ///               Disabled when `COSIGNER == address(0)`.
 contract GasTank is IGasTank, EIP712 {
     using SafeERC20 for IERC20;
@@ -37,12 +38,12 @@ contract GasTank is IGasTank, EIP712 {
     //                               CONSTANTS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Timelock duration for forced withdrawals.
-    uint256 public constant FORCED_DELAY = 4 hours;
+    /// @notice Delay after the last protocol collection before owner can withdraw without cosigner approval.
+    uint256 public constant PERMISSIONLESS_WITHDRAW_DELAY = 30 days;
 
     /// @dev EIP-712 typehash for the Withdraw struct.
     bytes32 private constant WITHDRAW_TYPEHASH =
-        keccak256("Withdraw(uint256 amount,address to,uint256 nonce,uint256 deadline)");
+        keccak256("withdraw(uint256 amount,address to,uint256 nonce,uint256 deadline)");
 
     // ═══════════════════════════════════════════════════════════════════════════
     //                               IMMUTABLES
@@ -65,8 +66,8 @@ contract GasTank is IGasTank, EIP712 {
     /// @notice Monotonically increasing nonce for instant withdrawal replay protection.
     uint256 public withdrawNonce;
 
-    /// @notice Pending forced withdrawal state.
-    PendingWithdrawal public pendingWithdrawal;
+    /// @notice Timestamp of the last protocol collection-window refresh.
+    uint64 public lastProtocolCollectionAt;
 
     // ═══════════════════════════════════════════════════════════════════════════
     //                              CONSTRUCTOR
@@ -79,6 +80,7 @@ contract GasTank is IGasTank, EIP712 {
         OWNER = _owner;
         COSIGNER = _cosigner;
         USDC = IERC20(_usdc);
+        lastProtocolCollectionAt = SafeCast.toUint64(block.timestamp);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -107,8 +109,7 @@ contract GasTank is IGasTank, EIP712 {
         uint256 nonce = withdrawNonce++;
 
         if (COSIGNER != address(0)) {
-            bytes32 digest =
-                _hashTypedDataV4(keccak256(abi.encode(WITHDRAW_TYPEHASH, amount, to, nonce, deadline)));
+            bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(WITHDRAW_TYPEHASH, amount, to, nonce, deadline)));
 
             if (ECDSA.recover(digest, cosignerSig) != COSIGNER) {
                 revert InvalidCosignerSignature();
@@ -120,53 +121,24 @@ contract GasTank is IGasTank, EIP712 {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //                         FORCED WITHDRAWAL
+    //                    DELAYED PERMISSIONLESS WITHDRAWAL
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IGasTank
-    function initiateForced(uint256 amount) external {
-        if (msg.sender != OWNER) {
-            revert NotOwner();
-        }
-        if (pendingWithdrawal.amount != 0) {
-            revert ForcedAlreadyPending();
-        }
-
-        uint64 unlockTime = SafeCast.toUint64(block.timestamp + FORCED_DELAY);
-        pendingWithdrawal = PendingWithdrawal({amount: SafeCast.toUint128(amount), unlockTime: unlockTime});
-        emit ForcedInitiated(amount, unlockTime);
-    }
-
-    /// @inheritdoc IGasTank
-    function claimForced(address to) external {
+    function withdrawPermissionless(uint256 amount, address to) external {
         if (msg.sender != OWNER) {
             revert NotOwner();
         }
 
-        PendingWithdrawal memory pw = pendingWithdrawal;
-        if (pw.amount == 0) {
-            revert NoForcedPending();
+        if (COSIGNER != address(0)) {
+            uint256 unlockTime = uint256(lastProtocolCollectionAt) + PERMISSIONLESS_WITHDRAW_DELAY;
+            if (block.timestamp < unlockTime) {
+                revert PermissionlessWithdrawalStillLocked(unlockTime);
+            }
         }
-        if (block.timestamp < pw.unlockTime) {
-            revert ForcedStillLocked();
-        }
 
-        delete pendingWithdrawal;
-
-        uint256 balance = USDC.balanceOf(address(this));
-        uint256 claimable = pw.amount < balance ? pw.amount : balance;
-
-        USDC.safeTransfer(to, claimable);
-        emit ForcedClaimed(to, claimable);
-    }
-
-    /// @inheritdoc IGasTank
-    function cancelForced() external {
-        if (msg.sender != OWNER) {
-            revert NotOwner();
-        }
-        delete pendingWithdrawal;
-        emit ForcedCancelled();
+        USDC.safeTransfer(to, amount);
+        emit PermissionlessWithdrawn(to, amount);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -182,6 +154,7 @@ contract GasTank is IGasTank, EIP712 {
             revert NotCosigner();
         }
         USDC.safeTransfer(to, amount);
+        lastProtocolCollectionAt = SafeCast.toUint64(block.timestamp);
         emit Debited(amount, to);
     }
 

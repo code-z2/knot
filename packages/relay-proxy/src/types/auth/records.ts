@@ -1,3 +1,5 @@
+import { Address } from 'viem';
+
 export type ChallengeKind = 'user_register' | 'user_login';
 
 /**
@@ -11,7 +13,7 @@ export type ChallengeRecord = {
     createdAt: number;
     id: string;
     kind: ChallengeKind;
-    userId: string;
+    userId: Address;
 };
 
 /**
@@ -34,7 +36,7 @@ export type AppAttestationRecord = {
  */
 export type UserRecord = {
     createdAt: number;
-    id: string;
+    id: Address;
     status: 'active' | 'revoked';
 };
 
@@ -47,7 +49,7 @@ export type PasskeyRecord = {
     createdAt: number;
     credentialId: string;
     publicKey: string;
-    userId: string;
+    userId: Address;
 };
 
 /**
@@ -62,5 +64,5 @@ export type SessionRecord = {
     issuedAt: number;
     refreshToken: string;
     status: 'active' | 'expired' | 'revoked';
-    userId: string;
+    userId: Address;
 };

@@ -46,7 +46,7 @@ describe('relay proxy rpc errors', () => {
                 jsonrpc: '1.0',
                 method: 'knot_userRegisterOptions',
                 params: {
-                    userId: 'user-invalid-rpc',
+                    userId: 'not-an-address',
                 },
             }),
         });
@@ -57,12 +57,16 @@ describe('relay proxy rpc errors', () => {
             jsonrpc: '2.0',
             error: {
                 code: -32600,
-                details: [
+                details: expect.arrayContaining([
                     {
                         message: expect.any(String),
                         path: 'jsonrpc',
                     },
-                ],
+                    {
+                        message: expect.any(String),
+                        path: 'params.userId',
+                    },
+                ]),
                 message: 'invalid_jsonrpc_version',
                 reason: 'invalid_jsonrpc_version',
             },

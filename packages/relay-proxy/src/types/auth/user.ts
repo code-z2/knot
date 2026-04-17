@@ -5,10 +5,7 @@ export type UserRegisterOptionsParams = {
     userId: string;
 };
 
-export type UserRegisterOptionsRequest = RpcEnvelope<
-    'knot_userRegisterOptions',
-    UserRegisterOptionsParams
->;
+export type UserRegisterOptionsRequest = RpcEnvelope<'knot_userRegisterOptions', UserRegisterOptionsParams>;
 
 export type UserRegisterOptionsResult = {
     appAttestChallenge: string;
@@ -23,10 +20,7 @@ export type UserRegisterVerifyParams = {
     credential: Registration.Credential;
 };
 
-export type UserRegisterVerifyRequest = RpcEnvelope<
-    'knot_userRegisterVerify',
-    UserRegisterVerifyParams
->;
+export type UserRegisterVerifyRequest = RpcEnvelope<'knot_userRegisterVerify', UserRegisterVerifyParams>;
 
 export type UserLoginOptionsParams = {
     credentialId: string;
