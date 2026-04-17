@@ -15,15 +15,7 @@ import {
     MAINNET_GAS_CHAIN,
     TESTNET_GAS_CHAIN,
 } from '@/constants';
-import type {
-    ChainEnvironment,
-    CloudflareBindings,
-    GasProfileRecord,
-    GasTankDOResponse,
-    GasUsageBucketRecord,
-    GasWindow,
-    GasWithdrawParams,
-} from '@/types';
+import type { ChainEnvironment, GasProfileRecord, GasUsageBucketRecord, GasWindow, GasWithdrawParams } from '@/types';
 import { type Address, Call, encodeDeployData, encodeFunctionData, getCreate2Address, type Hex, keccak256 } from 'viem';
 import GasTankArtifact from '../../../../contracts/out/GasTank.sol/GasTank.json';
 import { uint } from './uint';
@@ -203,28 +195,5 @@ export function getWithdrawTypedData(
             nonce: params.nonce,
             deadline: BigInt(params.deadline),
         },
-    };
-}
-
-/**
- * Build a Durable Object RPC caller for the `GAS_TANK_DO` binding.
- *
- * Returns a typed function that routes requests to the DO instance
- * keyed by `userId`. The DO uses a synthetic URL (`https://gas-tank/...`)
- * because Durable Objects require a `Request` but don’t actually serve
- * real HTTP — the URL is only used for internal routing.
- */
-export function gasTankDORequestHandler(env: Pick<CloudflareBindings, 'GAS_TANK_DO'>) {
-    return async <Result>(userId: string, path: string, init?: RequestInit) => {
-        const id = env.GAS_TANK_DO.idFromName(userId);
-        const stub = env.GAS_TANK_DO.get(id);
-        const response = await stub.fetch(new Request(`https://gas-tank${path}?userId=${userId}`, init));
-        const json = await response.json<GasTankDOResponse<Result>>();
-
-        if (!json.ok) {
-            throw new Error(json.reason);
-        }
-
-        return json.result;
     };
 }

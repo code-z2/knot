@@ -2,6 +2,7 @@ export * from './account';
 export * from './anomaly';
 export * from './auth';
 export * from './chain';
+export * from './durable-objects';
 export * from './gas';
 export * from './relay';
 export * from './rpc-response';

@@ -1,6 +1,7 @@
 import { createGasProfileStore } from '@/stores/gas';
 import { uint } from '@/utils';
 import type { Address, Call, Hex } from 'viem';
+import { GasTankDORecord } from './durable-object';
 
 export type GasProvider =
     | {
@@ -92,27 +93,9 @@ export type GasCollectionContext<T> = {
     provider: GasProvider;
 };
 
-// --- GAS ACCOUNT ---
-
-export type GasTankDOResponse<Result> =
-    | {
-          ok: true;
-          result: Result;
-      }
-    | {
-          ok: false;
-          reason: string;
-      };
-
-export type GasTankDORecord = {
-    pendingExposureUsdc: Hex;
-};
-
 export type GasTankDebtMutationResult = {
     outstandingDebtUsdc: Hex;
 };
-
-export type GasTankDORequestHandler = <Result>(userId: string, path: string, init?: RequestInit) => Promise<Result>;
 
 export type GasClient = {
     encodeDebitCall: (userId: Address, amountUsdc: uint) => Promise<Call[]>;
@@ -121,7 +104,6 @@ export type GasClient = {
     getGasWithdrawalNonce: (userId: Address) => Promise<bigint>;
     getGasProvider: (userId: Address) => GasProvider;
     getGasTankAddress: (userId: Address) => Address;
-    submitDebitCalls: (calls: readonly Call[]) => Promise<void>;
     getRecord: (userId: Address) => Promise<GasTankDORecord>;
     admitExposure: (userId: Address, balance: uint, quote: uint) => Promise<GasTankDORecord>;
     decrementOutstandingDebt: (userId: Address, amountUsdc: uint) => Promise<GasTankDebtMutationResult>;

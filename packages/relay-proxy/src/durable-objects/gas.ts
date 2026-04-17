@@ -1,7 +1,7 @@
 import { GAS_TANK_DO_KEY } from '@/constants';
 import { createGasProfileStore } from '@/stores/gas';
-import type { CloudflareBindings, GasProfileRecord, GasTankDOResponse } from '@/types';
-import { createDefaultGasProfile, uint } from '@/utils';
+import type { CloudflareBindings, GasProfileRecord } from '@/types';
+import { uint, withError, withResponse } from '@/utils';
 import { Hex } from 'viem';
 
 /**
@@ -47,32 +47,18 @@ export class GasAccountDurableObject {
         };
     }
 
-    private withError(reason: string): Response {
-        return Response.json({
-            ok: false,
-            reason,
-        } satisfies GasTankDOResponse<never>);
-    }
-
-    private withResponse<Result>(result: Result): Response {
-        return Response.json({
-            ok: true,
-            result,
-        } satisfies GasTankDOResponse<Result>);
-    }
-
     async fetch(request: Request): Promise<Response> {
         try {
             const url = new URL(request.url);
             const userId = url.searchParams.get('userId');
 
             if (!userId) {
-                return this.withError('gas_account_user_id_required');
+                return withError('gas_account_user_id_required');
             }
 
             if (request.method === 'GET' && url.pathname === '/') {
                 const record = await this.getRecord();
-                return this.withResponse({
+                return withResponse({
                     pendingExposureUsdc: record.pendingExposureUsdc.hex,
                 });
             }
@@ -103,7 +89,7 @@ export class GasAccountDurableObject {
                     );
 
                     if (uint.lt(headroom, amountUsdc)) {
-                        return this.withError('insufficient_gas_headroom');
+                        return withError('insufficient_gas_headroom');
                     }
                     // Fallthrough to increment pending exposure
                 }
@@ -113,7 +99,7 @@ export class GasAccountDurableObject {
                         pendingExposureUsdc: uint.add(record.pendingExposureUsdc, amountUsdc ?? uint(body as Hex)).hex,
                     };
                     await this.ctx.storage.put(GAS_TANK_DO_KEY, copy);
-                    return this.withResponse(copy);
+                    return withResponse(copy);
                 }
                 case '/pending-exposure/decrement': {
                     const copy = {
@@ -121,7 +107,7 @@ export class GasAccountDurableObject {
                         pendingExposureUsdc: uint.sub(record.pendingExposureUsdc, uint(body as Hex)).hex,
                     };
                     await this.ctx.storage.put(GAS_TANK_DO_KEY, copy);
-                    return this.withResponse(copy);
+                    return withResponse(copy);
                 }
                 case '/outstanding-debt/increment': {
                     const gasProfile = await this.getProfile(store)(userId);
@@ -132,7 +118,7 @@ export class GasAccountDurableObject {
                         outstandingDebtUsdc: nextOutstandingDebtUsdc,
                         updatedAt: Date.now(),
                     });
-                    return this.withResponse({
+                    return withResponse({
                         outstandingDebtUsdc: nextOutstandingDebtUsdc.hex,
                     });
                 }
@@ -145,7 +131,7 @@ export class GasAccountDurableObject {
                         outstandingDebtUsdc: nextOutstandingDebtUsdc,
                         updatedAt: Date.now(),
                     });
-                    return this.withResponse({
+                    return withResponse({
                         outstandingDebtUsdc: nextOutstandingDebtUsdc.hex,
                     });
                 }
@@ -155,7 +141,7 @@ export class GasAccountDurableObject {
             }
         } catch (error) {
             const reason = error instanceof Error ? error.message : 'gas_account_unknown_error';
-            return this.withError(reason);
+            return withError(reason);
         }
     }
 }

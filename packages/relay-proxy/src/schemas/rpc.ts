@@ -259,6 +259,8 @@ export const gasWithdrawSchema = rpcEnvelope(
         .strict(),
 );
 
+export const faucetRequestSchema = rpcEnvelope('knot_faucetRequest', z.object({}).strict());
+
 /**
  * Extends the baseline UserOperation payload with proxy-specific routing metadata.
  *

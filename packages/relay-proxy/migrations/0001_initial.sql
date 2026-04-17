@@ -3,6 +3,7 @@ pragma foreign_keys = on;
 create table users (
   id text primary key,
   created_at integer not null,
+  faucet_consumed integer not null default 0 check (faucet_consumed in (0, 1)),
   status text not null check (status in ('active', 'revoked'))
 );
 

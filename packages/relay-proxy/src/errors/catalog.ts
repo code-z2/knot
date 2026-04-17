@@ -41,6 +41,11 @@ export const RPC_APP_ERRORS = {
         reason: 'file_too_large',
         status: 400,
     },
+    faucetAlreadyConsumed: {
+        code: -32000,
+        reason: 'faucet_already_consumed',
+        status: 400,
+    },
     invalidJsonrpcVersion: {
         code: -32600,
         reason: 'invalid_jsonrpc_version',

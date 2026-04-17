@@ -15,6 +15,7 @@ import { Hono } from 'hono';
 
 import { SUPPORTED_RPC_METHODS } from '@/constants';
 import { createChainRoutes } from '@/routes/chains';
+import { createFaucetRoutes } from '@/routes/faucet';
 import { createGasRoutes } from '@/routes/gas';
 import { createUserLoginRoutes } from '@/routes/login';
 import { createUserLogoutRoutes } from '@/routes/logout';
@@ -32,6 +33,7 @@ import type { AppBindings, CreateAppOptions } from '@/types';
  * /v1/user/login     — WebAuthn passkey authentication
  * /v1/user/logout    — Session revocation
  * /v1/chains         — Public chain metadata
+ * /v1/faucet         — One-shot testnet funding convenience
  * /v1/gas            — Gas tank balance, history, overdraft, withdraw
  * /v1/relay          — Submit ERC-4337 UserOperations (single or plan)
  * /v1/upload         — Signed image-upload URLs (Pinata)
@@ -67,6 +69,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.route('/v1/user/login', createUserLoginRoutes(options));
     app.route('/v1/user/logout', createUserLogoutRoutes(options));
     app.route('/v1/chains', createChainRoutes());
+    app.route('/v1/faucet', createFaucetRoutes(options));
     app.route('/v1/gas', createGasRoutes(options));
     app.route('/v1/relay', createRelayRoutes(options));
     app.route('/v1/upload', createUploadRoutes(options));

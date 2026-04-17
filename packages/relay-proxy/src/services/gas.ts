@@ -34,17 +34,17 @@ import type {
     ChainEnvironment,
     CloudflareBindings,
     CreateAppOptions,
+    DORequestHandler,
     GasClient,
     GasCollectionContext,
     GasProfileRecord,
     GasTankDebtMutationResult,
     GasTankDORecord,
-    GasTankDORequestHandler,
 } from '@/types';
 import {
+    doRequestHandler,
     encodeGasTankContractDeployment,
     encodeGasTankDebit,
-    gasTankDORequestHandler,
     getGasChain,
     getWithdrawTypedData,
     predictGasTankAddress,
@@ -53,7 +53,7 @@ import {
 
 function createGasConfig(
     bundler: BundlerClient,
-    requestHandler: GasTankDORequestHandler,
+    requestHandler: DORequestHandler,
     environment: ChainEnvironment,
     treasury: Address,
 ) {
@@ -227,42 +227,6 @@ function createGasRuntime(config: ReturnType<typeof createGasConfig>): GasClient
         return calls;
     };
 
-    const submitDebitCalls = async (calls: readonly Call[]) => {
-        const request = await config.bundler.prepareUserOperation({
-            calls: [...calls],
-            maxFeePerGas: 0n,
-            maxPriorityFeePerGas: 0n,
-            parameters: ['authorization', 'factory', 'gas', 'nonce', 'signature'],
-        });
-
-        const authorization = request.authorization
-            ? {
-                  authorization: await serverAccount.authorization.account.signAuthorization({
-                      address: request.authorization.address,
-                      chainId: request.authorization.chainId,
-                      nonce: request.authorization.nonce,
-                  }),
-              }
-            : {};
-
-        const signature = await serverAccount.signUserOperation({
-            ...request,
-            ...authorization,
-        });
-
-        const operation = formatUserOperationRequest({
-            ...request,
-            ...authorization,
-            signature,
-        });
-
-        const receipt = await config.bundler.sendUserOperationSync(operation, serverAccount.entryPoint.address);
-
-        if (!receipt.success) {
-            throw new Error('gas_tank_batch_submission_failed');
-        }
-    };
-
     return {
         ctx,
         encodeDebitCall,
@@ -271,7 +235,6 @@ function createGasRuntime(config: ReturnType<typeof createGasConfig>): GasClient
         getGasProvider,
         getGasTankAddress,
         getGasWithdrawalNonce,
-        submitDebitCalls,
         getRecord,
         admitExposure,
         decrementOutstandingDebt,
@@ -289,7 +252,7 @@ export function createGasClient(
     if (options.gasClient) {
         return options.gasClient;
     }
-    const requestHandler = gasTankDORequestHandler(env);
+    const requestHandler = doRequestHandler(env, 'GAS_TANK_DO');
     const config = createGasConfig(bundler, requestHandler, bundler.chain.environment, env.TREASURY_ADDRESS);
     return createGasRuntime(config);
 }

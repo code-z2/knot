@@ -149,20 +149,64 @@ function createGasEnv(input: { db: ReturnType<typeof createMockD1>; usageKV?: Re
     } as never;
 }
 
-function createBundler() {
+function createBundler(calls?: GasClientCalls) {
     return {
+        account: {
+            authorization: {
+                account: {
+                    async signAuthorization() {
+                        return {
+                            address: '0x9999999999999999999999999999999999999999',
+                            chainId: 8453,
+                            nonce: 0,
+                            r: '0x0',
+                            s: '0x0',
+                            yParity: 0,
+                        };
+                    },
+                },
+            },
+            entryPoint: {
+                address: '0x0000000071727de22e5e9d8baf0edac6f37da032',
+            },
+            async signUserOperation() {
+                return '0xsig';
+            },
+        },
         chain: {
             environment: 'mainnet',
             id: 8453,
         },
+        async prepareUserOperation(input: { calls: readonly Call[] }) {
+            calls?.submitDebitCalls.push(input.calls);
+            return {
+                callData: '0x',
+                callGasLimit: 1n,
+                maxFeePerGas: 0n,
+                maxPriorityFeePerGas: 0n,
+                nonce: 0n,
+                preVerificationGas: 1n,
+                sender: GAS_USER,
+                signature: '0x',
+                verificationGasLimit: 1n,
+            };
+        },
+        async sendUserOperationSync() {
+            return {
+                success: true,
+                userOpHash: '0xhash',
+            };
+        },
     } as unknown as BundlerClient;
 }
 
-function createGasClient(input: {
-    balance?: bigint;
-    gasProfile?: GasProfileRecord;
-    provider?: ReturnType<GasClient['getGasProvider']>;
-} = {}) {
+function createGasClient(
+    input: {
+        balance?: bigint;
+        gasProfile?: GasProfileRecord;
+        provider?: ReturnType<GasClient['getGasProvider']>;
+    } = {},
+) {
     const calls: GasClientCalls = {
         cosign: [],
         decrementOutstandingDebt: [],
@@ -290,11 +334,15 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas', {
-            method: 'POST',
-            headers: lowAuthHeaders(session.accessToken),
-            body: JSON.stringify(gasRpc('gas_status', 'knot_gasStatus', { environment: 'mainnet' })),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas',
+            {
+                method: 'POST',
+                headers: lowAuthHeaders(session.accessToken),
+                body: JSON.stringify(gasRpc('gas_status', 'knot_gasStatus', { environment: 'mainnet' })),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(200);
         expect(await readJson<RpcSuccess<Record<string, unknown>>>(response)).toEqual({
@@ -337,11 +385,15 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/history', {
-            method: 'POST',
-            headers: lowAuthHeaders(session.accessToken),
-            body: JSON.stringify(gasRpc('gas_history', 'knot_gasHistory', { window: '6m' })),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/history',
+            {
+                method: 'POST',
+                headers: lowAuthHeaders(session.accessToken),
+                body: JSON.stringify(gasRpc('gas_history', 'knot_gasHistory', { window: '6m' })),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(200);
         expect(await readJson<RpcSuccess<Record<string, unknown>>>(response)).toEqual({
@@ -372,11 +424,15 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/overdraft', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-enable'),
-            body: JSON.stringify(gasRpc('gas_overdraft_enable', 'knot_gasOverdraftUpdate', { action: 'enable' })),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/overdraft',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-enable'),
+                body: JSON.stringify(gasRpc('gas_overdraft_enable', 'knot_gasOverdraftUpdate', { action: 'enable' })),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(200);
         const body = await readJson<RpcSuccess<{ overdraftEnabled: boolean }>>(response);
@@ -390,11 +446,17 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/overdraft', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-ineligible'),
-            body: JSON.stringify(gasRpc('gas_overdraft_ineligible', 'knot_gasOverdraftUpdate', { action: 'enable' })),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/overdraft',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-ineligible'),
+                body: JSON.stringify(
+                    gasRpc('gas_overdraft_ineligible', 'knot_gasOverdraftUpdate', { action: 'enable' }),
+                ),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(400);
         expect(await readJson<RpcFailure>(response)).toEqual({
@@ -420,11 +482,15 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/overdraft', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-locked'),
-            body: JSON.stringify(gasRpc('gas_overdraft_locked', 'knot_gasOverdraftUpdate', { action: 'disable' })),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/overdraft',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-overdraft-locked'),
+                body: JSON.stringify(gasRpc('gas_overdraft_locked', 'knot_gasOverdraftUpdate', { action: 'disable' })),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(400);
         expect(await readJson<RpcFailure>(response)).toEqual({
@@ -445,21 +511,25 @@ describe('relay proxy gas routes', () => {
             gasProfile: createGasProfile(GAS_USER),
         });
         const { app } = createTestApp({
-            bundler: createBundler(),
+            bundler: createBundler(calls),
             gasClient,
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/withdraw', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-clean'),
-            body: JSON.stringify(
-                gasRpc('gas_withdraw_clean', 'knot_gasWithdraw', {
-                    deadline: 1_900_000_000,
-                    to: WITHDRAW_TO,
-                }),
-            ),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/withdraw',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-clean'),
+                body: JSON.stringify(
+                    gasRpc('gas_withdraw_clean', 'knot_gasWithdraw', {
+                        deadline: 1_900_000_000,
+                        to: WITHDRAW_TO,
+                    }),
+                ),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(200);
         expect(calls.encodeDebitCall).toEqual([]);
@@ -501,21 +571,25 @@ describe('relay proxy gas routes', () => {
             }),
         });
         const { app } = createTestApp({
-            bundler: createBundler(),
+            bundler: createBundler(calls),
             gasClient,
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/withdraw', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-collect'),
-            body: JSON.stringify(
-                gasRpc('gas_withdraw_collect', 'knot_gasWithdraw', {
-                    deadline: 1_900_000_000,
-                    to: WITHDRAW_TO,
-                }),
-            ),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/withdraw',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-collect'),
+                body: JSON.stringify(
+                    gasRpc('gas_withdraw_collect', 'knot_gasWithdraw', {
+                        deadline: 1_900_000_000,
+                        to: WITHDRAW_TO,
+                    }),
+                ),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(200);
         expect(calls.encodeDebitCall).toEqual([[GAS_USER, '0x4']]);
@@ -547,16 +621,20 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/withdraw', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-pending'),
-            body: JSON.stringify(
-                gasRpc('gas_withdraw_pending', 'knot_gasWithdraw', {
-                    deadline: 1_900_000_000,
-                    to: WITHDRAW_TO,
-                }),
-            ),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/withdraw',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-pending'),
+                body: JSON.stringify(
+                    gasRpc('gas_withdraw_pending', 'knot_gasWithdraw', {
+                        deadline: 1_900_000_000,
+                        to: WITHDRAW_TO,
+                    }),
+                ),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(400);
         expect(calls.encodeDebitCall).toEqual([[GAS_USER, '0x3']]);
@@ -586,16 +664,20 @@ describe('relay proxy gas routes', () => {
         });
         const session = await registerGasUser(app);
 
-        const response = await app.request('http://localhost/v1/gas/withdraw', {
-            method: 'POST',
-            headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-provider'),
-            body: JSON.stringify(
-                gasRpc('gas_withdraw_provider', 'knot_gasWithdraw', {
-                    deadline: 1_900_000_000,
-                    to: WITHDRAW_TO,
-                }),
-            ),
-        }, createGasEnv({ db }));
+        const response = await app.request(
+            'http://localhost/v1/gas/withdraw',
+            {
+                method: 'POST',
+                headers: highAuthHeaders(session.accessToken, session.appAttestKeyId, 'nonce-withdraw-provider'),
+                body: JSON.stringify(
+                    gasRpc('gas_withdraw_provider', 'knot_gasWithdraw', {
+                        deadline: 1_900_000_000,
+                        to: WITHDRAW_TO,
+                    }),
+                ),
+            },
+            createGasEnv({ db }),
+        );
 
         expect(response.status).toBe(400);
         expect(await readJson<RpcFailure>(response)).toEqual({

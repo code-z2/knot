@@ -1,20 +1,21 @@
 import {
     entryPoint09Abi,
     entryPoint09Address,
+    formatUserOperationRequest,
     getUserOperationHash,
     SmartAccountImplementation,
     toSmartAccount,
 } from 'viem/account-abstraction';
 
 import { EIP7702_FACTORY, KNOT_ACCOUNT_ABI } from '@/constants';
-import type { ToKnotAccountParameters } from '@/types';
+import type { BundlerClient, ToKnotAccountParameters } from '@/types';
 import {
     decodeKnotAccountExecution,
     encodeKnotAccountBatchExecution,
     encodeKnotAccountInitParams,
     encodeKnotAccountSingleExecution,
 } from '@/utils';
-import { Address, PublicClient } from 'viem';
+import { Address, Call, PublicClient } from 'viem';
 import { getChainId, getDelegation } from 'viem/actions';
 import { getAction } from 'viem/utils';
 
@@ -136,3 +137,41 @@ export function toKnotAccount(params: ToKnotAccountParameters) {
         },
     });
 }
+
+export const executeCalls = async (bundler: BundlerClient, calls: readonly Call[]) => {
+    const request = await bundler.prepareUserOperation({
+        calls: [...calls],
+        maxFeePerGas: 0n,
+        maxPriorityFeePerGas: 0n,
+        parameters: ['authorization', 'factory', 'gas', 'nonce', 'signature'],
+    });
+
+    const authorization = request.authorization
+        ? {
+              authorization: await bundler.account.authorization.account.signAuthorization({
+                  address: request.authorization.address,
+                  chainId: request.authorization.chainId,
+                  nonce: request.authorization.nonce,
+              }),
+          }
+        : {};
+
+    const signature = await bundler.account.signUserOperation({
+        ...request,
+        ...authorization,
+    });
+
+    const operation = formatUserOperationRequest({
+        ...request,
+        ...authorization,
+        signature,
+    });
+
+    const receipt = await bundler.sendUserOperationSync(operation, bundler.account.entryPoint.address);
+
+    if (!receipt.success) {
+        throw new Error('batch_submission_failed');
+    }
+
+    return receipt;
+};

@@ -15,6 +15,8 @@ export type CloudflareBindings = {
     AUTH_DB: D1Database;
     AUTH_KV: KVNamespace;
 
+    FAUCET_DO: DurableObjectNamespace;
+
     GAS_TANK_DO: DurableObjectNamespace;
     GAS_TANK_DB: D1Database;
     GAS_USAGE_KV: KVNamespace;

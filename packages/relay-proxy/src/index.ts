@@ -17,9 +17,11 @@
  */
 import type { AppBatchQueue, CloudflareBindings } from '@/types';
 import { consumeAnomalyBatch, consumeIntentExecutionBatch, sweepIntentExecutions } from '@/workers';
+import { FaucetDurableObject } from './durable-objects/faucet';
 import { GasAccountDurableObject } from './durable-objects/gas';
 import app from './app';
 
+export { FaucetDurableObject };
 export { GasAccountDurableObject };
 
 export default {

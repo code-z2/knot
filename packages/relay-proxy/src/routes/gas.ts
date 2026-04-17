@@ -37,6 +37,7 @@ import { createGasClient } from '@/services/gas';
 import { createGasProfileStore, createGasUsageStore } from '@/stores/gas';
 import type { AppBindings, CreateAppOptions } from '@/types';
 import { getGasChain, rpcAppError, rpcError, rpcResult, uint } from '@/utils';
+import { executeCalls } from '@/services/account';
 
 export function createGasRoutes(options: CreateAppOptions = {}) {
     const routes = new Hono<AppBindings>();
@@ -155,7 +156,7 @@ export function createGasRoutes(options: CreateAppOptions = {}) {
             if (!uint.isZero(collectibleUsdc)) {
                 const calls = await gasClient.encodeDebitCall(session.userId, collectibleUsdc);
 
-                await gasClient.submitDebitCalls(calls);
+                await executeCalls(bundler, calls);
                 await gasClient.decrementOutstandingDebt(session.userId, collectibleUsdc);
             }
 

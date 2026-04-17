@@ -1,4 +1,5 @@
 export const SUPPORTED_RPC_METHODS = [
+    'knot_faucetRequest',
     'knot_gasHistory',
     'knot_gasOverdraftUpdate',
     'knot_gasStatus',

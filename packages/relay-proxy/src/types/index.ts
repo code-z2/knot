@@ -4,6 +4,7 @@ export * from './app';
 export * from './auth';
 export * from './bundler';
 export * from './chain';
+export * from './durable-object';
 export * from './error';
 export * from './gas';
 export * from './intent-execution';
