@@ -5,8 +5,8 @@ import { RPC_APP_ERRORS } from '@/errors';
 import { auth } from '@/middleware/auth-handler';
 import { faucetRequestSchema, rpcHook } from '@/schemas/rpc';
 import { createFaucetStore } from '@/stores/faucet';
-import type { AppBindings, CreateAppOptions, FaucetDOResult } from '@/types';
-import { doRequestHandler, rpcAppError, rpcResult } from '@/utils';
+import type { AppBindings, CreateAppOptions, FaucetRequestDOResult } from '@/types';
+import { doRequestHandler, rpcAppError, rpcError, rpcResult } from '@/utils';
 
 export function createFaucetRoutes(options: CreateAppOptions = {}) {
     const routes = new Hono<AppBindings>();
@@ -22,11 +22,19 @@ export function createFaucetRoutes(options: CreateAppOptions = {}) {
 
         const makeDORequest = doRequestHandler(c.env, 'FAUCET_DO');
 
-        const result = await makeDORequest<FaucetDOResult>(session.userId, '/request', {
-            method: 'POST',
-        });
+        try {
+            const result = await makeDORequest<FaucetRequestDOResult>(session.userId, '/request', {
+                method: 'POST',
+            });
 
-        return c.json(rpcResult(rpc.id, result));
+            return c.json(rpcResult(rpc.id, result));
+        } catch (error) {
+            if (error instanceof Error && error.message === 'faucet_already_consumed') {
+                return rpcAppError(c, rpc.id, RPC_APP_ERRORS.faucetAlreadyConsumed);
+            }
+
+            return rpcError(c, rpc.id, -32603, error instanceof Error ? error.message : 'Internal error', 500);
+        }
     });
 
     return routes;

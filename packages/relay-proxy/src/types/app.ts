@@ -3,6 +3,7 @@ import type { AnomalyQueueMessage } from './anomaly';
 import type { AppAttestVerifier, AuthConfig, AuthStore, PasskeyVerifier, SessionRecord } from './auth';
 import type { BundlerClient } from './bundler';
 import type { ChainPolicyContext } from './chain';
+import type { FaucetQueueMessage } from './durable-object';
 import type { GasClient } from './gas';
 import type { IntentExecutionQueueMessage } from './intent-execution';
 import type { RelayQuoteContext } from './relay';
@@ -16,6 +17,7 @@ export type CloudflareBindings = {
     AUTH_KV: KVNamespace;
 
     FAUCET_DO: DurableObjectNamespace;
+    FAUCET_QUEUE: Queue<FaucetQueueMessage>;
 
     GAS_TANK_DO: DurableObjectNamespace;
     GAS_TANK_DB: D1Database;
@@ -95,6 +97,9 @@ export type AppBindings = {
 export type AppBatchQueue =
     | (MessageBatch<AnomalyQueueMessage> & {
           readonly queue: 'anomaly-queue';
+      })
+    | (MessageBatch<FaucetQueueMessage> & {
+          readonly queue: 'faucet-queue';
       })
     | (MessageBatch<IntentExecutionQueueMessage> & {
           readonly queue: 'intent-execution-queue';

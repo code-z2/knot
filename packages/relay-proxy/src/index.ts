@@ -3,8 +3,9 @@
  * relay-proxy's runtime surface.
  *
  * - **fetch**: All HTTP traffic routes through the Hono app ({@link app}).
- * - **queue**: Processes two CF Queue bindings in a shared consumer.
+ * - **queue**: Processes CF Queue bindings in a shared consumer.
  *   `anomaly-queue` messages are Discord webhook notifications;
+ *   `faucet-queue` messages trigger fire-and-forget testnet funding;
  *   `intent-execution-queue` messages are deferred ERC-4337 operations
  *   that couldn't be submitted synchronously during the relay flow.
  *   The exhaustive switch guarantees a compile error if a new queue is
@@ -16,7 +17,7 @@
  * @module
  */
 import type { AppBatchQueue, CloudflareBindings } from '@/types';
-import { consumeAnomalyBatch, consumeIntentExecutionBatch, sweepIntentExecutions } from '@/workers';
+import { consumeAnomalyBatch, consumeFaucetBatch, consumeIntentExecutionBatch, sweepIntentExecutions } from '@/workers';
 import { FaucetDurableObject } from './durable-objects/faucet';
 import { GasAccountDurableObject } from './durable-objects/gas';
 import app from './app';
@@ -33,6 +34,9 @@ export default {
         switch (batch.queue) {
             case 'anomaly-queue':
                 await consumeAnomalyBatch(batch, env);
+                break;
+            case 'faucet-queue':
+                await consumeFaucetBatch(batch, env);
                 break;
             case 'intent-execution-queue':
                 await consumeIntentExecutionBatch(batch, env);

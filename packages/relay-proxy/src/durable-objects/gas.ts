@@ -1,4 +1,3 @@
-import { GAS_TANK_DO_KEY } from '@/constants';
 import { createGasProfileStore } from '@/stores/gas';
 import type { CloudflareBindings, GasProfileRecord } from '@/types';
 import { uint, withError, withResponse } from '@/utils';
@@ -29,13 +28,15 @@ import { Hex } from 'viem';
  * logic but does mean the switch cases must remain adjacent.
  */
 export class GasAccountDurableObject {
+    private static readonly DO_KEY = 'gas-tank:do';
+
     constructor(
         private readonly ctx: DurableObjectState,
         private readonly env: Pick<CloudflareBindings, 'GAS_TANK_DB'>,
     ) {}
 
     private async getRecord(): Promise<Record<'pendingExposureUsdc', uint>> {
-        const record = await this.ctx.storage.get<Record<'pendingExposureUsdc', Hex>>(GAS_TANK_DO_KEY);
+        const record = await this.ctx.storage.get<Record<'pendingExposureUsdc', Hex>>(GasAccountDurableObject.DO_KEY);
         return {
             pendingExposureUsdc: uint(record?.pendingExposureUsdc ?? uint.zero.hex),
         };
@@ -98,7 +99,7 @@ export class GasAccountDurableObject {
                         ...record,
                         pendingExposureUsdc: uint.add(record.pendingExposureUsdc, amountUsdc ?? uint(body as Hex)).hex,
                     };
-                    await this.ctx.storage.put(GAS_TANK_DO_KEY, copy);
+                    await this.ctx.storage.put(GasAccountDurableObject.DO_KEY, copy);
                     return withResponse(copy);
                 }
                 case '/pending-exposure/decrement': {
@@ -106,7 +107,7 @@ export class GasAccountDurableObject {
                         ...record,
                         pendingExposureUsdc: uint.sub(record.pendingExposureUsdc, uint(body as Hex)).hex,
                     };
-                    await this.ctx.storage.put(GAS_TANK_DO_KEY, copy);
+                    await this.ctx.storage.put(GasAccountDurableObject.DO_KEY, copy);
                     return withResponse(copy);
                 }
                 case '/outstanding-debt/increment': {

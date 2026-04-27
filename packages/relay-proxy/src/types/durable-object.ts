@@ -12,8 +12,15 @@ export type DOResponse<Result> =
           reason: string;
       };
 
-export type FaucetDOResult = {
-    funded: boolean;
+export type FaucetQueueMessage = string;
+
+export type FaucetRequestDOResult = {
+    accepted: true;
+    queued: boolean;
+};
+
+export type FaucetFundDOResult = {
+    status: 'fulfilled' | 'partial';
     hashes: Record<number, Hex>;
 };
 

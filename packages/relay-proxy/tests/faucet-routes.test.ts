@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { FaucetDurableObject } from '../src/durable-objects/faucet';
-import type { DOResponse, FaucetDOResult, RpcFailure, RpcSuccess } from '../src/types';
+import type { DOResponse, FaucetFundDOResult, FaucetRequestDOResult, RpcFailure, RpcSuccess } from '../src/types';
 import { createTestApp } from './helpers/app';
 import { registerUser } from './helpers/auth-flow';
 import { jsonHeaders, readJson } from './helpers/http';
@@ -84,7 +84,7 @@ function createUserD1(initialConsumed = false) {
     };
 }
 
-function createFaucetDO(response: DOResponse<FaucetDOResult>) {
+function createFaucetDO(response: DOResponse<FaucetRequestDOResult>) {
     const calls: string[] = [];
 
     return {
@@ -106,10 +106,18 @@ function createFaucetDO(response: DOResponse<FaucetDOResult>) {
 }
 
 function createFaucetEnv(input: { db: ReturnType<typeof createUserD1>; faucetDO?: ReturnType<typeof createFaucetDO> }) {
+    const queueMessages: string[] = [];
+
     return {
         AUTH_DB: input.db as unknown as D1Database,
         AUTH_KV: {} as never,
         FAUCET_DO: (input.faucetDO?.namespace ?? {}) as unknown as DurableObjectNamespace,
+        FAUCET_QUEUE: {
+            async send(body: string) {
+                queueMessages.push(body);
+            },
+        } as never,
+        _queueMessages: queueMessages,
     } as never;
 }
 
@@ -139,8 +147,8 @@ describe('relay proxy faucet route', () => {
         const faucetDO = createFaucetDO({
             ok: true,
             result: {
-                funded: true,
-                hashes: { 84532: '0x1' },
+                accepted: true,
+                queued: true,
             },
         });
         const { app } = createTestApp();
@@ -170,8 +178,8 @@ describe('relay proxy faucet route', () => {
         const faucetDO = createFaucetDO({
             ok: true,
             result: {
-                funded: true,
-                hashes: { 84532: '0xfacade' },
+                accepted: true,
+                queued: true,
             },
         });
         const { app } = createTestApp();
@@ -193,8 +201,8 @@ describe('relay proxy faucet route', () => {
             id: 'faucet_request',
             jsonrpc: '2.0',
             result: {
-                funded: true,
-                hashes: { 84532: '0xfacade' },
+                accepted: true,
+                queued: true,
             },
         });
     });
@@ -204,8 +212,8 @@ describe('relay proxy faucet route', () => {
         const faucetDO = createFaucetDO({
             ok: true,
             result: {
-                funded: true,
-                hashes: { 84532: '0xfacade' },
+                accepted: true,
+                queued: true,
             },
         });
         const { app } = createTestApp();
@@ -232,9 +240,10 @@ describe('relay proxy faucet route', () => {
 });
 
 describe('Faucet Durable Object', () => {
-    it('consumes the D1 boolean before best-effort funding', async () => {
+    it('consumes the D1 boolean and enqueues funding on request', async () => {
         const db = createUserD1(false);
-        const faucet = new FaucetDurableObject({} as never, createFaucetEnv({ db }) as never);
+        const env = createFaucetEnv({ db });
+        const faucet = new FaucetDurableObject({} as never, env as never);
 
         const response = await withSilencedConsoleError(() =>
             faucet.fetch(
@@ -246,15 +255,16 @@ describe('Faucet Durable Object', () => {
 
         expect(response.status).toBe(200);
         expect(db.users.get(FAUCET_USER)?.faucetConsumed).toBe(1);
-        const body = (await response.json()) as DOResponse<FaucetDOResult>;
+        const body = (await response.json()) as DOResponse<FaucetRequestDOResult>;
 
         expect(body).toEqual({
             ok: true,
             result: {
-                funded: false,
-                hashes: {},
+                accepted: true,
+                queued: true,
             },
         });
+        expect((env as unknown as { _queueMessages: string[] })._queueMessages).toEqual([FAUCET_USER]);
     });
 
     it('allows only one consume attempt for concurrent requests', async () => {
@@ -268,7 +278,7 @@ describe('Faucet Durable Object', () => {
             );
 
         const [first, second] = await withSilencedConsoleError(() => Promise.all([request(), request()]));
-        const results = (await Promise.all([first.json(), second.json()])) as DOResponse<FaucetDOResult>[];
+        const results = (await Promise.all([first.json(), second.json()])) as DOResponse<FaucetRequestDOResult>[];
 
         expect(results.filter((result) => result.ok === true)).toHaveLength(1);
         expect(results.filter((result) => result.ok === false)).toEqual([
@@ -278,5 +288,53 @@ describe('Faucet Durable Object', () => {
             },
         ]);
         expect(db.users.get(FAUCET_USER)?.faucetConsumed).toBe(1);
+    });
+
+    it('uses DO storage to enforce one-time funding execution', async () => {
+        const db = createUserD1(true);
+        const env = createFaucetEnv({ db });
+        const storageData = new Map<string, unknown>();
+        const faucet = new FaucetDurableObject(
+            {
+                storage: {
+                    async get(key: string) {
+                        return storageData.get(key);
+                    },
+                    async put(key: string, value: unknown) {
+                        storageData.set(key, value);
+                    },
+                },
+            } as never,
+            env as never,
+        );
+
+        const first = await withSilencedConsoleError(() =>
+            faucet.fetch(
+                new Request(`https://faucet.local/fund?userId=${FAUCET_USER}`, {
+                    method: 'POST',
+                }),
+            ),
+        );
+        const second = await withSilencedConsoleError(() =>
+            faucet.fetch(
+                new Request(`https://faucet.local/fund?userId=${FAUCET_USER}`, {
+                    method: 'POST',
+                }),
+            ),
+        );
+
+        expect((await first.json()) as DOResponse<FaucetFundDOResult>).toMatchObject({
+            ok: true,
+            result: {
+                status: 'partial',
+            },
+        });
+        expect((await second.json()) as DOResponse<FaucetFundDOResult>).toEqual({
+            ok: true,
+            result: {
+                status: 'fulfilled',
+                hashes: {},
+            },
+        });
     });
 });
